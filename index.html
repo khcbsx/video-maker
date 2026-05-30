@@ -10,850 +10,462 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.11.0/ffmpeg.min.js"></script>
 <script src="./coi-serviceworker.js"></script>
 <style>
-/* ============================================================
-   RESET & BASE
-============================================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg-base:    #0a0a0f;
-  --bg-panel:   #111118;
-  --bg-card:    #1a1a24;
-  --bg-hover:   #22223a;
-  --border:     #2a2a3d;
-  --border-bright: #3d3d5c;
-  --purple:     #a855f7;
-  --purple-dim: #7c3aed;
-  --pink:       #ec4899;
-  --orange:     #f97316;
-  --gold:       #fbbf24;
-  --green:      #10b981;
-  --red:        #ef4444;
-  --blue:       #3b82f6;
-  --text-1:     #f1f1f5;
-  --text-2:     #a0a0b8;
-  --text-3:     #606078;
-  --grad-main:  linear-gradient(135deg, #a855f7, #ec4899);
-  --grad-gold:  linear-gradient(135deg, #f97316, #fbbf24);
-  --grad-green: linear-gradient(135deg, #10b981, #059669);
-  --shadow-lg:  0 20px 60px rgba(0,0,0,.6);
-  --radius:     12px;
-  --radius-sm:  8px;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-base:#0a0a0f;--bg-panel:#111118;--bg-card:#1a1a24;--bg-hover:#22223a;
+  --border:#2a2a3d;--border-bright:#3d3d5c;
+  --purple:#a855f7;--purple-dim:#7c3aed;--pink:#ec4899;
+  --orange:#f97316;--gold:#fbbf24;--green:#10b981;--red:#ef4444;--blue:#3b82f6;
+  --text-1:#f1f1f5;--text-2:#a0a0b8;--text-3:#606078;
+  --grad-main:linear-gradient(135deg,#a855f7,#ec4899);
+  --grad-gold:linear-gradient(135deg,#f97316,#fbbf24);
+  --grad-green:linear-gradient(135deg,#10b981,#059669);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.6);
+  --radius:12px;--radius-sm:8px;
 }
-html { scroll-behavior: smooth; }
-body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg-base);
-  color: var(--text-1);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg-base);color:var(--text-1);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg-panel)}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:99px}
 
-/* ============================================================
-   SCROLLBAR
-============================================================ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-panel); }
-::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 99px; }
+/* HEADER */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;background:rgba(17,17,24,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;
+}
+.app-logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;
+  background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-logo .logo-icon{font-size:20px;-webkit-text-fill-color:initial}
+.app-badge{font-size:10px;font-weight:700;padding:2px 8px;
+  background:var(--grad-gold);color:#000;border-radius:99px;-webkit-text-fill-color:#000}
+.header-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);
+  background:var(--bg-card);padding:6px 12px;border-radius:99px;border:1px solid var(--border)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ============================================================
-   HEADER
-============================================================ */
-.app-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 28px;
-  background: rgba(17,17,24,.95);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  position: sticky; top: 0; z-index: 100;
-}
-.app-logo {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 17px; font-weight: 800;
-  background: var(--grad-main);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.app-logo .logo-icon { font-size: 22px; -webkit-text-fill-color: initial; }
-.app-badge {
-  font-size: 10px; font-weight: 700; padding: 2px 8px;
-  background: var(--grad-gold); color: #000;
-  border-radius: 99px; letter-spacing: .5px;
-  -webkit-text-fill-color: #000;
-}
-.header-right { display: flex; align-items: center; gap: 10px; }
-.header-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--text-2);
-  background: var(--bg-card); padding: 6px 12px;
-  border-radius: 99px; border: 1px solid var(--border);
-}
-.status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 8px var(--green);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* LAYOUT */
+.app-body{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 53px);overflow:hidden}
 
-/* ============================================================
-   MAIN LAYOUT
-============================================================ */
-.app-body {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 0;
-  height: calc(100vh - 57px);
-  overflow: hidden;
-}
+/* LEFT PANEL */
+.left-panel{background:var(--bg-panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+.panel-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-tab{padding:12px 8px;text-align:center;font-size:11px;font-weight:600;
+  color:var(--text-3);cursor:pointer;transition:all .2s;
+  border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px}
+.panel-tab:hover{color:var(--text-2);background:var(--bg-hover)}
+.panel-tab.active{color:var(--purple);border-bottom-color:var(--purple);background:rgba(168,85,247,.06)}
+.panel-tab .material-icons{font-size:15px}
+.panel-content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-content.hidden{display:none}
 
-/* ============================================================
-   LEFT PANEL
-============================================================ */
-.left-panel {
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.panel-tabs {
-  display: grid; grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.panel-tab {
-  padding: 14px 10px;
-  text-align: center;
-  font-size: 12px; font-weight: 600;
-  color: var(--text-3);
-  cursor: pointer;
-  transition: all .2s;
-  border-bottom: 2px solid transparent;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.panel-tab:hover { color: var(--text-2); background: var(--bg-hover); }
-.panel-tab.active {
-  color: var(--purple);
-  border-bottom-color: var(--purple);
-  background: rgba(168,85,247,.06);
-}
-.panel-tab .material-icons { font-size: 16px; }
+/* DROP ZONES */
+.drop-section{display:flex;flex-direction:column;gap:5px}
+.drop-label-row{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+  color:var(--text-2);text-transform:uppercase;letter-spacing:.8px}
+.drop-label-row .material-icons{font-size:13px;color:var(--purple)}
+.drop-zone{border:1.5px dashed var(--border-bright);border-radius:var(--radius);
+  padding:16px 12px;text-align:center;cursor:pointer;transition:all .25s;
+  background:var(--bg-card);position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--purple);background:rgba(168,85,247,.08)}
+.drop-zone.file-ok{border-color:var(--green);background:rgba(16,185,129,.06);border-style:solid}
+.dz-icon{font-size:22px;line-height:1}
+.dz-text{font-size:11px;font-weight:600;color:var(--text-2)}
+.dz-sub{font-size:10px;color:var(--text-3)}
+.dz-name{font-size:10px;color:var(--green);font-weight:600;word-break:break-all;max-width:100%}
+.img-badge{display:none;align-items:center;gap:3px;background:var(--grad-main);
+  color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:2px}
+.img-badge.show{display:inline-flex}
 
-.panel-content {
-  flex: 1; overflow-y: auto;
-  padding: 18px;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.panel-content.hidden { display: none; }
+/* PANEL DIVIDER */
+.pdiv{height:1px;background:var(--border);margin:2px 0}
 
-/* Drop zones */
-.drop-section { display: flex; flex-direction: column; gap: 6px; }
-.drop-label-row {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; color: var(--text-2);
-  text-transform: uppercase; letter-spacing: .8px;
-}
-.drop-label-row .material-icons { font-size: 14px; color: var(--purple); }
+/* BUTTONS */
+.btn-primary{display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:12px 16px;border-radius:var(--radius);font-size:12px;font-weight:700;
+  background:var(--grad-main);color:#fff;border:none;cursor:pointer;
+  transition:all .2s;width:100%;box-shadow:0 4px 16px rgba(168,85,247,.3)}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(168,85,247,.45)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-primary .material-icons{font-size:17px}
+.btn-secondary{display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 14px;border-radius:var(--radius);font-size:11px;font-weight:600;
+  background:var(--bg-hover);color:var(--text-2);border:1px solid var(--border-bright);
+  cursor:pointer;transition:all .2s;width:100%}
+.btn-secondary:hover{border-color:var(--purple);color:var(--purple)}
+.btn-secondary .material-icons{font-size:15px}
 
-.drop-zone {
-  border: 1.5px dashed var(--border-bright);
-  border-radius: var(--radius);
-  padding: 18px 14px;
-  text-align: center;
-  cursor: pointer;
-  transition: all .25s;
-  background: var(--bg-card);
-  position: relative;
-  min-height: 80px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px;
-}
-.drop-zone input[type=file] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer;
-}
-.drop-zone:hover, .drop-zone.drag-over {
-  border-color: var(--purple);
-  background: rgba(168,85,247,.08);
-  transform: translateY(-1px);
-}
-.drop-zone.file-ok {
-  border-color: var(--green);
-  background: rgba(16,185,129,.06);
-  border-style: solid;
-}
-.drop-zone-icon { font-size: 26px; line-height: 1; }
-.drop-zone-text { font-size: 12px; font-weight: 600; color: var(--text-2); }
-.drop-zone-sub { font-size: 10px; color: var(--text-3); }
-.drop-zone-filename {
-  font-size: 11px; color: var(--green); font-weight: 600;
-  word-break: break-all; max-width: 100%;
-  display: flex; align-items: center; gap-4px;
-}
+/* PROGRESS LOG */
+.progress-log{background:var(--bg-base);border-radius:var(--radius-sm);
+  border:1px solid var(--border);padding:10px;max-height:180px;overflow-y:auto;display:none}
+.progress-log.visible{display:block}
+.log-title{font-size:10px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.log-item{display:flex;align-items:flex-start;gap:5px;font-size:10px;
+  padding:3px 0;border-bottom:1px solid var(--border);color:var(--text-2);line-height:1.4}
+.log-item:last-child{border-bottom:none}
+.log-item .material-icons{font-size:12px;flex-shrink:0;margin-top:1px}
+.log-item.active{color:var(--purple)}.log-item.done{color:var(--green)}.log-item.error{color:var(--red)}
+.prog-bar-wrap{background:var(--bg-base);border-radius:99px;height:5px;overflow:hidden;border:1px solid var(--border)}
+.prog-bar{height:100%;border-radius:99px;background:var(--grad-main);width:0%;transition:width .4s;
+  box-shadow:0 0 8px rgba(168,85,247,.5)}
 
-/* Image upload zone special */
-.drop-zone-images {
-  min-height: 100px;
-}
-.img-count-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: var(--grad-main); color: white;
-  font-size: 11px; font-weight: 700;
-  padding: 3px 10px; border-radius: 99px; margin-top: 4px;
-}
+/* RIGHT PANEL */
+.right-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg-base)}
+.right-toolbar{display:flex;align-items:center;gap:8px;padding:10px 18px;
+  background:var(--bg-panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.toolbar-title{font-size:13px;font-weight:700;color:var(--text-1);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toolbar-meta{font-size:10px;color:var(--text-3);white-space:nowrap}
+.btn-dl-all{display:flex;align-items:center;gap:5px;padding:7px 14px;
+  border-radius:var(--radius-sm);background:var(--grad-green);color:#fff;
+  font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .2s;
+  box-shadow:0 2px 10px rgba(16,185,129,.3);white-space:nowrap}
+.btn-dl-all:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 16px rgba(16,185,129,.45)}
+.btn-dl-all:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-dl-all .material-icons{font-size:15px}
+.btn-icon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+  border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border);
+  color:var(--text-2);cursor:pointer;transition:all .2s;flex-shrink:0}
+.btn-icon:hover{border-color:var(--purple);color:var(--purple)}
+.btn-icon .material-icons{font-size:15px}
 
-/* Divider */
-.panel-divider {
-  height: 1px; background: var(--border); margin: 4px 0;
-}
+/* PREVIEW AREA */
+.preview-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
 
-/* Action buttons in panel */
-.btn-primary {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 13px 20px; border-radius: var(--radius);
-  font-size: 13px; font-weight: 700;
-  background: var(--grad-main);
-  color: white; border: none; cursor: pointer;
-  transition: all .2s; width: 100%;
-  box-shadow: 0 4px 20px rgba(168,85,247,.3);
-}
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(168,85,247,.45);
-}
-.btn-primary:disabled {
-  opacity: .4; cursor: not-allowed; transform: none;
-}
-.btn-primary .material-icons { font-size: 18px; }
+/* WELCOME */
+.welcome-screen{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;text-align:center;padding:40px}
+.welcome-icon{font-size:56px;opacity:.25}
+.welcome-title{font-size:18px;font-weight:700;color:var(--text-2)}
+.welcome-sub{font-size:12px;color:var(--text-3);max-width:320px;line-height:1.7}
+.welcome-steps{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+.welcome-step{display:flex;align-items:center;gap:5px;background:var(--bg-card);
+  border:1px solid var(--border);border-radius:99px;padding:5px 12px;font-size:11px;color:var(--text-2)}
+.welcome-step .num{width:16px;height:16px;border-radius:50%;background:var(--grad-main);
+  color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
-.btn-secondary {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 16px; border-radius: var(--radius);
-  font-size: 12px; font-weight: 600;
-  background: var(--bg-hover);
-  color: var(--text-2); border: 1px solid var(--border-bright);
-  cursor: pointer; transition: all .2s; width: 100%;
-}
-.btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
-.btn-secondary .material-icons { font-size: 16px; }
+/* PLAYER */
+.player-card{background:var(--bg-card);border-radius:var(--radius);
+  border:1px solid var(--border);overflow:hidden;display:none}
+.player-header{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-bottom:1px solid var(--border)}
+.player-title{font-size:12px;font-weight:700;color:var(--text-1)}
+.player-badge{font-size:10px;font-weight:700;padding:2px 8px;
+  background:rgba(168,85,247,.2);color:var(--purple);
+  border:1px solid rgba(168,85,247,.3);border-radius:99px}
+.player-video-wrap{position:relative;background:#000;aspect-ratio:16/9;width:100%}
+.player-video-wrap video{width:100%;height:100%;display:block}
+.player-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;color:var(--text-3);
+  background:#000;pointer-events:none}
+.player-placeholder .material-icons{font-size:40px;opacity:.2}
+.player-placeholder p{font-size:12px}
+.player-controls{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-top:1px solid var(--border)}
+.player-time{font-size:11px;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.player-scrubber{flex:1;height:4px;border-radius:99px;background:var(--border);
+  cursor:pointer;appearance:none;outline:none}
+.player-scrubber::-webkit-slider-thumb{appearance:none;width:12px;height:12px;
+  border-radius:50%;background:var(--purple);box-shadow:0 0 6px rgba(168,85,247,.6);cursor:pointer}
+.ctrl-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+  border-radius:50%;background:var(--bg-hover);border:1px solid var(--border);
+  color:var(--text-1);cursor:pointer;transition:all .2s}
+.ctrl-btn:hover{background:var(--purple);border-color:var(--purple)}
+.ctrl-btn.play-btn{width:38px;height:38px;background:var(--grad-main);border:none;
+  box-shadow:0 3px 12px rgba(168,85,247,.4)}
+.ctrl-btn .material-icons{font-size:16px}
 
-/* Progress log in panel */
-.progress-log {
-  background: var(--bg-base); border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  padding: 12px; max-height: 200px; overflow-y: auto;
-  display: none;
-}
-.progress-log.visible { display: block; }
-.log-title {
-  font-size: 10px; font-weight: 700; color: var(--text-3);
-  text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px;
-}
-.log-item {
-  display: flex; align-items: flex-start; gap: 6px;
-  font-size: 11px; padding: 4px 0;
-  border-bottom: 1px solid var(--border); color: var(--text-2);
-}
-.log-item:last-child { border-bottom: none; }
-.log-item .material-icons { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
-.log-item.active { color: var(--purple); }
-.log-item.done { color: var(--green); }
-.log-item.error { color: var(--red); }
+/* SEGMENTS */
+.segments-section{display:flex;flex-direction:column;gap:10px}
+.segments-header{display:flex;align-items:center;justify-content:space-between}
+.segments-title{font-size:12px;font-weight:700;color:var(--text-1);
+  display:flex;align-items:center;gap:5px}
+.segments-title .material-icons{font-size:15px;color:var(--orange)}
+.segments-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.segment-card{background:var(--bg-card);border-radius:var(--radius);
+  border:1px solid var(--border);overflow:hidden;transition:all .2s}
+.segment-card:hover{border-color:var(--border-bright);transform:translateY(-2px)}
+.segment-thumb{aspect-ratio:16/9;background:#000;position:relative;cursor:pointer;overflow:hidden}
+.segment-thumb video{width:100%;height:100%;display:block;object-fit:cover}
+.seg-thumb-ph{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(135deg,#1a1a24,#0f0f18)}
+.seg-thumb-num{font-size:24px;font-weight:800;background:var(--grad-gold);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.seg-play-ov{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s}
+.segment-thumb:hover .seg-play-ov{opacity:1}
+.seg-play-ov .material-icons{font-size:36px;color:#fff;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.8))}
+.seg-dur{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(4px);color:#fff;font-size:9px;font-weight:700;
+  padding:2px 5px;border-radius:4px}
+.seg-info{padding:8px 10px}
+.seg-name{font-size:11px;font-weight:700;color:var(--text-1);margin-bottom:1px}
+.seg-time{font-size:10px;color:var(--text-3)}
+.seg-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:0 8px 8px}
+.seg-btn{display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:6px 8px;border-radius:var(--radius-sm);font-size:10px;font-weight:600;
+  cursor:pointer;transition:all .2s;border:none}
+.seg-btn-edit{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3)}
+.seg-btn-edit:hover{background:rgba(249,115,22,.28)}
+.seg-btn-dl{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.seg-btn-dl:hover{background:rgba(16,185,129,.28)}
+.seg-btn-dl:disabled{opacity:.4;cursor:not-allowed}
+.seg-btn .material-icons{font-size:12px}
 
-/* Progress bar */
-.prog-bar-wrap {
-  background: var(--bg-base); border-radius: 99px;
-  height: 6px; overflow: hidden;
-  border: 1px solid var(--border);
-}
-.prog-bar {
-  height: 100%; border-radius: 99px;
-  background: var(--grad-main);
-  width: 0%; transition: width .4s;
-  box-shadow: 0 0 10px rgba(168,85,247,.5);
-}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);
+  backdrop-filter:blur(8px);z-index:1000;display:none;
+  align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-panel);border-radius:16px;border:1px solid var(--border-bright);
+  width:100%;max-width:660px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--bg-panel);z-index:1}
+.modal-title{font-size:14px;font-weight:700;color:var(--text-1)}
+.modal-close{width:30px;height:30px;border-radius:50%;background:var(--bg-hover);
+  border:1px solid var(--border);color:var(--text-2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.modal-close .material-icons{font-size:15px}
+.modal-body{padding:16px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;padding:14px 18px;
+  border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--bg-panel)}
+.scene-edit-list{display:flex;flex-direction:column;gap:8px}
+.scene-edit-item{display:grid;grid-template-columns:90px 1fr auto;gap:10px;
+  align-items:center;background:var(--bg-card);border-radius:var(--radius-sm);
+  border:1px solid var(--border);padding:8px;transition:border-color .2s}
+.scene-edit-item.changed{border-color:rgba(249,115,22,.5)}
+.scene-edit-thumb{width:90px;height:50px;border-radius:5px;object-fit:cover;
+  background:#000;border:2px solid var(--border)}
+.scene-edit-thumb.changed{border-color:var(--orange)}
+.scene-edit-info{min-width:0}
+.scene-edit-name{font-size:10px;font-weight:600;color:var(--text-1);word-break:break-all}
+.scene-edit-time{font-size:9px;color:var(--text-3);margin-top:2px}
+.scene-edit-status{font-size:9px;font-weight:600;margin-top:3px;
+  display:flex;align-items:center;gap:2px}
+.scene-edit-status.ok{color:var(--green)}.scene-edit-status.changed{color:var(--orange)}
+.scene-replace-btn{display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 10px;border-radius:var(--radius-sm);background:var(--bg-hover);
+  border:1px solid var(--border);color:var(--text-2);cursor:pointer;
+  font-size:9px;font-weight:600;transition:all .2s;position:relative;white-space:nowrap}
+.scene-replace-btn:hover{border-color:var(--orange);color:var(--orange)}
+.scene-replace-btn .material-icons{font-size:16px}
+.scene-replace-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.btn-render-seg{display:flex;align-items:center;gap:5px;padding:9px 18px;
+  border-radius:var(--radius-sm);background:var(--grad-gold);color:#000;
+  font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .2s}
+.btn-render-seg:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 16px rgba(249,115,22,.4)}
+.btn-render-seg:disabled{opacity:.4;cursor:not-allowed}
+.btn-render-seg .material-icons{font-size:15px}
+.btn-cancel{display:flex;align-items:center;gap:5px;padding:9px 14px;
+  border-radius:var(--radius-sm);background:var(--bg-hover);
+  border:1px solid var(--border);color:var(--text-2);font-size:11px;
+  font-weight:600;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:var(--red);color:var(--red)}
 
-/* ============================================================
-   RIGHT PANEL
-============================================================ */
-.right-panel {
-  display: flex; flex-direction: column;
-  overflow: hidden; background: var(--bg-base);
-}
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#2d0f0f;
+  border:1px solid var(--red);border-radius:var(--radius);padding:12px 16px;
+  color:#fca5a5;font-size:12px;z-index:9999;max-width:360px;
+  box-shadow:var(--shadow-lg);display:none;align-items:flex-start;gap:8px}
+.toast.open{display:flex}
+.toast .material-icons{font-size:16px;flex-shrink:0;color:var(--red);margin-top:1px}
 
-/* Top toolbar */
-.right-toolbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 20px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.toolbar-title {
-  font-size: 13px; font-weight: 700; color: var(--text-1);
-  flex: 1;
-}
-.toolbar-meta { font-size: 11px; color: var(--text-3); }
-.btn-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: var(--radius-sm);
-  background: var(--bg-card); border: 1px solid var(--border);
-  color: var(--text-2); cursor: pointer; transition: all .2s;
-}
-.btn-icon:hover { border-color: var(--purple); color: var(--purple); }
-.btn-icon .material-icons { font-size: 16px; }
-
-.btn-download-all {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: var(--radius-sm);
-  background: var(--grad-green); color: white;
-  font-size: 12px; font-weight: 700; border: none;
-  cursor: pointer; transition: all .2s;
-  box-shadow: 0 2px 12px rgba(16,185,129,.3);
-}
-.btn-download-all:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(16,185,129,.45); }
-.btn-download-all:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-.btn-download-all .material-icons { font-size: 16px; }
-
-/* Preview area */
-.preview-area {
-  flex: 1; overflow-y: auto;
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 20px;
-}
-
-/* Welcome screen */
-.welcome-screen {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; text-align: center; padding: 40px;
-}
-.welcome-icon { font-size: 64px; opacity: .3; }
-.welcome-title { font-size: 20px; font-weight: 700; color: var(--text-2); }
-.welcome-sub { font-size: 13px; color: var(--text-3); max-width: 360px; line-height: 1.6; }
-.welcome-steps {
-  display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;
-  justify-content: center;
-}
-.welcome-step {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 99px; padding: 6px 14px;
-  font-size: 12px; color: var(--text-2);
-}
-.welcome-step .num {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--grad-main); color: white;
-  font-size: 10px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
-
-/* Preview player */
-.player-card {
-  background: var(--bg-card); border-radius: var(--radius);
-  border: 1px solid var(--border); overflow: hidden;
-}
-.player-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.player-title { font-size: 13px; font-weight: 700; color: var(--text-1); }
-.player-badge {
-  font-size: 10px; font-weight: 700; padding: 2px 8px;
-  background: rgba(168,85,247,.2); color: var(--purple);
-  border: 1px solid rgba(168,85,247,.3); border-radius: 99px;
-}
-.player-video-wrap {
-  position: relative; background: #000;
-  aspect-ratio: 16/9; width: 100%;
-}
-.player-video-wrap video {
-  width: 100%; height: 100%; display: block;
-}
-.player-placeholder {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px;
-  color: var(--text-3);
-}
-.player-placeholder .material-icons { font-size: 48px; opacity: .3; }
-.player-placeholder p { font-size: 13px; }
-.player-controls {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-}
-.player-time { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.player-scrubber {
-  flex: 1; height: 4px; border-radius: 99px;
-  background: var(--border); cursor: pointer;
-  appearance: none; outline: none;
-}
-.player-scrubber::-webkit-slider-thumb {
-  appearance: none; width: 14px; height: 14px;
-  border-radius: 50%; background: var(--purple);
-  box-shadow: 0 0 8px rgba(168,85,247,.6); cursor: pointer;
-}
-.ctrl-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--bg-hover); border: 1px solid var(--border);
-  color: var(--text-1); cursor: pointer; transition: all .2s;
-}
-.ctrl-btn:hover { background: var(--purple); border-color: var(--purple); }
-.ctrl-btn.play-btn {
-  width: 40px; height: 40px;
-  background: var(--grad-main);
-  border: none; box-shadow: 0 4px 16px rgba(168,85,247,.4);
-}
-.ctrl-btn .material-icons { font-size: 18px; }
-
-/* ============================================================
-   SEGMENTS
-============================================================ */
-.segments-section { display: flex; flex-direction: column; gap: 12px; }
-.segments-header {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.segments-title {
-  font-size: 13px; font-weight: 700; color: var(--text-1);
-  display: flex; align-items: center; gap: 6px;
-}
-.segments-title .material-icons { font-size: 16px; color: var(--orange); }
-.segments-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-}
-.segment-card {
-  background: var(--bg-card); border-radius: var(--radius);
-  border: 1px solid var(--border); overflow: hidden;
-  transition: all .2s;
-}
-.segment-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
-.segment-card.has-edit { border-color: rgba(249,115,22,.4); }
-.segment-thumb {
-  aspect-ratio: 16/9; background: #000;
-  position: relative; cursor: pointer; overflow: hidden;
-}
-.segment-thumb video { width: 100%; height: 100%; display: block; }
-.segment-thumb-placeholder {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #1a1a24, #0f0f18);
-}
-.segment-thumb-num {
-  font-size: 28px; font-weight: 800;
-  background: var(--grad-gold); -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.segment-play-overlay {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,.4); opacity: 0; transition: opacity .2s;
-}
-.segment-thumb:hover .segment-play-overlay { opacity: 1; }
-.segment-play-overlay .material-icons {
-  font-size: 40px; color: white;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,.8));
-}
-.segment-duration-badge {
-  position: absolute; bottom: 6px; right: 6px;
-  background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
-  color: white; font-size: 10px; font-weight: 700;
-  padding: 2px 6px; border-radius: 4px;
-}
-.segment-info { padding: 10px 12px; }
-.segment-name { font-size: 12px; font-weight: 700; color: var(--text-1); margin-bottom: 2px; }
-.segment-time { font-size: 11px; color: var(--text-3); }
-.segment-actions {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 6px; padding: 0 10px 10px;
-}
-.seg-btn {
-  display: flex; align-items: center; justify-content: center; gap-4px;
-  padding: 7px 10px; border-radius: var(--radius-sm);
-  font-size: 11px; font-weight: 600; cursor: pointer;
-  transition: all .2s; border: none; gap: 4px;
-}
-.seg-btn-edit {
-  background: rgba(249,115,22,.15); color: var(--orange);
-  border: 1px solid rgba(249,115,22,.3);
-}
-.seg-btn-edit:hover { background: rgba(249,115,22,.25); }
-.seg-btn-dl {
-  background: rgba(16,185,129,.15); color: var(--green);
-  border: 1px solid rgba(16,185,129,.3);
-}
-.seg-btn-dl:hover { background: rgba(16,185,129,.25); }
-.seg-btn .material-icons { font-size: 13px; }
-
-/* ============================================================
-   EDIT SEGMENT MODAL
-============================================================ */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.85);
-  backdrop-filter: blur(8px);
-  z-index: 1000; display: none;
-  align-items: center; justify-content: center; padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--bg-panel); border-radius: 16px;
-  border: 1px solid var(--border-bright);
-  width: 100%; max-width: 700px;
-  max-height: 85vh; overflow-y: auto;
-  box-shadow: var(--shadow-lg);
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; background: var(--bg-panel); z-index: 1;
-}
-.modal-title { font-size: 15px; font-weight: 700; color: var(--text-1); }
-.modal-close {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--bg-hover); border: 1px solid var(--border);
-  color: var(--text-2); cursor: pointer; transition: all .2s;
-  display: flex; align-items: center; justify-content: center;
-}
-.modal-close:hover { background: var(--red); color: white; border-color: var(--red); }
-.modal-close .material-icons { font-size: 16px; }
-.modal-body { padding: 20px; }
-.modal-footer {
-  display: flex; gap: 10px; justify-content: flex-end;
-  padding: 16px 20px; border-top: 1px solid var(--border);
-  position: sticky; bottom: 0; background: var(--bg-panel);
-}
-
-/* Scene edit list */
-.scene-edit-list { display: flex; flex-direction: column; gap: 10px; }
-.scene-edit-item {
-  display: grid; grid-template-columns: 100px 1fr auto;
-  gap: 12px; align-items: center;
-  background: var(--bg-card); border-radius: var(--radius-sm);
-  border: 1px solid var(--border); padding: 10px;
-  transition: border-color .2s;
-}
-.scene-edit-item.changed { border-color: rgba(249,115,22,.5); }
-.scene-edit-thumb {
-  width: 100px; height: 56px; border-radius: 6px;
-  object-fit: cover; background: #000;
-  border: 2px solid var(--border);
-}
-.scene-edit-thumb.changed { border-color: var(--orange); }
-.scene-edit-info { min-width: 0; }
-.scene-edit-name { font-size: 11px; font-weight: 600; color: var(--text-1); word-break: break-all; }
-.scene-edit-time { font-size: 10px; color: var(--text-3); margin-top: 2px; }
-.scene-edit-status {
-  font-size: 10px; font-weight: 600; margin-top: 4px;
-  display: flex; align-items: center; gap: 3px;
-}
-.scene-edit-status.ok { color: var(--green); }
-.scene-edit-status.changed { color: var(--orange); }
-.scene-replace-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 12px; border-radius: var(--radius-sm);
-  background: var(--bg-hover); border: 1px solid var(--border);
-  color: var(--text-2); cursor: pointer; font-size: 10px;
-  font-weight: 600; transition: all .2s; position: relative;
-  white-space: nowrap;
-}
-.scene-replace-btn:hover { border-color: var(--orange); color: var(--orange); }
-.scene-replace-btn .material-icons { font-size: 18px; }
-.scene-replace-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-
-.btn-render-segment {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 20px; border-radius: var(--radius-sm);
-  background: var(--grad-gold); color: #000;
-  font-size: 13px; font-weight: 700; border: none;
-  cursor: pointer; transition: all .2s;
-}
-.btn-render-segment:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(249,115,22,.4); }
-.btn-render-segment:disabled { opacity: .4; cursor: not-allowed; }
-.btn-render-segment .material-icons { font-size: 16px; }
-
-.btn-cancel {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px; border-radius: var(--radius-sm);
-  background: var(--bg-hover); border: 1px solid var(--border);
-  color: var(--text-2); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: all .2s;
-}
-.btn-cancel:hover { border-color: var(--red); color: var(--red); }
-
-/* ============================================================
-   ERROR TOAST
-============================================================ */
-.toast {
-  position: fixed; bottom: 24px; right: 24px;
-  background: #2d0f0f; border: 1px solid var(--red);
-  border-radius: var(--radius); padding: 14px 18px;
-  color: #fca5a5; font-size: 13px; z-index: 9999;
-  max-width: 380px; box-shadow: var(--shadow-lg);
-  display: none; align-items: flex-start; gap: 10px;
-  animation: slideIn .3s ease;
-}
-.toast.open { display: flex; }
-@keyframes slideIn { from{transform:translateX(120%)} to{transform:translateX(0)} }
-.toast .material-icons { font-size: 18px; flex-shrink: 0; color: var(--red); }
-
-/* ============================================================
-   RESPONSIVE
-============================================================ */
-@media(max-width: 768px) {
-  .app-body { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  .left-panel { height: auto; }
-  .right-panel { height: auto; }
+@media(max-width:700px){
+  .app-body{grid-template-columns:1fr;height:auto;overflow:visible}
+  .left-panel{height:auto}
 }
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     HEADER
-============================================================ -->
 <header class="app-header">
   <div class="app-logo">
-    <span class="logo-icon">🎬</span>
-    Video Maker Pro
+    <span class="logo-icon">🎬</span>Video Maker Pro
     <span class="app-badge">PRO</span>
   </div>
-  <div class="header-right">
-    <div class="header-status">
-      <div class="status-dot"></div>
-      <span id="statusText">Sẵn sàng</span>
-    </div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    <span id="statusText">Sẵn sàng</span>
   </div>
 </header>
 
-<!-- ============================================================
-     MAIN BODY
-============================================================ -->
 <div class="app-body">
-
-  <!-- ========== LEFT PANEL ========== -->
+  <!-- LEFT -->
   <aside class="left-panel">
-
-    <!-- Tabs -->
     <div class="panel-tabs">
-      <div class="panel-tab active" id="tabAuto" onclick="switchTab('auto')">
-        <span class="material-icons">auto_awesome</span> AUTO AI
+      <div class="panel-tab" id="tabAuto" onclick="switchTab('auto')">
+        <span class="material-icons">auto_awesome</span>AUTO AI
       </div>
-      <div class="panel-tab" id="tabManual" onclick="switchTab('manual')">
-        <span class="material-icons">drive_folder_upload</span> THỦ CÔNG
+      <div class="panel-tab active" id="tabManual" onclick="switchTab('manual')">
+        <span class="material-icons">drive_folder_upload</span>THỦ CÔNG
       </div>
     </div>
 
-    <!-- AUTO content -->
-    <div class="panel-content" id="contentAuto">
-
-      <!-- MP3 -->
+    <!-- AUTO -->
+    <div class="panel-content hidden" id="contentAuto">
       <div class="drop-section">
-        <div class="drop-label-row">
-          <span class="material-icons">music_note</span> File MP3
-        </div>
+        <div class="drop-label-row"><span class="material-icons">music_note</span>File MP3</div>
         <div class="drop-zone" id="zoneMp3Auto">
           <input type="file" accept=".mp3,audio/*" id="inputMp3Auto"/>
-          <div class="drop-zone-icon">🎵</div>
-          <div class="drop-zone-text">Kéo thả hoặc click chọn</div>
-          <div class="drop-zone-sub">Định dạng MP3</div>
-          <div class="drop-zone-filename" id="nameMp3Auto"></div>
+          <div class="dz-icon">🎵</div>
+          <div class="dz-text">Kéo thả hoặc click</div>
+          <div class="dz-sub">Định dạng MP3</div>
+          <div class="dz-name" id="nameMp3Auto"></div>
         </div>
       </div>
-
-      <!-- TXT -->
       <div class="drop-section">
-        <div class="drop-label-row">
-          <span class="material-icons">description</span> File TXT Script
-        </div>
+        <div class="drop-label-row"><span class="material-icons">description</span>File TXT Script</div>
         <div class="drop-zone" id="zoneTxtAuto">
           <input type="file" accept=".txt,text/plain" id="inputTxtAuto"/>
-          <div class="drop-zone-icon">📄</div>
-          <div class="drop-zone-text">File có chứa [IMAGE PROMPT: ...]</div>
-          <div class="drop-zone-sub">Định dạng .txt</div>
-          <div class="drop-zone-filename" id="nameTxtAuto"></div>
+          <div class="dz-icon">📄</div>
+          <div class="dz-text">Có chứa [IMAGE PROMPT: ...]</div>
+          <div class="dz-sub">Định dạng .txt</div>
+          <div class="dz-name" id="nameTxtAuto"></div>
         </div>
       </div>
-
-      <div class="panel-divider"></div>
-
-      <!-- Progress bar -->
-      <div class="prog-bar-wrap">
-        <div class="prog-bar" id="progBarAuto"></div>
-      </div>
-
-      <!-- Log -->
+      <div class="pdiv"></div>
+      <div class="prog-bar-wrap"><div class="prog-bar" id="progBarAuto"></div></div>
       <div class="progress-log" id="logAuto">
         <div class="log-title">📋 Tiến trình</div>
         <div id="logItemsAuto"></div>
       </div>
-
-      <div class="panel-divider"></div>
-
-      <!-- Buttons -->
+      <div class="pdiv"></div>
       <button class="btn-primary" id="btnStartAuto" onclick="startAuto()" disabled>
-        <span class="material-icons">auto_awesome</span> Tạo Video AI
+        <span class="material-icons">auto_awesome</span>Tạo Video AI
       </button>
-      <button class="btn-secondary" id="btnResetAuto" onclick="resetAll()">
-        <span class="material-icons">refresh</span> Làm mới
+      <button class="btn-secondary" onclick="resetAll()">
+        <span class="material-icons">refresh</span>Làm mới
       </button>
-
     </div>
 
-    <!-- MANUAL content -->
-    <div class="panel-content hidden" id="contentManual">
-
-      <!-- MP3 -->
+    <!-- MANUAL -->
+    <div class="panel-content" id="contentManual">
       <div class="drop-section">
-        <div class="drop-label-row">
-          <span class="material-icons">music_note</span> File MP3
-        </div>
+        <div class="drop-label-row"><span class="material-icons">music_note</span>File MP3</div>
         <div class="drop-zone" id="zoneMp3Manual">
           <input type="file" accept=".mp3,audio/*" id="inputMp3Manual"/>
-          <div class="drop-zone-icon">🎵</div>
-          <div class="drop-zone-text">Kéo thả hoặc click chọn</div>
-          <div class="drop-zone-sub">Định dạng MP3</div>
-          <div class="drop-zone-filename" id="nameMp3Manual"></div>
+          <div class="dz-icon">🎵</div>
+          <div class="dz-text">Kéo thả hoặc click</div>
+          <div class="dz-sub">Định dạng MP3</div>
+          <div class="dz-name" id="nameMp3Manual"></div>
         </div>
       </div>
-
-      <!-- TXT -->
       <div class="drop-section">
-        <div class="drop-label-row">
-          <span class="material-icons">description</span> File TXT Script
-        </div>
+        <div class="drop-label-row"><span class="material-icons">description</span>File TXT Script</div>
         <div class="drop-zone" id="zoneTxtManual">
           <input type="file" accept=".txt,text/plain" id="inputTxtManual"/>
-          <div class="drop-zone-icon">📄</div>
-          <div class="drop-zone-text">File có [FILE: scene_XXX.XXXs.jpg]</div>
-          <div class="drop-zone-sub">Định dạng .txt</div>
-          <div class="drop-zone-filename" id="nameTxtManual"></div>
+          <div class="dz-icon">📄</div>
+          <div class="dz-text">Có [FILE: scene_XXX.XXXs.jpg]</div>
+          <div class="dz-sub">Định dạng .txt</div>
+          <div class="dz-name" id="nameTxtManual"></div>
         </div>
       </div>
-
-      <!-- IMAGES -->
       <div class="drop-section">
-        <div class="drop-label-row">
-          <span class="material-icons">photo_library</span> Upload Ảnh
-        </div>
-        <div class="drop-zone drop-zone-images" id="zoneImages">
+        <div class="drop-label-row"><span class="material-icons">photo_library</span>Upload Ảnh</div>
+        <div class="drop-zone" id="zoneImages">
           <input type="file" accept="image/*" multiple id="inputImages"/>
-          <div class="drop-zone-icon">🖼️</div>
-          <div class="drop-zone-text">Chọn nhiều ảnh cùng lúc</div>
-          <div class="drop-zone-sub">Tên: scene_XXXXX.XXXs.jpg</div>
-          <div class="img-count-badge" id="imgCountBadge" style="display:none">
-            <span class="material-icons" style="font-size:12px">check_circle</span>
-            <span id="imgCountText">0 ảnh</span>
+          <div class="dz-icon">🖼️</div>
+          <div class="dz-text">Chọn nhiều ảnh cùng lúc</div>
+          <div class="dz-sub">Tên: scene_XXXXX.XXXs.jpg</div>
+          <div class="img-badge" id="imgBadge">
+            <span class="material-icons" style="font-size:11px">check_circle</span>
+            <span id="imgCount">0 ảnh</span>
           </div>
         </div>
       </div>
-
-      <div class="panel-divider"></div>
-
-      <!-- Progress bar -->
-      <div class="prog-bar-wrap">
-        <div class="prog-bar" id="progBarManual"></div>
-      </div>
-
-      <!-- Log -->
+      <div class="pdiv"></div>
+      <div class="prog-bar-wrap"><div class="prog-bar" id="progBarManual"></div></div>
       <div class="progress-log" id="logManual">
         <div class="log-title">📋 Tiến trình</div>
         <div id="logItemsManual"></div>
       </div>
-
-      <div class="panel-divider"></div>
-
-      <!-- Buttons -->
+      <div class="pdiv"></div>
       <button class="btn-primary" id="btnStartManual" onclick="startManual()" disabled>
-        <span class="material-icons">movie</span> Ghép Video
+        <span class="material-icons">movie</span>Ghép Video
       </button>
       <button class="btn-secondary" onclick="resetAll()">
-        <span class="material-icons">refresh</span> Làm mới
+        <span class="material-icons">refresh</span>Làm mới
       </button>
-
     </div>
   </aside>
 
-  <!-- ========== RIGHT PANEL ========== -->
+  <!-- RIGHT -->
   <main class="right-panel">
-
-    <!-- Toolbar -->
     <div class="right-toolbar">
       <div class="toolbar-title" id="toolbarTitle">🎬 Video Maker Pro</div>
       <div class="toolbar-meta" id="toolbarMeta"></div>
       <button class="btn-icon" onclick="resetAll()" title="Làm mới">
         <span class="material-icons">refresh</span>
       </button>
-      <button class="btn-download-all" id="btnDownloadAll" disabled onclick="downloadFinalVideo()">
-        <span class="material-icons">download</span> Tải MP4
+      <button class="btn-dl-all" id="btnDownloadAll" disabled onclick="downloadFinalVideo()">
+        <span class="material-icons">download</span>Tải MP4
       </button>
     </div>
-
-    <!-- Preview & Segments -->
     <div class="preview-area" id="previewArea">
-
-      <!-- Welcome screen -->
       <div class="welcome-screen" id="welcomeScreen">
         <div class="welcome-icon">🎬</div>
         <div class="welcome-title">Video Maker Pro</div>
-        <div class="welcome-sub">Upload file MP3 + TXT để bắt đầu tạo video MP4 chuẩn YouTube 1920×1080</div>
+        <div class="welcome-sub">Upload MP3 + TXT + Ảnh để ghép video MP4 chuẩn YouTube 1920×1080</div>
         <div class="welcome-steps">
-          <div class="welcome-step"><div class="num">1</div> Upload MP3</div>
-          <div class="welcome-step"><div class="num">2</div> Upload TXT</div>
-          <div class="welcome-step"><div class="num">3</div> Upload Ảnh (thủ công)</div>
-          <div class="welcome-step"><div class="num">4</div> Ghép & Tải MP4</div>
+          <div class="welcome-step"><div class="num">1</div>Upload MP3</div>
+          <div class="welcome-step"><div class="num">2</div>Upload TXT</div>
+          <div class="welcome-step"><div class="num">3</div>Upload Ảnh</div>
+          <div class="welcome-step"><div class="num">4</div>Ghép & Tải MP4</div>
         </div>
       </div>
 
-      <!-- Preview player (hidden initially) -->
-      <div class="player-card" id="playerCard" style="display:none">
+      <div class="player-card" id="playerCard">
         <div class="player-header">
-          <div class="player-title">🎬 Preview — 5 phút đầu</div>
-          <div class="player-badge" id="playerBadge">Đang tạo...</div>
+          <div class="player-title">🎬 Preview</div>
+          <div class="player-badge" id="playerBadge">—</div>
         </div>
         <div class="player-video-wrap">
-          <video id="previewVideo" preload="metadata"></video>
+          <video id="previewVideo" preload="auto" playsinline></video>
           <div class="player-placeholder" id="playerPlaceholder">
             <span class="material-icons">movie</span>
-            <p>Video preview sẽ hiện ở đây</p>
+            <p>Click vào segment để xem</p>
           </div>
         </div>
         <div class="player-controls">
-          <button class="ctrl-btn" onclick="skipVideo(-10)" title="Lùi 10s">
+          <button class="ctrl-btn" onclick="skipVideo(-10)">
             <span class="material-icons">replay_10</span>
           </button>
           <button class="ctrl-btn play-btn" id="btnPlayPause" onclick="togglePlay()">
             <span class="material-icons" id="playIcon">play_arrow</span>
           </button>
-          <button class="ctrl-btn" onclick="skipVideo(10)" title="Tới 10s">
+          <button class="ctrl-btn" onclick="skipVideo(10)">
             <span class="material-icons">forward_10</span>
           </button>
           <span class="player-time" id="playerTime">0:00 / 0:00</span>
           <input type="range" class="player-scrubber" id="playerScrubber"
-                 min="0" max="100" value="0" step="0.1"
-                 oninput="seekVideo(this.value)"/>
+                 min="0" max="100" value="0" step="0.1" oninput="seekVideo(this.value)"/>
         </div>
       </div>
 
-      <!-- Segments section (hidden initially) -->
       <div class="segments-section" id="segmentsSection" style="display:none">
         <div class="segments-header">
           <div class="segments-title">
-            <span class="material-icons">view_module</span>
-            Segments (mỗi 10 phút)
+            <span class="material-icons">view_module</span>Segments (mỗi 10 phút)
           </div>
           <div class="toolbar-meta" id="segmentsMeta"></div>
         </div>
         <div class="segments-grid" id="segmentsGrid"></div>
       </div>
-
     </div>
   </main>
 </div>
 
-<!-- ============================================================
-     EDIT SEGMENT MODAL
-============================================================ -->
+<!-- MODAL -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
     <div class="modal-header">
@@ -867,16 +479,15 @@ body {
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeEditModal()">
-        <span class="material-icons">close</span> Đóng
+        <span class="material-icons">close</span>Đóng
       </button>
-      <button class="btn-render-segment" id="btnRenderSegment" onclick="reRenderSegment()">
-        <span class="material-icons">movie_filter</span> Render lại đoạn này
+      <button class="btn-render-seg" id="btnRenderSeg" onclick="reRenderSegment()">
+        <span class="material-icons">movie_filter</span>Render lại đoạn này
       </button>
     </div>
   </div>
 </div>
 
-<!-- Error toast -->
 <div class="toast" id="errorToast">
   <span class="material-icons">error</span>
   <span id="toastMsg"></span>
@@ -887,29 +498,15 @@ body {
 // STATE
 // ============================================================
 var APP = {
-  mode: 'auto',           // 'auto' | 'manual'
-  running: false,
-
-  // Files
-  mp3Blob: null,
-  mp3Name: '',
-  txtContent: '',
-  txtName: '',
-  imageMap: {},           // { 'scene_00000.000s.jpg': File }
-
-  // Processing results
-  scenes: [],             // parsed scenes
-  audioDur: 0,
-  imageBlobs: [],         // ordered image blobs for render
+  mode: 'manual', running: false,
+  mp3Blob: null, mp3Name: '',
+  txtContent: '', txtName: '',
+  imageMap: {},
+  scenes: [], audioDur: 0, imageBlobs: [],
   finalVideoBlob: null,
-  previewBlob: null,
-
-  // Segments
-  segments: [],           // [{idx, label, startSec, endSec, blob, scenes:[]}]
-  editingSegIdx: -1,
-  segmentChanges: {},     // { segIdx: { sceneIdx: newBlob } }
-
-  ffmpeg: null
+  segments: [], editingSegIdx: -1, segmentChanges: {},
+  ffmpegInstance: null, ffmpegLoaded: false,
+  segBlobUrls: {}
 };
 
 // ============================================================
@@ -917,584 +514,485 @@ var APP = {
 // ============================================================
 function switchTab(mode) {
   APP.mode = mode;
-  document.getElementById('tabAuto').classList.toggle('active', mode === 'auto');
-  document.getElementById('tabManual').classList.toggle('active', mode === 'manual');
-  document.getElementById('contentAuto').classList.toggle('hidden', mode !== 'auto');
-  document.getElementById('contentManual').classList.toggle('hidden', mode === 'auto');
+  document.getElementById('tabAuto').classList.toggle('active', mode==='auto');
+  document.getElementById('tabManual').classList.toggle('active', mode==='manual');
+  document.getElementById('contentAuto').classList.toggle('hidden', mode!=='auto');
+  document.getElementById('contentManual').classList.toggle('hidden', mode==='auto');
 }
 
 // ============================================================
-// FILE INPUTS
+// DROP ZONE SETUP
 // ============================================================
-function setupDropZone(zoneId, inputId, onFile) {
-  var zone  = document.getElementById(zoneId);
-  var input = document.getElementById(inputId);
-  input.addEventListener('change', function() {
-    if (this.files && this.files[0]) onFile(this.files);
-  });
-  zone.addEventListener('dragover',  function(e){ e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', function(){  zone.classList.remove('drag-over'); });
-  zone.addEventListener('drop', function(e){
-    e.preventDefault(); zone.classList.remove('drag-over');
-    if (e.dataTransfer.files.length) {
-      var dt = new DataTransfer();
-      Array.from(e.dataTransfer.files).forEach(function(f){ dt.items.add(f); });
-      input.files = dt.files;
-      input.dispatchEvent(new Event('change'));
+function setupDZ(zoneId, inputId, cb) {
+  var z = document.getElementById(zoneId);
+  var inp = document.getElementById(inputId);
+  if (!z || !inp) return;
+  inp.addEventListener('change', function(){ if(this.files&&this.files.length) cb(this.files); });
+  z.addEventListener('dragover', function(e){ e.preventDefault(); z.classList.add('drag-over'); });
+  z.addEventListener('dragleave', function(){ z.classList.remove('drag-over'); });
+  z.addEventListener('drop', function(e){
+    e.preventDefault(); z.classList.remove('drag-over');
+    if(e.dataTransfer.files.length){
+      var dt=new DataTransfer();
+      Array.from(e.dataTransfer.files).forEach(function(f){dt.items.add(f);});
+      inp.files=dt.files; inp.dispatchEvent(new Event('change'));
     }
   });
 }
 
-// MP3 Auto
-setupDropZone('zoneMp3Auto','inputMp3Auto', function(files){
-  APP.mp3Blob = files[0]; APP.mp3Name = files[0].name;
-  document.getElementById('nameMp3Auto').textContent = '✅ ' + files[0].name;
+setupDZ('zoneMp3Auto','inputMp3Auto',function(files){
+  APP.mp3Blob=files[0]; APP.mp3Name=files[0].name;
+  setText('nameMp3Auto','✅ '+files[0].name);
   document.getElementById('zoneMp3Auto').classList.add('file-ok');
-  checkCanStartAuto();
+  checkAuto();
 });
-
-// TXT Auto
-setupDropZone('zoneTxtAuto','inputTxtAuto', function(files){
-  var r = new FileReader();
-  r.onload = function(e){
-    APP.txtContent = e.target.result; APP.txtName = files[0].name;
-    document.getElementById('nameTxtAuto').textContent = '✅ ' + files[0].name;
+setupDZ('zoneTxtAuto','inputTxtAuto',function(files){
+  readTxt(files[0],function(txt){
+    APP.txtContent=txt; APP.txtName=files[0].name;
+    setText('nameTxtAuto','✅ '+files[0].name);
     document.getElementById('zoneTxtAuto').classList.add('file-ok');
-    checkCanStartAuto();
-  };
-  r.readAsText(files[0], 'UTF-8');
-});
-
-// MP3 Manual
-setupDropZone('zoneMp3Manual','inputMp3Manual', function(files){
-  APP.mp3Blob = files[0]; APP.mp3Name = files[0].name;
-  document.getElementById('nameMp3Manual').textContent = '✅ ' + files[0].name;
-  document.getElementById('zoneMp3Manual').classList.add('file-ok');
-  checkCanStartManual();
-});
-
-// TXT Manual
-setupDropZone('zoneTxtManual','inputTxtManual', function(files){
-  var r = new FileReader();
-  r.onload = function(e){
-    APP.txtContent = e.target.result; APP.txtName = files[0].name;
-    document.getElementById('nameTxtManual').textContent = '✅ ' + files[0].name;
-    document.getElementById('zoneTxtManual').classList.add('file-ok');
-    checkCanStartManual();
-  };
-  r.readAsText(files[0], 'UTF-8');
-});
-
-// IMAGES Manual
-setupDropZone('zoneImages','inputImages', function(files){
-  APP.imageMap = {};
-  var count = 0;
-  Array.from(files).forEach(function(f){
-    // Accept any image with scene_ prefix or just use filename as key
-    APP.imageMap[f.name] = f;
-    count++;
+    checkAuto();
   });
-  document.getElementById('imgCountBadge').style.display = 'inline-flex';
-  document.getElementById('imgCountText').textContent = count + ' ảnh';
+});
+setupDZ('zoneMp3Manual','inputMp3Manual',function(files){
+  APP.mp3Blob=files[0]; APP.mp3Name=files[0].name;
+  setText('nameMp3Manual','✅ '+files[0].name);
+  document.getElementById('zoneMp3Manual').classList.add('file-ok');
+  checkManual();
+});
+setupDZ('zoneTxtManual','inputTxtManual',function(files){
+  readTxt(files[0],function(txt){
+    APP.txtContent=txt; APP.txtName=files[0].name;
+    setText('nameTxtManual','✅ '+files[0].name);
+    document.getElementById('zoneTxtManual').classList.add('file-ok');
+    checkManual();
+  });
+});
+setupDZ('zoneImages','inputImages',function(files){
+  APP.imageMap={};
+  Array.from(files).forEach(function(f){ APP.imageMap[f.name]=f; });
+  var n=Object.keys(APP.imageMap).length;
+  var badge=document.getElementById('imgBadge');
+  badge.classList.add('show');
+  setText('imgCount', n+' ảnh');
   document.getElementById('zoneImages').classList.add('file-ok');
-  checkCanStartManual();
+  checkManual();
 });
 
-function checkCanStartAuto() {
-  document.getElementById('btnStartAuto').disabled = !(APP.mp3Blob && APP.txtContent);
+function readTxt(file, cb){
+  var r=new FileReader(); r.onload=function(e){cb(e.target.result);}; r.readAsText(file,'UTF-8');
 }
-function checkCanStartManual() {
-  document.getElementById('btnStartManual').disabled =
-    !(APP.mp3Blob && APP.txtContent && Object.keys(APP.imageMap).length > 0);
-}
+function setText(id,txt){ var el=document.getElementById(id); if(el) el.textContent=txt; }
+function checkAuto(){   document.getElementById('btnStartAuto').disabled=!(APP.mp3Blob&&APP.txtContent); }
+function checkManual(){ document.getElementById('btnStartManual').disabled=!(APP.mp3Blob&&APP.txtContent&&Object.keys(APP.imageMap).length>0); }
 
 // ============================================================
-// LOGGING
+// LOGGING & UI
 // ============================================================
-function log(mode, id, text, type) {
-  var container = document.getElementById('logItems' + (mode === 'auto' ? 'Auto' : 'Manual'));
-  var logBox    = document.getElementById('log' + (mode === 'auto' ? 'Auto' : 'Manual'));
-  logBox.classList.add('visible');
-  var icon = type === 'done' ? 'check_circle' : type === 'error' ? 'error' : 'radio_button_unchecked';
-  var el = document.getElementById('log_' + id);
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'log_' + id;
-    container.appendChild(el);
-  }
-  el.className = 'log-item ' + type;
-  el.innerHTML = '<span class="material-icons">' + icon + '</span>' + text;
-  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+function log(mode,id,txt,type){
+  var sfx=(mode==='auto')?'Auto':'Manual';
+  var cont=document.getElementById('logItems'+sfx);
+  var box=document.getElementById('log'+sfx);
+  if(!cont||!box) return;
+  box.classList.add('visible');
+  var icon=type==='done'?'check_circle':type==='error'?'error':'radio_button_unchecked';
+  var el=document.getElementById('log_'+id);
+  if(!el){el=document.createElement('div');el.id='log_'+id;cont.appendChild(el);}
+  el.className='log-item '+type;
+  el.innerHTML='<span class="material-icons">'+icon+'</span>'+txt;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function setBar(mode, pct) {
-  document.getElementById('progBar' + (mode === 'auto' ? 'Auto' : 'Manual')).style.width = pct + '%';
+function setBar(mode,pct){
+  var id=(mode==='auto')?'progBarAuto':'progBarManual';
+  var el=document.getElementById(id); if(el) el.style.width=pct+'%';
 }
-function setStatus(text) {
-  document.getElementById('statusText').textContent = text;
-}
-function showToast(msg) {
-  var t = document.getElementById('errorToast');
-  document.getElementById('toastMsg').textContent = msg;
+function setStatus(txt){ setText('statusText',txt); }
+function showToast(msg){
+  setText('toastMsg',msg);
+  var t=document.getElementById('errorToast');
   t.classList.add('open');
-  setTimeout(function(){ t.classList.remove('open'); }, 5000);
+  setTimeout(function(){t.classList.remove('open');},6000);
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function blobToU8(blob){return blob.arrayBuffer().then(function(b){return new Uint8Array(b);});}
+function formatTime(sec){
+  if(!sec||sec<0) sec=0;
+  var m=Math.floor(sec/60),s=Math.floor(sec%60);
+  return m+':'+String(s).padStart(2,'0');
 }
 
 // ============================================================
 // PARSE TXT
 // ============================================================
-function parseTxtScenes(txt) {
-  var scenes = [];
-  var lines  = txt.split('\n');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    if (!line) continue;
-
-    // Find [IMAGE PROMPT: ...]
-    var imgMatch = line.match(/\[IMAGE PROMPT:\s*([\s\S]*?)\]/);
-    if (!imgMatch) continue;
-
-    var full       = imgMatch[1].trim();
-    var modelMatch = full.match(/^\[MODEL:([\w-]+)\]\s*/i);
-    var model      = modelMatch ? modelMatch[1].toLowerCase() : 'flux';
-    var prompt     = modelMatch ? full.replace(/^\[MODEL:[\w-]+\]\s*/i,'').trim() : full;
-
-    // Find [FILE: scene_XXXXX.XXXs.jpg] on same line or nearby
-    var fileMatch = line.match(/\[FILE:\s*(scene_[\d.]+s\.[a-z]+)\]/i);
-    var fileName  = fileMatch ? fileMatch[1] : null;
-
-    // Extract startTime from fileName if available
-    var startTime = 0;
-    if (fileName) {
-      var stFromFile = fileName.match(/scene_([\d.]+)s\./i);
-      if (stFromFile) startTime = parseFloat(stFromFile[1]);
-    }
-
-    // Also try to read startTime from text in same line/nearby lines
-    var stMatch = line.match(/startTime:\s*([0-9.]+)s/i);
-    if (stMatch) startTime = parseFloat(stMatch[1]);
-    // Scan up 6 lines
-    if (!stMatch) {
-      for (var j = i-1; j >= Math.max(0, i-6); j--) {
-        var pl = lines[j].trim();
-        var sm = pl.match(/startTime:\s*([0-9.]+)s/i);
-        if (sm) { startTime = parseFloat(sm[1]); break; }
-      }
-    }
-
-    // Duration from → Xs →
-    var duration = null;
-    var dm = line.match(/→\s*([0-9.]+)s\s*→/);
-    if (!dm) {
-      for (var j = i-1; j >= Math.max(0, i-6); j--) {
-        var pl = lines[j].trim();
-        var d2 = pl.match(/→\s*([0-9.]+)s\s*→/);
-        if (d2) { duration = parseFloat(d2[1]); break; }
-      }
-    } else { duration = parseFloat(dm[1]); }
-
-    if (prompt.length > 5) {
-      scenes.push({
-        startTime: startTime,
-        duration:  duration,
-        prompt:    prompt,
-        model:     model,
-        fileName:  fileName
-      });
-    }
+function parseTxt(txt){
+  var scenes=[]; var lines=txt.split('\n');
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim(); if(!line) continue;
+    var im=line.match(/\[IMAGE PROMPT:\s*([\s\S]*?)\]/);
+    if(!im) continue;
+    var full=im[1].trim();
+    var mm=full.match(/^\[MODEL:([\w-]+)\]\s*/i);
+    var model=mm?mm[1].toLowerCase():'flux';
+    var prompt=mm?full.replace(/^\[MODEL:[\w-]+\]\s*/i,'').trim():full;
+    var fm=line.match(/\[FILE:\s*(scene_[\d.]+s\.[a-zA-Z]+)\]/i);
+    var fileName=fm?fm[1].trim():null;
+    var startTime=0;
+    if(fileName){ var sf=fileName.match(/scene_([\d.]+)s\./i); if(sf) startTime=parseFloat(sf[1]); }
+    var sl=line.match(/startTime:\s*([0-9.]+)s/i); if(sl) startTime=parseFloat(sl[1]);
+    if(!sl){ for(var j=i-1;j>=Math.max(0,i-10);j--){
+      var sm=lines[j].trim().match(/startTime:\s*([0-9.]+)s/i);
+      if(sm){startTime=parseFloat(sm[1]);break;}
+    }}
+    var duration=null;
+    var dl=line.match(/→\s*([0-9.]+)s\s*→/); if(dl) duration=parseFloat(dl[1]);
+    if(!dl){ for(var j=i-1;j>=Math.max(0,i-10);j--){
+      var dm=lines[j].trim().match(/→\s*([0-9.]+)s\s*→/);
+      if(dm){duration=parseFloat(dm[1]);break;}
+    }}
+    if(prompt.length>5) scenes.push({startTime,duration,prompt,model,fileName});
   }
-  console.log('[parseTxt]', scenes.length, 'cảnh có ảnh tìm thấy');
+  console.log('[parseTxt]',scenes.length,'scenes');
   return scenes;
 }
 
-// Build full timeline including non-image segments
-// Returns array of {startTime, duration, fileName, hasImage}
-function buildFullTimeline(txt, scenes, audioDur) {
-  // All events with startTime from TXT (for gap filling)
-  var allLines = txt.split('\n');
-  var allEvents = [];
-  for (var i = 0; i < allLines.length; i++) {
-    var l = allLines[i].trim();
-    var st = l.match(/startTime:\s*([0-9.]+)s/i);
-    if (st) allEvents.push(parseFloat(st[1]));
-  }
-  allEvents = [...new Set(allEvents)].sort(function(a,b){return a-b;});
+// ============================================================
+// BUILD TIMELINE
+// ============================================================
+function buildTimeline(txt,scenes,audioDur){
+  // Collect all startTimes
+  var allST=[];
+  txt.split('\n').forEach(function(l){
+    var m=l.match(/startTime:\s*([0-9.]+)s/i);
+    if(m){ var v=parseFloat(m[1]); if(allST.indexOf(v)<0) allST.push(v); }
+  });
+  allST.sort(function(a,b){return a-b;});
+  if(!allST.length){ scenes.forEach(function(s){if(allST.indexOf(s.startTime)<0) allST.push(s.startTime);}); allST.sort(function(a,b){return a-b;}); }
 
-  // Sort scenes by startTime
-  scenes.sort(function(a,b){ return a.startTime - b.startTime; });
-
-  // Build timeline: for each startTime in allEvents, assign an image (or reuse previous)
-  var timeline = [];
-  var lastImageIdx = 0;
-  for (var i = 0; i < allEvents.length; i++) {
-    var st = allEvents[i];
-    var dur = (i < allEvents.length - 1)
-      ? allEvents[i+1] - st
-      : audioDur - st;
-    dur = Math.max(dur, 0.5);
-
-    // Find closest scene at this startTime
-    var sceneIdx = -1;
-    for (var k = 0; k < scenes.length; k++) {
-      if (Math.abs(scenes[k].startTime - st) < 0.1) { sceneIdx = k; break; }
+  scenes.sort(function(a,b){return a.startTime-b.startTime;});
+  var timeline=[]; var lastIdx=0;
+  for(var i=0;i<allST.length;i++){
+    var st=allST[i];
+    var dur=(i<allST.length-1)?(allST[i+1]-st):(audioDur-st);
+    if(dur<0.1) dur=0.1;
+    var matched=-1;
+    for(var k=0;k<scenes.length;k++){
+      if(Math.abs(scenes[k].startTime-st)<0.5){matched=k;break;}
     }
-
-    if (sceneIdx >= 0) {
-      lastImageIdx = sceneIdx;
-      timeline.push({
-        startTime: st, duration: dur,
-        sceneIdx: sceneIdx,
-        fileName: scenes[sceneIdx].fileName,
-        hasImage: true
-      });
-    } else {
-      // No image → reuse last image (Phương án A)
-      timeline.push({
-        startTime: st, duration: dur,
-        sceneIdx: lastImageIdx,
-        fileName: scenes[lastImageIdx] ? scenes[lastImageIdx].fileName : null,
-        hasImage: false
-      });
-    }
+    if(matched>=0) lastIdx=matched;
+    timeline.push({startTime:st,duration:dur,sceneIdx:lastIdx,
+      fileName:scenes[lastIdx]?scenes[lastIdx].fileName:null,
+      hasImage:matched>=0});
   }
   return timeline;
 }
 
 // ============================================================
+// BUILD SEGMENTS
+// ============================================================
+function buildSegments(timeline,audioDur){
+  var SEG=600; var segs=[]; var i=0;
+  while(i*SEG<audioDur){
+    var s=i*SEG, e=Math.min((i+1)*SEG,audioDur);
+    var sc=timeline.filter(function(t){return t.startTime>=s&&t.startTime<e;});
+    if(sc.length>0) segs.push({idx:i,label:'Đoạn '+(i+1),
+      timeLabel:formatTime(s)+' → '+formatTime(e),
+      startSec:s,endSec:e,blob:null,scenes:sc});
+    i++;
+  }
+  return segs;
+}
+
+// ============================================================
+// MAP IMAGE BLOBS
+// ============================================================
+function mapImages(){
+  APP.imageBlobs=[];
+  for(var i=0;i<APP.scenes.length;i++){
+    var sc=APP.scenes[i]; var blob=null;
+    if(sc.fileName){
+      blob=APP.imageMap[sc.fileName]||null;
+      if(!blob){ // case-insensitive
+        var keys=Object.keys(APP.imageMap);
+        for(var k=0;k<keys.length;k++){
+          if(keys[k].toLowerCase()===sc.fileName.toLowerCase()){blob=APP.imageMap[keys[k]];break;}
+        }
+      }
+    }
+    if(!blob){ // match by startTime in filename
+      var keys=Object.keys(APP.imageMap);
+      for(var k=0;k<keys.length;k++){
+        var km=keys[k].match(/scene_([\d.]+)s\./i);
+        if(km&&Math.abs(parseFloat(km[1])-sc.startTime)<0.5){blob=APP.imageMap[keys[k]];break;}
+      }
+    }
+    APP.imageBlobs.push(blob);
+  }
+  // Fill null → dùng ảnh trước (Phương án A)
+  var last=null;
+  for(var i=0;i<APP.imageBlobs.length;i++){
+    if(APP.imageBlobs[i]) last=APP.imageBlobs[i];
+    else if(last) APP.imageBlobs[i]=last;
+  }
+  // Fill từ đầu nếu ảnh đầu null
+  last=APP.imageBlobs.find(function(b){return b;});
+  for(var i=0;i<APP.imageBlobs.length;i++){
+    if(!APP.imageBlobs[i]&&last) APP.imageBlobs[i]=last;
+  }
+  return APP.imageBlobs.filter(function(b){return !b;}).length;
+}
+
+// ============================================================
 // AUDIO DURATION
 // ============================================================
-function getAudioDuration(blob) {
-  return new Promise(function(resolve) {
-    var audio = new Audio();
-    var url   = URL.createObjectURL(blob);
-    audio.addEventListener('loadedmetadata', function(){ URL.revokeObjectURL(url); resolve(audio.duration); });
-    audio.addEventListener('error', function(){ URL.revokeObjectURL(url); resolve(0); });
-    audio.src = url;
+function getAudioDur(blob){
+  return new Promise(function(resolve){
+    var a=new Audio(), u=URL.createObjectURL(blob);
+    a.addEventListener('loadedmetadata',function(){URL.revokeObjectURL(u);resolve(a.duration);});
+    a.addEventListener('error',function(){URL.revokeObjectURL(u);resolve(0);});
+    a.src=u;
   });
 }
 
 // ============================================================
-// FETCH IMAGE (AUTO mode)
+// LOAD FFMPEG (singleton, chỉ load 1 lần)
 // ============================================================
-async function fetchImage(prompt, model, seed) {
-  var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) +
-            '?width=1920&height=1080&model=' + model +
-            '&nologo=true&enhance=true&seed=' + seed;
-  for (var a = 1; a <= 3; a++) {
-    try {
-      var r = await fetch(url, {signal: AbortSignal.timeout(90000)});
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      var b = await r.blob();
-      if (b.size < 5000) throw new Error('Image too small');
-      return b;
-    } catch(e) {
-      if (a < 3) await sleep(4000 * a);
-      else throw e;
-    }
-  }
-}
-
-function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
-function blobToUint8(blob){ return blob.arrayBuffer().then(function(b){ return new Uint8Array(b); }); }
-
-// ============================================================
-// LOAD FFMPEG
-// ============================================================
-async function loadFFmpeg(mode) {
-  if (APP.ffmpeg) return APP.ffmpeg;
-  log(mode, 'ffmpeg', '⚙️ Khởi động FFmpeg.wasm...', 'active');
-  APP.ffmpeg = FFmpeg.createFFmpeg({
-    corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js',
-    log: false
+async function getFFmpeg(mode){
+  if(APP.ffmpegInstance && APP.ffmpegLoaded) return APP.ffmpegInstance;
+  log(mode,'ffmpeg','⚙️ Khởi động FFmpeg.wasm...','active');
+  APP.ffmpegInstance = FFmpeg.createFFmpeg({
+    corePath:'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js',
+    log:false
   });
-  await APP.ffmpeg.load();
-  log(mode, 'ffmpeg', '✅ FFmpeg.wasm sẵn sàng', 'done');
-  return APP.ffmpeg;
+  await APP.ffmpegInstance.load();
+  APP.ffmpegLoaded=true;
+  log(mode,'ffmpeg','✅ FFmpeg sẵn sàng','done');
+  return APP.ffmpegInstance;
 }
 
 // ============================================================
-// RENDER ENGINE
+// TRIM AUDIO VỚI FFMPEG
 // ============================================================
-// imageList: [{fileName, blob}] sorted by startTime
-// durList: [duration in seconds]
-// Returns: Uint8Array of MP4
-async function renderMP4(ffmpeg, imageList, durList, mp3Blob, outputName) {
-  // Write images
-  for (var i = 0; i < imageList.length; i++) {
-    var fn = 'frame' + String(i).padStart(4,'0') + '.jpg';
-    ffmpeg.FS('writeFile', fn, await blobToUint8(imageList[i].blob));
-  }
-  // Write audio
-  ffmpeg.FS('writeFile', outputName + '_audio.mp3', await blobToUint8(mp3Blob));
+async function trimAudio(ff, mp3Blob, startSec, endSec, tag){
+  var inF='ta_in_'+tag+'.mp3', outF='ta_out_'+tag+'.mp3';
+  ff.FS('writeFile', inF, await blobToU8(mp3Blob));
+  await ff.run(
+    '-ss', startSec.toFixed(3),
+    '-t',  Math.max(endSec-startSec,0.1).toFixed(3),
+    '-i',  inF,
+    '-c:a','copy',
+    '-avoid_negative_ts','make_zero',
+    outF
+  );
+  var data=ff.FS('readFile',outF);
+  try{ff.FS('unlink',inF);ff.FS('unlink',outF);}catch(e){}
+  if(!data||data.length<100) throw new Error('Trim audio thất bại tại '+tag);
+  return new Blob([data],{type:'audio/mpeg'});
+}
 
-  // Build concat.txt
-  var concatTxt = '';
-  for (var i = 0; i < imageList.length; i++) {
-    var fn = 'frame' + String(i).padStart(4,'0') + '.jpg';
-    concatTxt += "file '" + fn + "'\nduration " + durList[i].toFixed(3) + "\n";
-  }
-  var lastFn = 'frame' + String(imageList.length-1).padStart(4,'0') + '.jpg';
-  concatTxt += "file '" + lastFn + "'\n";
-  ffmpeg.FS('writeFile', outputName + '_concat.txt', new TextEncoder().encode(concatTxt));
+// ============================================================
+// RENDER SEGMENT MP4
+// ============================================================
+async function renderSegMP4(ff, imgs, durs, audioBlob, tag){
+  if(!imgs.length) throw new Error('Không có ảnh để render segment '+tag);
 
-  // Run FFmpeg
-  await ffmpeg.run(
-    '-f','concat','-safe','0','-i', outputName + '_concat.txt',
-    '-i', outputName + '_audio.mp3',
+  // Ghi ảnh
+  for(var i=0;i<imgs.length;i++){
+    ff.FS('writeFile','rs_'+tag+'_'+String(i).padStart(4,'0')+'.jpg', await blobToU8(imgs[i]));
+  }
+  // Ghi audio
+  ff.FS('writeFile','rs_'+tag+'_aud.mp3', await blobToU8(audioBlob));
+
+  // concat list
+  var c='';
+  for(var i=0;i<imgs.length;i++) c+="file 'rs_"+tag+'_'+String(i).padStart(4,'0')+".jpg'\nduration "+durs[i].toFixed(3)+"\n";
+  c+="file 'rs_"+tag+'_'+String(imgs.length-1).padStart(4,'0')+".jpg'\n";
+  ff.FS('writeFile','rs_'+tag+'_c.txt', new TextEncoder().encode(c));
+
+  var outF='rs_'+tag+'_out.mp4';
+  await ff.run(
+    '-f','concat','-safe','0','-i','rs_'+tag+'_c.txt',
+    '-i','rs_'+tag+'_aud.mp3',
     '-c:v','libx264','-tune','stillimage',
     '-crf','23','-preset','ultrafast',
     '-c:a','aac','-b:a','192k',
     '-pix_fmt','yuv420p',
     '-shortest','-movflags','+faststart',
-    outputName + '.mp4'
+    outF
   );
 
-  var out = ffmpeg.FS('readFile', outputName + '.mp4');
+  var out=ff.FS('readFile',outF);
+  // cleanup
+  try{
+    for(var i=0;i<imgs.length;i++) ff.FS('unlink','rs_'+tag+'_'+String(i).padStart(4,'0')+'.jpg');
+    ff.FS('unlink','rs_'+tag+'_aud.mp3');
+    ff.FS('unlink','rs_'+tag+'_c.txt');
+    ff.FS('unlink',outF);
+  }catch(e){}
 
-  // Cleanup
-  try {
-    for (var i = 0; i < imageList.length; i++)
-      ffmpeg.FS('unlink', 'frame' + String(i).padStart(4,'0') + '.jpg');
-    ffmpeg.FS('unlink', outputName + '_audio.mp3');
-    ffmpeg.FS('unlink', outputName + '_concat.txt');
-    ffmpeg.FS('unlink', outputName + '.mp4');
-  } catch(e){}
-
-  return out;
+  if(!out||out.length<1000) throw new Error('FFmpeg render ra file rỗng tại segment '+tag);
+  return new Blob([out],{type:'video/mp4'});
 }
 
 // ============================================================
-// BUILD SEGMENTS FROM TIMELINE
+// REBUILD FINAL VIDEO
 // ============================================================
-function buildSegments(timeline, audioDur, imageBlobs) {
-  var SEGMENT_SEC = 600; // 10 minutes
-  var segments    = [];
-  var segIdx      = 0;
-
-  while (segIdx * SEGMENT_SEC < audioDur) {
-    var segStart = segIdx * SEGMENT_SEC;
-    var segEnd   = Math.min((segIdx + 1) * SEGMENT_SEC, audioDur);
-
-    // Filter timeline entries for this segment
-    var segScenes = timeline.filter(function(t){
-      return t.startTime >= segStart && t.startTime < segEnd;
-    });
-
-    if (segScenes.length > 0) {
-      var label = formatTime(segStart) + ' → ' + formatTime(segEnd);
-      segments.push({
-        idx:       segIdx,
-        label:     'Đoạn ' + (segIdx + 1),
-        timeLabel: label,
-        startSec:  segStart,
-        endSec:    segEnd,
-        blob:      null,         // filled after render
-        scenes:    segScenes,    // timeline entries in this segment
-        imageBlobs: imageBlobs   // reference to full imageBlobs array
-      });
-    }
-    segIdx++;
+async function rebuildFinal(ff){
+  var valid=APP.segments.filter(function(s){return s.blob&&s.blob.size>0;});
+  if(!valid.length) throw new Error('Không có segment nào hợp lệ để ghép');
+  if(valid.length===1){ APP.finalVideoBlob=valid[0].blob; return; }
+  var c='';
+  for(var i=0;i<valid.length;i++){
+    ff.FS('writeFile','fin_'+i+'.mp4', await blobToU8(valid[i].blob));
+    c+="file 'fin_"+i+".mp4'\n";
   }
-  return segments;
-}
-
-function formatTime(sec) {
-  var m = Math.floor(sec / 60);
-  var s = Math.floor(sec % 60);
-  return m + ':' + String(s).padStart(2,'0');
+  ff.FS('writeFile','fin_list.txt', new TextEncoder().encode(c));
+  await ff.run('-f','concat','-safe','0','-i','fin_list.txt','-c','copy','fin_out.mp4');
+  var out=ff.FS('readFile','fin_out.mp4');
+  try{for(var i=0;i<valid.length;i++) ff.FS('unlink','fin_'+i+'.mp4'); ff.FS('unlink','fin_list.txt'); ff.FS('unlink','fin_out.mp4');}catch(e){}
+  if(!out||out.length<1000) throw new Error('Ghép final video thất bại');
+  APP.finalVideoBlob=new Blob([out],{type:'video/mp4'});
 }
 
 // ============================================================
-// SHOW SEGMENTS UI
+// SEGMENTS UI
 // ============================================================
-function renderSegmentsUI() {
-  var grid = document.getElementById('segmentsGrid');
-  grid.innerHTML = '';
-  document.getElementById('segmentsSection').style.display = 'block';
-  document.getElementById('segmentsMeta').textContent =
-    APP.segments.length + ' đoạn • ' + formatTime(APP.audioDur) + ' tổng';
-
-  APP.segments.forEach(function(seg) {
-    var card = document.createElement('div');
-    card.className = 'segment-card';
-    card.id = 'segCard_' + seg.idx;
-
-    var thumbContent = seg.blob
-      ? '<video src="' + URL.createObjectURL(seg.blob) + '" muted playsinline></video>'
-      : '<div class="segment-thumb-placeholder"><div class="segment-thumb-num">' + (seg.idx+1) + '</div></div>';
-
-    card.innerHTML =
-      '<div class="segment-thumb" id="segThumb_' + seg.idx + '" onclick="playSegment(' + seg.idx + ')">' +
-        thumbContent +
-        '<div class="segment-play-overlay"><span class="material-icons">play_circle_filled</span></div>' +
-        '<div class="segment-duration-badge">' + formatTime(seg.endSec - seg.startSec) + '</div>' +
-      '</div>' +
-      '<div class="segment-info">' +
-        '<div class="segment-name">' + seg.label + '</div>' +
-        '<div class="segment-time">' + seg.timeLabel + ' • ' + seg.scenes.length + ' cảnh</div>' +
-      '</div>' +
-      '<div class="segment-actions">' +
-        '<button class="seg-btn seg-btn-edit" onclick="openEditModal(' + seg.idx + ')">' +
-          '<span class="material-icons">edit</span> Sửa ảnh' +
-        '</button>' +
-        '<button class="seg-btn seg-btn-dl" onclick="downloadSegment(' + seg.idx + ')" ' +
-          (seg.blob ? '' : 'disabled') + '>' +
-          '<span class="material-icons">download</span> Tải đoạn' +
-        '</button>' +
-      '</div>';
-
+function renderSegUI(){
+  var grid=document.getElementById('segmentsGrid');
+  grid.innerHTML='';
+  document.getElementById('segmentsSection').style.display='block';
+  document.getElementById('segmentsMeta').textContent=APP.segments.length+' đoạn • '+formatTime(APP.audioDur)+' tổng';
+  APP.segments.forEach(function(seg){
+    if(seg.blob&&seg.blob.size>0&&!APP.segBlobUrls[seg.idx])
+      APP.segBlobUrls[seg.idx]=URL.createObjectURL(seg.blob);
+    var url=APP.segBlobUrls[seg.idx]||'';
+    var card=document.createElement('div');
+    card.className='segment-card'; card.id='segCard_'+seg.idx;
+    card.innerHTML=
+      '<div class="segment-thumb" onclick="playSegment('+seg.idx+')">'
+       +(url?'<video src="'+url+'" muted preload="metadata"></video>'
+            :'<div class="seg-thumb-ph"><div class="seg-thumb-num">'+(seg.idx+1)+'</div></div>')
+       +'<div class="seg-play-ov"><span class="material-icons">play_circle_filled</span></div>'
+       +'<div class="seg-dur">'+formatTime(seg.endSec-seg.startSec)+'</div>'
+      +'</div>'
+      +'<div class="seg-info"><div class="seg-name">'+seg.label+'</div>'
+      +'<div class="seg-time">'+seg.timeLabel+' • '+seg.scenes.length+' cảnh</div></div>'
+      +'<div class="seg-actions">'
+       +'<button class="seg-btn seg-btn-edit" onclick="openEdit('+seg.idx+')">'
+         +'<span class="material-icons">edit</span>Sửa ảnh</button>'
+       +'<button class="seg-btn seg-btn-dl" onclick="dlSegment('+seg.idx+')"'+(url?'':' disabled')+'>'
+         +'<span class="material-icons">download</span>Tải đoạn</button>'
+      +'</div>';
     grid.appendChild(card);
   });
 }
 
 // ============================================================
-// PLAY SEGMENT
+// PLAYER
 // ============================================================
-function playSegment(segIdx) {
-  var seg = APP.segments[segIdx];
-  if (!seg || !seg.blob) return;
-  var video = document.getElementById('previewVideo');
-  var placeholder = document.getElementById('playerPlaceholder');
-  var playerCard  = document.getElementById('playerCard');
-
-  playerCard.style.display = 'block';
-  document.getElementById('welcomeScreen').style.display = 'none';
-  placeholder.style.display = 'none';
-  video.src = URL.createObjectURL(seg.blob);
-  video.play();
-  document.getElementById('playIcon').textContent = 'pause';
-  document.getElementById('playerBadge').textContent = seg.label + ' — ' + seg.timeLabel;
-
-  video.ontimeupdate = function(){
-    var cur  = video.currentTime;
-    var tot  = video.duration || 1;
-    document.getElementById('playerTime').textContent =
-      formatTime(cur) + ' / ' + formatTime(tot);
-    document.getElementById('playerScrubber').value = (cur / tot * 100).toFixed(1);
+function playSegment(idx){
+  var seg=APP.segments[idx];
+  if(!seg||!seg.blob||seg.blob.size===0){showToast('Segment chưa sẵn sàng!');return;}
+  if(!APP.segBlobUrls[idx]) APP.segBlobUrls[idx]=URL.createObjectURL(seg.blob);
+  var url=APP.segBlobUrls[idx];
+  var v=document.getElementById('previewVideo');
+  var ph=document.getElementById('playerPlaceholder');
+  document.getElementById('playerCard').style.display='block';
+  document.getElementById('welcomeScreen').style.display='none';
+  if(ph) ph.style.display='none';
+  v.pause(); v.src=''; v.load();
+  setTimeout(function(){
+    v.src=url; v.load();
+    v.play().catch(function(e){console.warn('play err:',e);});
+    setText('playIcon','pause');
+    setText('playerBadge',seg.label+' — '+seg.timeLabel);
+  },50);
+  v.ontimeupdate=function(){
+    var cur=v.currentTime,tot=v.duration||1;
+    setText('playerTime',formatTime(cur)+' / '+formatTime(tot));
+    document.getElementById('playerScrubber').value=(cur/tot*100).toFixed(1);
   };
-  video.onended = function(){
-    document.getElementById('playIcon').textContent = 'play_arrow';
-  };
+  v.onended=function(){setText('playIcon','play_arrow');};
 }
-
-function togglePlay() {
-  var v = document.getElementById('previewVideo');
-  if (v.paused) { v.play(); document.getElementById('playIcon').textContent = 'pause'; }
-  else          { v.pause(); document.getElementById('playIcon').textContent = 'play_arrow'; }
+function togglePlay(){
+  var v=document.getElementById('previewVideo');
+  if(v.paused){v.play();setText('playIcon','pause');}
+  else{v.pause();setText('playIcon','play_arrow');}
 }
-function skipVideo(sec) {
-  var v = document.getElementById('previewVideo');
-  v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + sec));
+function skipVideo(s){
+  var v=document.getElementById('previewVideo');
+  v.currentTime=Math.max(0,Math.min(v.duration||0,v.currentTime+s));
 }
-function seekVideo(val) {
-  var v = document.getElementById('previewVideo');
-  if (v.duration) v.currentTime = val / 100 * v.duration;
+function seekVideo(val){
+  var v=document.getElementById('previewVideo');
+  if(v.duration) v.currentTime=val/100*v.duration;
 }
 
 // ============================================================
-// DOWNLOAD SEGMENT
+// DOWNLOAD
 // ============================================================
-function downloadSegment(segIdx) {
-  var seg = APP.segments[segIdx];
-  if (!seg || !seg.blob) return;
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(seg.blob);
-  a.download = 'segment_' + (segIdx+1) + '_' + formatTime(seg.startSec).replace(':','m') + 's.mp4';
-  a.click();
+function dlSegment(idx){
+  var seg=APP.segments[idx]; if(!seg||!seg.blob) return;
+  var url=APP.segBlobUrls[idx]||URL.createObjectURL(seg.blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='segment_'+(idx+1)+'.mp4'; a.click();
+}
+function downloadFinalVideo(){
+  if(!APP.finalVideoBlob||APP.finalVideoBlob.size===0){showToast('Video chưa sẵn sàng!');return;}
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(APP.finalVideoBlob);
+  a.download=APP.mp3Name.replace(/\.[^.]+$/,'')+'_youtube.mp4'; a.click();
 }
 
 // ============================================================
-// DOWNLOAD FINAL (all segments merged via MediaSource or just full blob)
+// EDIT MODAL
 // ============================================================
-function downloadFinalVideo() {
-  if (!APP.finalVideoBlob) return;
-  var baseName = APP.mp3Name.replace(/\.[^.]+$/,'');
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(APP.finalVideoBlob);
-  a.download = baseName + '_youtube.mp4';
-  a.click();
-}
-
-// ============================================================
-// OPEN EDIT MODAL
-// ============================================================
-function openEditModal(segIdx) {
-  var seg = APP.segments[segIdx];
-  if (!seg) return;
-  APP.editingSegIdx = segIdx;
-  if (!APP.segmentChanges[segIdx]) APP.segmentChanges[segIdx] = {};
-
-  document.getElementById('modalTitle').textContent =
-    '✏️ Chỉnh sửa ' + seg.label + ' (' + seg.timeLabel + ')';
-
-  var list = document.getElementById('sceneEditList');
-  list.innerHTML = '';
-
-  // Get unique scenes (by sceneIdx) in this segment
-  var seenSceneIdx = {};
-  seg.scenes.forEach(function(t) {
-    if (seenSceneIdx[t.sceneIdx]) return;
-    seenSceneIdx[t.sceneIdx] = true;
-
-    var sc    = APP.scenes[t.sceneIdx];
-    var blob  = APP.imageBlobs[t.sceneIdx];
-    var changed = APP.segmentChanges[segIdx][t.sceneIdx] ? true : false;
-    var thumbSrc = blob ? URL.createObjectURL(blob) : '';
-
-    var item = document.createElement('div');
-    item.className = 'scene-edit-item' + (changed ? ' changed' : '');
-    item.id = 'editItem_' + t.sceneIdx;
-
-    item.innerHTML =
-      '<img class="scene-edit-thumb' + (changed ? ' changed' : '') + '"' +
-           ' id="editThumb_' + t.sceneIdx + '" src="' + thumbSrc + '" alt=""/>' +
-      '<div class="scene-edit-info">' +
-        '<div class="scene-edit-name">' + (sc ? sc.fileName || ('scene_' + t.sceneIdx) : 'scene_' + t.sceneIdx) + '</div>' +
-        '<div class="scene-edit-time">⏱ ' + formatTime(t.startTime) + ' — ' + formatTime(t.startTime + t.duration) + '</div>' +
-        '<div class="scene-edit-status ' + (changed ? 'changed' : 'ok') + '" id="editStatus_' + t.sceneIdx + '">' +
-          '<span class="material-icons" style="font-size:11px">' + (changed ? 'swap_horiz' : 'check_circle') + '</span>' +
-          (changed ? 'Đã thay ảnh mới' : 'Ảnh gốc') +
-        '</div>' +
-      '</div>' +
-      '<button class="scene-replace-btn" title="Thay ảnh">' +
-        '<input type="file" accept="image/*" data-sceneidx="' + t.sceneIdx + '" onchange="replaceSceneImage(this)"/>' +
-        '<span class="material-icons">swap_horiz</span>' +
-        'Thay ảnh' +
-      '</button>';
-
+function openEdit(segIdx){
+  var seg=APP.segments[segIdx]; if(!seg) return;
+  APP.editingSegIdx=segIdx;
+  if(!APP.segmentChanges[segIdx]) APP.segmentChanges[segIdx]={};
+  setText('modalTitle','✏️ Chỉnh sửa '+seg.label+' ('+seg.timeLabel+')');
+  var list=document.getElementById('sceneEditList'); list.innerHTML='';
+  var seen={};
+  seg.scenes.forEach(function(t){
+    if(seen[t.sceneIdx]) return; seen[t.sceneIdx]=true;
+    var sc=APP.scenes[t.sceneIdx];
+    var blob=APP.imageBlobs[t.sceneIdx];
+    var changed=!!APP.segmentChanges[segIdx][t.sceneIdx];
+    var thumbSrc=blob?URL.createObjectURL(blob):'';
+    var name=sc?(sc.fileName||'scene_'+t.sceneIdx):'scene_'+t.sceneIdx;
+    var item=document.createElement('div');
+    item.className='scene-edit-item'+(changed?' changed':''); item.id='ei_'+t.sceneIdx;
+    item.innerHTML=
+      '<img class="scene-edit-thumb'+(changed?' changed':'')+'" id="et_'+t.sceneIdx+'" src="'+thumbSrc+'" alt=""/>'
+      +'<div class="scene-edit-info">'
+        +'<div class="scene-edit-name">'+name+'</div>'
+        +'<div class="scene-edit-time">⏱ '+formatTime(t.startTime)+' — '+formatTime(t.startTime+t.duration)+'</div>'
+        +'<div class="scene-edit-status '+(changed?'changed':'ok')+'" id="es_'+t.sceneIdx+'">'
+          +'<span class="material-icons" style="font-size:10px">'+(changed?'swap_horiz':'check_circle')+'</span>'
+          +(changed?'Ảnh mới':'Ảnh gốc')
+        +'</div>'
+      +'</div>'
+      +'<button class="scene-replace-btn">'
+        +'<input type="file" accept="image/*" data-si="'+t.sceneIdx+'" onchange="replaceImg(this)"/>'
+        +'<span class="material-icons">swap_horiz</span>Thay ảnh'
+      +'</button>';
     list.appendChild(item);
   });
-
   document.getElementById('editModal').classList.add('open');
 }
-
-function closeEditModal() {
-  document.getElementById('editModal').classList.remove('open');
-}
-
-// ============================================================
-// REPLACE SCENE IMAGE
-// ============================================================
-function replaceSceneImage(input) {
-  var sceneIdx = parseInt(input.dataset.sceneidx);
-  var file     = input.files[0];
-  if (!file) return;
-
-  var segIdx = APP.editingSegIdx;
-  if (!APP.segmentChanges[segIdx]) APP.segmentChanges[segIdx] = {};
-  APP.segmentChanges[segIdx][sceneIdx] = file;
-
-  // Update preview
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var thumb = document.getElementById('editThumb_' + sceneIdx);
-    if (thumb) { thumb.src = e.target.result; thumb.classList.add('changed'); }
-    var item = document.getElementById('editItem_' + sceneIdx);
-    if (item) item.classList.add('changed');
-    var status = document.getElementById('editStatus_' + sceneIdx);
-    if (status) {
-      status.className = 'scene-edit-status changed';
-      status.innerHTML = '<span class="material-icons" style="font-size:11px">swap_horiz</span> Đã thay ảnh mới';
-    }
+function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); }
+function replaceImg(inp){
+  var si=parseInt(inp.dataset.si), file=inp.files[0]; if(!file) return;
+  var segIdx=APP.editingSegIdx;
+  if(!APP.segmentChanges[segIdx]) APP.segmentChanges[segIdx]={};
+  APP.segmentChanges[segIdx][si]=file;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var th=document.getElementById('et_'+si); if(th){th.src=e.target.result;th.classList.add('changed');}
+    var it=document.getElementById('ei_'+si); if(it) it.classList.add('changed');
+    var st=document.getElementById('es_'+si);
+    if(st){st.className='scene-edit-status changed';
+      st.innerHTML='<span class="material-icons" style="font-size:10px">swap_horiz</span>Ảnh mới';}
   };
   reader.readAsDataURL(file);
 }
@@ -1502,447 +1000,222 @@ function replaceSceneImage(input) {
 // ============================================================
 // RE-RENDER SEGMENT
 // ============================================================
-async function reRenderSegment() {
-  var segIdx = APP.editingSegIdx;
-  var seg    = APP.segments[segIdx];
-  var changes = APP.segmentChanges[segIdx] || {};
-
-  if (Object.keys(changes).length === 0) {
-    showToast('Bạn chưa thay ảnh nào trong đoạn này!');
-    return;
-  }
-
+async function reRenderSegment(){
+  var segIdx=APP.editingSegIdx;
+  var seg=APP.segments[segIdx];
+  var changes=APP.segmentChanges[segIdx]||{};
+  if(!Object.keys(changes).length){showToast('Chưa thay ảnh nào!');return;}
   closeEditModal();
-  setStatus('Đang render lại đoạn ' + seg.label + '...');
-
-  try {
-    var ffmpeg = await loadFFmpeg('manual');
-
-    // Apply changes to imageBlobs
-    for (var scIdx in changes) {
-      APP.imageBlobs[parseInt(scIdx)] = changes[scIdx];
-    }
-
-    // Build image list and duration list for this segment only
-    var segImageList = [];
-    var segDurList   = [];
-    seg.scenes.forEach(function(t) {
-      segImageList.push({
-        fileName: t.fileName,
-        blob: APP.imageBlobs[t.sceneIdx]
-      });
-      segDurList.push(t.duration);
+  setStatus('Render lại '+seg.label+'...');
+  document.getElementById('btnRenderSeg').disabled=true;
+  try{
+    // Apply changes
+    for(var si in changes) APP.imageBlobs[parseInt(si)]=changes[si];
+    var ff=await getFFmpeg('manual');
+    var imgs=[],durs=[];
+    seg.scenes.forEach(function(t){
+      var b=APP.imageBlobs[t.sceneIdx];
+      if(b){imgs.push(b);durs.push(t.duration);}
     });
-
-    // Create segment audio (trim MP3)
-    // We use a trimmed audio for the segment
-    var segAudioBlob = await trimAudio(APP.mp3Blob, seg.startSec, seg.endSec);
-
-    var outData = await renderMP4(ffmpeg, segImageList, segDurList, segAudioBlob, 'seg_' + segIdx);
-    var newBlob = new Blob([outData], {type:'video/mp4'});
-    seg.blob = newBlob;
-
-    // Clear changes for this segment
-    APP.segmentChanges[segIdx] = {};
-
-    // Rebuild final video
-    log('manual', 'merge', '🔗 Ghép lại video hoàn chỉnh...', 'active');
-    await rebuildFinalVideo();
-    log('manual', 'merge', '✅ Hoàn thành!', 'done');
-
-    // Update UI
-    renderSegmentsUI();
+    var aud=await trimAudio(ff,APP.mp3Blob,seg.startSec,seg.endSec,'rr_'+segIdx);
+    var blob=await renderSegMP4(ff,imgs,durs,aud,'rr_'+segIdx);
+    seg.blob=blob;
+    if(APP.segBlobUrls[segIdx]){URL.revokeObjectURL(APP.segBlobUrls[segIdx]);delete APP.segBlobUrls[segIdx];}
+    APP.segBlobUrls[segIdx]=URL.createObjectURL(blob);
+    APP.segmentChanges[segIdx]={};
+    await rebuildFinal(ff);
+    renderSegUI();
     playSegment(segIdx);
-    document.getElementById('segCard_' + segIdx).classList.remove('has-edit');
-    setStatus('✅ Render lại ' + seg.label + ' hoàn thành');
-
-  } catch(err) {
-    console.error(err);
-    showToast('Lỗi render: ' + err.message);
-    setStatus('❌ Lỗi render đoạn');
+    document.getElementById('btnDownloadAll').disabled=false;
+    setStatus('✅ Render lại '+seg.label+' xong!');
+  }catch(err){
+    console.error(err); showToast('❌ '+err.message); setStatus('❌ Lỗi render lại');
   }
-}
-
-// ============================================================
-// TRIM AUDIO (Web Audio API)
-// ============================================================
-async function trimAudio(mp3Blob, startSec, endSec) {
-  // Decode audio
-  var ctx  = new AudioContext();
-  var buf  = await mp3Blob.arrayBuffer();
-  var decoded = await ctx.decodeAudioData(buf);
-  var sampleRate  = decoded.sampleRate;
-  var numChannels = decoded.numberOfChannels;
-  var startSample = Math.floor(startSec * sampleRate);
-  var endSample   = Math.min(Math.floor(endSec * sampleRate), decoded.length);
-  var length      = endSample - startSample;
-
-  var trimmedBuffer = ctx.createBuffer(numChannels, length, sampleRate);
-  for (var c = 0; c < numChannels; c++) {
-    var channelData = decoded.getChannelData(c).slice(startSample, endSample);
-    trimmedBuffer.copyToChannel(channelData, c);
-  }
-  ctx.close();
-
-  // Encode to WAV
-  return audioBufferToWavBlob(trimmedBuffer);
-}
-
-function audioBufferToWavBlob(buffer) {
-  var numChannels = buffer.numberOfChannels;
-  var sampleRate  = buffer.sampleRate;
-  var length      = buffer.length;
-  var pcmData     = new Float32Array(length * numChannels);
-
-  for (var ch = 0; ch < numChannels; ch++) {
-    var channelData = buffer.getChannelData(ch);
-    for (var i = 0; i < length; i++) {
-      pcmData[i * numChannels + ch] = channelData[i];
-    }
-  }
-
-  var wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
-  var view      = new DataView(wavBuffer);
-  function writeStr(offset, str){ for(var i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); }
-  writeStr(0, 'RIFF');
-  view.setUint32(4, 36 + pcmData.length * 2, true);
-  writeStr(8, 'WAVE');
-  writeStr(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numChannels * 2, true);
-  view.setUint16(32, numChannels * 2, true);
-  view.setUint16(34, 16, true);
-  writeStr(36, 'data');
-  view.setUint32(40, pcmData.length * 2, true);
-  var offset = 44;
-  for (var i = 0; i < pcmData.length; i++, offset += 2) {
-    var s = Math.max(-1, Math.min(1, pcmData[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-  }
-  return new Blob([wavBuffer], {type: 'audio/wav'});
-}
-
-// ============================================================
-// REBUILD FINAL VIDEO (concatenate all segment blobs)
-// ============================================================
-async function rebuildFinalVideo() {
-  var ffmpeg = APP.ffmpeg;
-  // Write all segment blobs
-  var validSegs = APP.segments.filter(function(s){ return s.blob; });
-  if (validSegs.length === 0) return;
-  if (validSegs.length === 1) {
-    APP.finalVideoBlob = validSegs[0].blob;
-    return;
-  }
-
-  var concatList = '';
-  for (var i = 0; i < validSegs.length; i++) {
-    var fname = 'final_seg_' + i + '.mp4';
-    ffmpeg.FS('writeFile', fname, await blobToUint8(validSegs[i].blob));
-    concatList += "file '" + fname + "'\n";
-  }
-  ffmpeg.FS('writeFile', 'final_concat.txt', new TextEncoder().encode(concatList));
-
-  await ffmpeg.run(
-    '-f','concat','-safe','0','-i','final_concat.txt',
-    '-c','copy',
-    'final_output.mp4'
-  );
-
-  var out = ffmpeg.FS('readFile','final_output.mp4');
-  APP.finalVideoBlob = new Blob([out], {type:'video/mp4'});
-
-  // Cleanup
-  try {
-    for (var i = 0; i < validSegs.length; i++)
-      ffmpeg.FS('unlink','final_seg_' + i + '.mp4');
-    ffmpeg.FS('unlink','final_concat.txt');
-    ffmpeg.FS('unlink','final_output.mp4');
-  } catch(e){}
+  document.getElementById('btnRenderSeg').disabled=false;
 }
 
 // ============================================================
 // START MANUAL
 // ============================================================
-async function startManual() {
-  if (APP.running) return;
-  APP.running = true;
-  document.getElementById('btnStartManual').disabled = true;
-  document.getElementById('welcomeScreen').style.display = 'none';
+async function startManual(){
+  if(APP.running) return;
+  APP.running=true;
+  document.getElementById('btnStartManual').disabled=true;
+  document.getElementById('welcomeScreen').style.display='none';
   setStatus('Đang xử lý...');
+  var m='manual';
+  try{
+    log(m,'p1','🔍 Phân tích TXT...','active'); setBar(m,5);
+    APP.scenes=parseTxt(APP.txtContent);
+    if(!APP.scenes.length) throw new Error('Không tìm thấy [IMAGE PROMPT] trong TXT');
+    log(m,'p1','✅ '+APP.scenes.length+' cảnh có ảnh','done');
 
-  var mode = 'manual';
-  try {
-    // Step 1 — Parse TXT
-    log(mode, 'parse', '🔍 Phân tích file TXT...', 'active');
-    setBar(mode, 5);
-    APP.scenes = parseTxtScenes(APP.txtContent);
-    if (APP.scenes.length === 0) throw new Error('Không tìm thấy [IMAGE PROMPT] nào trong TXT');
-    log(mode, 'parse', '✅ ' + APP.scenes.length + ' cảnh có ảnh', 'done');
+    log(m,'p2','🎵 Đọc audio...','active'); setBar(m,10);
+    APP.audioDur=await getAudioDur(APP.mp3Blob);
+    if(!APP.audioDur||APP.audioDur<1) throw new Error('Không đọc được thời lượng MP3');
+    log(m,'p2','✅ '+(APP.audioDur/60).toFixed(1)+' phút ('+APP.audioDur.toFixed(0)+'s)','done');
 
-    // Step 2 — Audio duration
-    log(mode, 'audio', '🎵 Đọc thời lượng audio...', 'active');
-    setBar(mode, 10);
-    APP.audioDur = await getAudioDuration(APP.mp3Blob);
-    if (!APP.audioDur || APP.audioDur < 1) throw new Error('Không đọc được duration MP3');
-    log(mode, 'audio', '✅ ' + APP.audioDur.toFixed(1) + 's (' + (APP.audioDur/60).toFixed(1) + ' phút)', 'done');
+    log(m,'p3','🖼 Ghép ảnh với timeline...','active'); setBar(m,14);
+    var miss=mapImages();
+    if(miss) log(m,'p3w','⚠️ '+miss+' ảnh thiếu (dùng ảnh trước)','active');
+    log(m,'p3','✅ Map ảnh xong','done');
 
-    // Step 3 — Map images
-    log(mode, 'map', '🖼 Ghép ảnh với timeline...', 'active');
-    setBar(mode, 20);
-    var timeline = buildFullTimeline(APP.txtContent, APP.scenes, APP.audioDur);
-    if (timeline.length === 0) throw new Error('Không build được timeline');
+    var timeline=buildTimeline(APP.txtContent,APP.scenes,APP.audioDur);
+    APP.segments=buildSegments(timeline,APP.audioDur);
+    log(m,'p4','📦 '+APP.segments.length+' segments (10\'/đoạn)','done'); setBar(m,18);
 
-    // Map image blobs from APP.imageMap
-    APP.imageBlobs = [];
-    for (var i = 0; i < APP.scenes.length; i++) {
-      var sc = APP.scenes[i];
-      var blob = sc.fileName && APP.imageMap[sc.fileName]
-        ? APP.imageMap[sc.fileName]
-        : null;
-      // Try fuzzy match
-      if (!blob && sc.fileName) {
-        var keys = Object.keys(APP.imageMap);
-        for (var k = 0; k < keys.length; k++) {
-          if (keys[k].toLowerCase() === sc.fileName.toLowerCase()) {
-            blob = APP.imageMap[keys[k]]; break;
-          }
-        }
-      }
-      if (!blob) {
-        // Try to find by startTime
-        var stStr = String(Math.floor(sc.startTime)).padStart(5,'0') + '.' +
-                    String(Math.round((sc.startTime % 1) * 1000)).padStart(3,'0');
-        var keys2 = Object.keys(APP.imageMap);
-        for (var k = 0; k < keys2.length; k++) {
-          if (keys2[k].indexOf(stStr) >= 0) { blob = APP.imageMap[keys2[k]]; break; }
-        }
-      }
-      APP.imageBlobs.push(blob || null);
-    }
+    var ff=await getFFmpeg(m); setBar(m,22);
 
-    var missing = APP.imageBlobs.filter(function(b){ return !b; }).length;
-    if (missing > 0) log(mode,'map','⚠️ ' + missing + ' ảnh không tìm thấy (sẽ dùng ảnh trước đó)','active');
-    log(mode, 'map', '✅ Timeline: ' + timeline.length + ' slot', 'done');
-    setBar(mode, 30);
-
-    // Fill null blobs with previous
-    var lastBlob = APP.imageBlobs.find(function(b){ return b; });
-    for (var i = 0; i < APP.imageBlobs.length; i++) {
-      if (!APP.imageBlobs[i] && lastBlob) APP.imageBlobs[i] = lastBlob;
-      if (APP.imageBlobs[i]) lastBlob = APP.imageBlobs[i];
-    }
-
-    // Step 4 — Build segments
-    APP.segments = buildSegments(timeline, APP.audioDur, APP.imageBlobs);
-    log(mode, 'seg', '📦 ' + APP.segments.length + ' segments (mỗi 10 phút)', 'done');
-    setBar(mode, 35);
-
-    // Step 5 — Load FFmpeg
-    var ffmpeg = await loadFFmpeg(mode);
-    setBar(mode, 40);
-
-    // Step 6 — Render each segment
-    var segPctStart = 40;
-    var segPctRange = 55;
-    for (var si = 0; si < APP.segments.length; si++) {
-      var seg = APP.segments[si];
-      log(mode, 'rend_'+si, '🎬 Render ' + seg.label + ' (' + seg.timeLabel + ')...', 'active');
-
-      // Build image list for this segment
-      var segImageList = [];
-      var segDurList   = [];
+    for(var si=0;si<APP.segments.length;si++){
+      var seg=APP.segments[si];
+      log(m,'r'+si,'🎬 Render '+seg.label+' ('+seg.timeLabel+')...','active');
+      var imgs=[],durs=[];
       seg.scenes.forEach(function(t){
-        var b = APP.imageBlobs[t.sceneIdx];
-        if (!b) return;
-        segImageList.push({ fileName: t.fileName, blob: b });
-        segDurList.push(t.duration);
+        var b=APP.imageBlobs[t.sceneIdx];
+        if(b){imgs.push(b);durs.push(Math.max(t.duration,0.1));}
       });
-
-      if (segImageList.length === 0) {
-        log(mode, 'rend_'+si, '⚠️ Bỏ qua ' + seg.label + ' (không có ảnh)', 'error');
-        continue;
-      }
-
-      // Trim audio for segment
-      var segAudio = await trimAudio(APP.mp3Blob, seg.startSec, seg.endSec);
-      var outData  = await renderMP4(ffmpeg, segImageList, segDurList, segAudio, 'seg_out_' + si);
-      seg.blob     = new Blob([outData], {type:'video/mp4'});
-
-      var pct = segPctStart + Math.round((si + 1) / APP.segments.length * segPctRange);
-      setBar(mode, pct);
-      log(mode, 'rend_'+si, '✅ ' + seg.label + ' xong (' + (seg.blob.size/1024/1024).toFixed(1) + 'MB)', 'done');
+      if(!imgs.length){log(m,'r'+si,'⚠️ Bỏ qua '+seg.label+' (không có ảnh)','error');continue;}
+      var aud=await trimAudio(ff,APP.mp3Blob,seg.startSec,seg.endSec,'m_'+si);
+      seg.blob=await renderSegMP4(ff,imgs,durs,aud,'m_'+si);
+      APP.segBlobUrls[si]=URL.createObjectURL(seg.blob);
+      var pct=22+Math.round((si+1)/APP.segments.length*68);
+      setBar(m,pct);
+      log(m,'r'+si,'✅ '+seg.label+' ('+(seg.blob.size/1024/1024).toFixed(1)+'MB)','done');
     }
 
-    // Step 7 — Rebuild final
-    log(mode, 'final', '🔗 Ghép video hoàn chỉnh...', 'active');
-    setBar(mode, 96);
-    await rebuildFinalVideo();
-    log(mode, 'final', '✅ Video hoàn chỉnh!', 'done');
-    setBar(mode, 100);
+    log(m,'fin','🔗 Ghép video hoàn chỉnh...','active'); setBar(m,92);
+    await rebuildFinal(ff);
+    log(m,'fin','✅ Video hoàn chỉnh!','done'); setBar(m,100);
 
-    // Update UI
-    document.getElementById('btnDownloadAll').disabled = false;
-    document.getElementById('toolbarTitle').textContent =
-      '✅ ' + APP.mp3Name.replace(/\.[^.]+$/,'') + '_youtube.mp4';
-    document.getElementById('toolbarMeta').textContent =
-      APP.segments.length + ' segments • ' +
-      (APP.finalVideoBlob.size/1024/1024).toFixed(1) + ' MB • ' +
-      (APP.audioDur/60).toFixed(1) + ' phút';
+    document.getElementById('btnDownloadAll').disabled=false;
+    setText('toolbarTitle','✅ '+APP.mp3Name.replace(/\.[^.]+$/,'')+'_youtube.mp4');
+    setText('toolbarMeta',APP.segments.length+' segments • '+(APP.finalVideoBlob.size/1024/1024).toFixed(1)+' MB • '+(APP.audioDur/60).toFixed(1)+' phút');
     setStatus('✅ Hoàn thành!');
-
-    renderSegmentsUI();
-    // Auto play first segment
-    if (APP.segments[0] && APP.segments[0].blob) playSegment(0);
-
-  } catch(err) {
-    console.error(err);
-    showToast('❌ ' + err.message);
-    log(mode, 'err', '❌ ' + err.message, 'error');
-    setStatus('❌ Lỗi');
+    renderSegUI();
+    setTimeout(function(){if(APP.segments[0]&&APP.segments[0].blob) playSegment(0);},300);
+  }catch(err){
+    console.error('[Manual]',err); showToast('❌ '+err.message);
+    log(m,'err','❌ '+err.message,'error'); setStatus('❌ Lỗi');
   }
-
-  APP.running = false;
-  document.getElementById('btnStartManual').disabled = false;
+  APP.running=false;
+  document.getElementById('btnStartManual').disabled=false;
 }
 
 // ============================================================
-// START AUTO (Pollinations)
+// START AUTO
 // ============================================================
-async function startAuto() {
-  if (APP.running) return;
-  APP.running = true;
-  document.getElementById('btnStartAuto').disabled = true;
-  document.getElementById('welcomeScreen').style.display = 'none';
-  setStatus('Đang tạo ảnh AI...');
-
-  var mode = 'auto';
-  try {
-    // Parse
-    log(mode,'parse','🔍 Phân tích TXT...','active');
-    APP.scenes = parseTxtScenes(APP.txtContent);
-    if (APP.scenes.length === 0) throw new Error('Không tìm thấy [IMAGE PROMPT]');
-    log(mode,'parse','✅ ' + APP.scenes.length + ' cảnh','done');
-    setBar(mode,5);
-
-    // Audio
-    log(mode,'audio','🎵 Đọc audio...','active');
-    APP.audioDur = await getAudioDuration(APP.mp3Blob);
-    if (!APP.audioDur) throw new Error('Không đọc được MP3');
-    log(mode,'audio','✅ ' + (APP.audioDur/60).toFixed(1) + ' phút','done');
-    setBar(mode,8);
-
-    // Fetch images
-    APP.imageBlobs = [];
-    for (var i = 0; i < APP.scenes.length; i++) {
-      log(mode,'img_'+i,'🖼 Tải ảnh ' + (i+1) + '/' + APP.scenes.length + '...','active');
-      var blob = await fetchImage(APP.scenes[i].prompt, APP.scenes[i].model, 100 + i * 13);
-      APP.imageBlobs.push(blob);
-      var pct = 8 + Math.round((i+1)/APP.scenes.length * 52);
-      setBar(mode, pct);
-      log(mode,'img_'+i,'✅ Ảnh ' + (i+1) + ' xong','done');
-      if (i < APP.scenes.length - 1) await sleep(2500);
-    }
-    setBar(mode,62);
-
-    // Build timeline & segments
-    var timeline   = buildFullTimeline(APP.txtContent, APP.scenes, APP.audioDur);
-    APP.segments   = buildSegments(timeline, APP.audioDur, APP.imageBlobs);
-    log(mode,'seg','📦 ' + APP.segments.length + ' segments','done');
-
-    // Load FFmpeg
-    var ffmpeg = await loadFFmpeg(mode);
-    setBar(mode,66);
-
-    // Render segments
-    for (var si = 0; si < APP.segments.length; si++) {
-      var seg = APP.segments[si];
-      log(mode,'rend_'+si,'🎬 Render ' + seg.label + '...','active');
-      var segImageList = [], segDurList = [];
-      seg.scenes.forEach(function(t){
-        var b = APP.imageBlobs[t.sceneIdx];
-        if (!b) return;
-        segImageList.push({ fileName: t.fileName, blob: b });
-        segDurList.push(t.duration);
-      });
-      if (!segImageList.length) continue;
-      var segAudio = await trimAudio(APP.mp3Blob, seg.startSec, seg.endSec);
-      var outData  = await renderMP4(ffmpeg, segImageList, segDurList, segAudio, 'aseg_'+si);
-      seg.blob     = new Blob([outData], {type:'video/mp4'});
-      var pct = 66 + Math.round((si+1)/APP.segments.length * 28);
-      setBar(mode, pct);
-      log(mode,'rend_'+si,'✅ ' + seg.label,'done');
-    }
-
-    log(mode,'final','🔗 Ghép hoàn chỉnh...','active');
-    await rebuildFinalVideo();
-    log(mode,'final','✅ Hoàn thành!','done');
-    setBar(mode,100);
-
-    document.getElementById('btnDownloadAll').disabled = false;
-    document.getElementById('toolbarTitle').textContent = '✅ Video sẵn sàng!';
-    document.getElementById('toolbarMeta').textContent =
-      APP.segments.length + ' segments • ' + (APP.finalVideoBlob.size/1024/1024).toFixed(1) + ' MB';
-    setStatus('✅ Hoàn thành!');
-
-    renderSegmentsUI();
-    if (APP.segments[0] && APP.segments[0].blob) playSegment(0);
-
-  } catch(err) {
-    console.error(err);
-    showToast('❌ ' + err.message);
-    log(mode,'err','❌ ' + err.message,'error');
-    setStatus('❌ Lỗi');
+async function fetchImg(prompt,model,seed){
+  var url='https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)
+    +'?width=1920&height=1080&model='+model+'&nologo=true&enhance=true&seed='+seed;
+  for(var a=1;a<=3;a++){
+    try{
+      var r=await fetch(url,{signal:AbortSignal.timeout(90000)});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var b=await r.blob(); if(b.size<5000) throw new Error('Image too small');
+      return b;
+    }catch(e){ if(a<3) await sleep(4000*a); else throw e; }
   }
+}
 
-  APP.running = false;
-  document.getElementById('btnStartAuto').disabled = false;
+async function startAuto(){
+  if(APP.running) return;
+  APP.running=true;
+  document.getElementById('btnStartAuto').disabled=true;
+  document.getElementById('welcomeScreen').style.display='none';
+  setStatus('Đang tạo ảnh AI...');
+  var m='auto';
+  try{
+    log(m,'p1','🔍 Phân tích TXT...','active');
+    APP.scenes=parseTxt(APP.txtContent);
+    if(!APP.scenes.length) throw new Error('Không tìm thấy [IMAGE PROMPT]');
+    log(m,'p1','✅ '+APP.scenes.length+' cảnh','done'); setBar(m,5);
+
+    log(m,'p2','🎵 Đọc audio...','active');
+    APP.audioDur=await getAudioDur(APP.mp3Blob);
+    if(!APP.audioDur) throw new Error('Không đọc được MP3');
+    log(m,'p2','✅ '+(APP.audioDur/60).toFixed(1)+' phút','done'); setBar(m,8);
+
+    APP.imageBlobs=[];
+    for(var i=0;i<APP.scenes.length;i++){
+      log(m,'i'+i,'🖼 Ảnh '+(i+1)+'/'+APP.scenes.length+'...','active');
+      var b=await fetchImg(APP.scenes[i].prompt,APP.scenes[i].model,100+i*13);
+      APP.imageBlobs.push(b);
+      setBar(m,8+Math.round((i+1)/APP.scenes.length*50));
+      log(m,'i'+i,'✅ Ảnh '+(i+1)+' xong','done');
+      if(i<APP.scenes.length-1) await sleep(2500);
+    }
+    setBar(m,60);
+
+    var timeline=buildTimeline(APP.txtContent,APP.scenes,APP.audioDur);
+    APP.segments=buildSegments(timeline,APP.audioDur);
+    log(m,'p4','📦 '+APP.segments.length+' segments','done');
+
+    var ff=await getFFmpeg(m); setBar(m,64);
+
+    for(var si=0;si<APP.segments.length;si++){
+      var seg=APP.segments[si];
+      log(m,'r'+si,'🎬 Render '+seg.label+'...','active');
+      var imgs=[],durs=[];
+      seg.scenes.forEach(function(t){
+        var b=APP.imageBlobs[t.sceneIdx];
+        if(b){imgs.push(b);durs.push(Math.max(t.duration,0.1));}
+      });
+      if(!imgs.length) continue;
+      var aud=await trimAudio(ff,APP.mp3Blob,seg.startSec,seg.endSec,'a_'+si);
+      seg.blob=await renderSegMP4(ff,imgs,durs,aud,'a_'+si);
+      APP.segBlobUrls[si]=URL.createObjectURL(seg.blob);
+      setBar(m,64+Math.round((si+1)/APP.segments.length*28));
+      log(m,'r'+si,'✅ '+seg.label,'done');
+    }
+
+    log(m,'fin','🔗 Ghép hoàn chỉnh...','active'); setBar(m,94);
+    await rebuildFinal(ff);
+    log(m,'fin','✅ Hoàn thành!','done'); setBar(m,100);
+
+    document.getElementById('btnDownloadAll').disabled=false;
+    setText('toolbarTitle','✅ Video sẵn sàng!');
+    setText('toolbarMeta',APP.segments.length+' segments • '+(APP.finalVideoBlob.size/1024/1024).toFixed(1)+' MB');
+    setStatus('✅ Hoàn thành!');
+    renderSegUI();
+    setTimeout(function(){if(APP.segments[0]&&APP.segments[0].blob) playSegment(0);},300);
+  }catch(err){
+    console.error('[Auto]',err); showToast('❌ '+err.message);
+    log(m,'err','❌ '+err.message,'error'); setStatus('❌ Lỗi');
+  }
+  APP.running=false;
+  document.getElementById('btnStartAuto').disabled=false;
 }
 
 // ============================================================
 // RESET
 // ============================================================
-function resetAll() {
-  APP.running = false;
-  APP.mp3Blob = null; APP.mp3Name = '';
-  APP.txtContent = ''; APP.txtName = '';
-  APP.imageMap = {};
-  APP.scenes = []; APP.imageBlobs = [];
-  APP.finalVideoBlob = null;
-  APP.segments = []; APP.editingSegIdx = -1;
-  APP.segmentChanges = {};
-  APP.ffmpeg = null;
-
-  // Reset UI
+function resetAll(){
+  Object.values(APP.segBlobUrls).forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});
+  APP.ffmpegLoaded=false; APP.ffmpegInstance=null;
+  Object.assign(APP,{
+    running:false,mp3Blob:null,mp3Name:'',txtContent:'',txtName:'',
+    imageMap:{},scenes:[],audioDur:0,imageBlobs:[],finalVideoBlob:null,
+    segments:[],editingSegIdx:-1,segmentChanges:{},
+    ffmpegInstance:null,ffmpegLoaded:false,segBlobUrls:{}
+  });
   ['zoneMp3Auto','zoneTxtAuto','zoneMp3Manual','zoneTxtManual','zoneImages'].forEach(function(id){
-    var z = document.getElementById(id);
-    if(z){ z.classList.remove('file-ok','drag-over'); }
+    var z=document.getElementById(id); if(z) z.classList.remove('file-ok','drag-over');
   });
-  ['nameMp3Auto','nameTxtAuto','nameMp3Manual','nameTxtManual'].forEach(function(id){
-    var el = document.getElementById(id); if(el) el.textContent='';
-  });
-  document.getElementById('imgCountBadge').style.display='none';
-  document.getElementById('progBarAuto').style.width='0%';
-  document.getElementById('progBarManual').style.width='0%';
-  document.getElementById('logItemsAuto').innerHTML='';
-  document.getElementById('logItemsManual').innerHTML='';
-  document.getElementById('logAuto').classList.remove('visible');
-  document.getElementById('logManual').classList.remove('visible');
+  ['nameMp3Auto','nameTxtAuto','nameMp3Manual','nameTxtManual'].forEach(function(id){setText(id,'');});
+  document.getElementById('imgBadge').classList.remove('show');
+  ['progBarAuto','progBarManual'].forEach(function(id){var el=document.getElementById(id);if(el) el.style.width='0%';});
+  ['logItemsAuto','logItemsManual'].forEach(function(id){var el=document.getElementById(id);if(el) el.innerHTML='';});
+  ['logAuto','logManual'].forEach(function(id){var el=document.getElementById(id);if(el) el.classList.remove('visible');});
   document.getElementById('btnStartAuto').disabled=true;
   document.getElementById('btnStartManual').disabled=true;
   document.getElementById('btnDownloadAll').disabled=true;
   document.getElementById('segmentsGrid').innerHTML='';
   document.getElementById('segmentsSection').style.display='none';
   document.getElementById('playerCard').style.display='none';
+  document.getElementById('playerPlaceholder').style.display='flex';
   document.getElementById('welcomeScreen').style.display='flex';
-  document.getElementById('toolbarTitle').textContent='🎬 Video Maker Pro';
-  document.getElementById('toolbarMeta').textContent='';
+  setText('toolbarTitle','🎬 Video Maker Pro'); setText('toolbarMeta','');
   setStatus('Sẵn sàng');
-
-  // Reset file inputs
   ['inputMp3Auto','inputTxtAuto','inputMp3Manual','inputTxtManual','inputImages'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
