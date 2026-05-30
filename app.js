@@ -394,8 +394,8 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
   var writtenImgs = {};
   for (var i = 0; i < scenesInSeg.length; i++) {
     var sc = scenesInSeg[i];
-    var fname = 'img_' + i + '_' + segId + '.jpg';
     if (!writtenImgs[sc.fileName]) {
+      var fname = 'img_' + Object.keys(writtenImgs).length + '_' + segId + '.jpg';
       var data = imgMap[sc.fileName];
       if (!data) throw new Error('Thiếu ảnh: ' + sc.fileName);
       ff.FS('writeFile', fname, data);
@@ -403,89 +403,65 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
     }
   }
 
-  // 2. Build concat.txt — QUAN TRỌNG: dòng cuối phải lặp lại file cuối
+  // 2. Build concat.txt
   var concatLines = [];
   for (var j = 0; j < scenesInSeg.length; j++) {
     var sc2 = scenesInSeg[j];
     var imgFname = writtenImgs[sc2.fileName];
     var dur = sc2.duration;
-    // Clamp duration trong segment
-    var scStart = sc2.startTime - segStart;
-    if (scStart < 0) scStart = 0;
-    var scEnd = scStart + dur;
-    if (sc2.startTime + dur > segEnd) {
-      dur = segEnd - sc2.startTime;
-    }
     if (dur <= 0) dur = 0.04;
     concatLines.push("file '" + imgFname + "'");
     concatLines.push("duration " + dur.toFixed(6));
   }
-  // Dòng cuối bắt buộc (FFmpeg concat demuxer requirement)
-  var lastImgFname = writtenImgs[scenesInSeg[scenesInSeg.length - 1].fileName];
-  concatLines.push("file '" + lastImgFname + "'");
-
-  var concatContent = concatLines.join('\n') + '\n';
+  // Dòng cuối bắt buộc
+  concatLines.push("file '" + writtenImgs[scenesInSeg[scenesInSeg.length - 1].fileName] + "'");
   var concatFname = 'concat_' + segId + '.txt';
-  ff.FS('writeFile', concatFname, new TextEncoder().encode(concatContent));
+  ff.FS('writeFile', concatFname, new TextEncoder().encode(concatLines.join('\n') + '\n'));
 
-  // 3. Ghi audio MP3 vào FS (cắt đúng đoạn bằng FFmpeg)
+  // 3. Ghi TOÀN BỘ audio vào FS (không cắt riêng — dùng -ss -t trong render)
   var mp3Data = new Uint8Array(await audioFile.arrayBuffer());
   var mp3Fname = 'audio_' + segId + '.mp3';
   ff.FS('writeFile', mp3Fname, mp3Data);
 
-  // 4. Cắt audio đúng đoạn
-  var cutAudioFname = 'cut_' + segId + '.mp3';
+  // 4. Render MP4 — dùng -ss -t trực tiếp trên audio input (1 lệnh duy nhất)
   var segDur = segEnd - segStart;
-  await ff.run(
-    '-ss', segStart.toFixed(3),
-    '-t', segDur.toFixed(3),
-    '-i', mp3Fname,
-    '-c', 'copy',
-    '-y', cutAudioFname
-  );
-
-  // Verify audio được cắt
-  var cutAudio;
-  try { cutAudio = ff.FS('readFile', cutAudioFname); } catch(e) { cutAudio = null; }
-  if (!cutAudio || cutAudio.length < 100) {
-    // Fallback: dùng audio gốc với -ss -t trong lệnh render
-    addLog('⚠ Dùng audio gốc cho ' + segLabel, 'log-warn');
-    cutAudioFname = mp3Fname;
-  }
-
-  // 5. Render MP4
   var outFname = 'out_' + segId + '.mp4';
+
   await ff.run(
+    // Video từ concat images
     '-f', 'concat', '-safe', '0', '-i', concatFname,
-    '-i', cutAudioFname,
+    // Audio với trim trực tiếp
+    '-ss', segStart.toFixed(3),
+    '-t',  segDur.toFixed(3),
+    '-i',  mp3Fname,
+    // Video codec
     '-c:v', 'libx264',
     '-tune', 'stillimage',
     '-crf', '23',
     '-preset', 'ultrafast',
     '-pix_fmt', 'yuv420p',
     '-r', '24',
+    // Audio codec
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ar', '44100',
+    // Output
     '-shortest',
     '-movflags', '+faststart',
     '-y', outFname
   );
 
-  // 6. Đọc output
+  // 5. Đọc output
   var outData;
   try { outData = ff.FS('readFile', outFname); } catch(e) { outData = null; }
   if (!outData || outData.length < 1000) {
     throw new Error('FFmpeg render ra file rỗng tại segment ' + segLabel);
   }
 
-  // 7. Dọn dẹp FS
+  // 6. Dọn dẹp FS
   var toDelete = [concatFname, mp3Fname, outFname];
-  if (cutAudioFname !== mp3Fname) toDelete.push(cutAudioFname);
-  Object.values(writtenImgs).forEach(function(fn){ toDelete.push(fn); });
-  toDelete.forEach(function (fn) {
-    try { ff.FS('unlink', fn); } catch (e) { /* ignore */ }
-  });
+  Object.values(writtenImgs).forEach(function(fn) { toDelete.push(fn); });
+  toDelete.forEach(function(fn) { try { ff.FS('unlink', fn); } catch(e) {} });
 
   return outData;
 }
