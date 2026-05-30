@@ -579,8 +579,7 @@ async function startManual() {
 
     setProgressPct(100);
     addLog('🎉 Hoàn tất! ' + APP.segments.filter(function(s){return s.status==='ok';}).length + '/' + APP.segments.length + ' đoạn thành công.', 'log-ok');
-    document.getElementById('progress-header').querySelector('.material-icons').style.animation = 'none';
-
+    
   } catch (err) {
     addLog('❌ Lỗi: ' + err.message, 'log-err');
     console.error('[Manual] Error:', err);
