@@ -477,114 +477,66 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
         var canvas = document.createElement('canvas');
         canvas.width = 1920; canvas.height = 1080;
         var ctx = canvas.getContext('2d');
-
-        // Chọn hiệu ứng xen kẽ theo index cảnh
         var effect = sceneIndex % 4;
-        // 0: zoom in center, 1: zoom out center, 2: pan left→right, 3: pan right→left
-
-        var frames = [];
-        var pending = totalFrames;
         var results = new Array(totalFrames);
 
-        function renderFrame(fi) {
-          var t = totalFrames <= 1 ? 0 : fi / (totalFrames - 1); // 0.0 → 1.0
-
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, 1920, 1080);
-
-          var scale, ox, oy;
-          var iw = img.naturalWidth, ih = img.naturalHeight;
-          var baseScale = Math.max(1920/iw, 1080/ih);
-
-          if (effect === 0) {
-            // Zoom in: 100% → 112%
-            scale = baseScale * (1.00 + 0.12 * t);
-            ox = (1920 - iw * scale) / 2;
-            oy = (1080 - ih * scale) / 2;
-          } else if (effect === 1) {
-            // Zoom out: 112% → 100%
-            scale = baseScale * (1.12 - 0.12 * t);
-            ox = (1920 - iw * scale) / 2;
-            oy = (1080 - ih * scale) / 2;
-          } else if (effect === 2) {
-            // Pan left → right: zoom 108%, dịch ngang
-            scale = baseScale * 1.08;
-            var maxPan = (iw * scale - 1920) / 2;
-            ox = (1920 - iw * scale) / 2 + maxPan * (t * 2 - 1) * (-1);
-            oy = (1080 - ih * scale) / 2;
-          } else {
-            // Pan right → left
-            scale = baseScale * 1.08;
-            var maxPan2 = (iw * scale - 1920) / 2;
-            ox = (1920 - iw * scale) / 2 + maxPan2 * (t * 2 - 1);
-            oy = (1080 - ih * scale) / 2;
-          }
-
-          ctx.drawImage(img, ox, oy, iw * scale, ih * scale);
-
-          canvas.toBlob(function(blob) {
-            blob.arrayBuffer().then(function(buf) {
-              results[fi] = new Uint8Array(buf);
-              pending--;
-              if (pending === 0) resolve(results);
-            });
-          }, 'image/jpeg', 0.85);
-        }
-
-        // Render từng frame tuần tự để tránh quá tải RAM
         (async function renderAllFrames() {
           for (var fi = 0; fi < totalFrames; fi++) {
-            await new Promise(function(res) {
-              var idx = fi;
-              ctx.fillStyle = '#000';
+            var t = totalFrames <= 1 ? 0 : fi / (totalFrames - 1);
+            var iw = img.naturalWidth, ih = img.naturalHeight;
+            var baseScale = Math.max(1920/iw, 1080/ih);
+            var scale, ox, oy;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 1920, 1080);
+
+            if (effect === 0) {
+              scale = baseScale * (1.00 + 0.12 * t);
+              ox = (1920 - iw * scale) / 2;
+              oy = (1080 - ih * scale) / 2;
+            } else if (effect === 1) {
+              scale = baseScale * (1.12 - 0.12 * t);
+              ox = (1920 - iw * scale) / 2;
+              oy = (1080 - ih * scale) / 2;
+            } else if (effect === 2) {
+              scale = baseScale * 1.08;
+              var mp = Math.max(0, (iw * scale - 1920) / 2);
+              ox = (1920 - iw * scale) / 2 - mp * (t * 2 - 1);
+              oy = (1080 - ih * scale) / 2;
+            } else {
+              scale = baseScale * 1.08;
+              var mp2 = Math.max(0, (iw * scale - 1920) / 2);
+              ox = (1920 - iw * scale) / 2 + mp2 * (t * 2 - 1);
+              oy = (1080 - ih * scale) / 2;
+            }
+
+            ctx.drawImage(img, ox, oy, iw * scale, ih * scale);
+
+            // Fade in đầu cảnh
+            if (fi < TRANSITION_FRAMES) {
+              var alphaIn = fi / TRANSITION_FRAMES;
+              ctx.fillStyle = 'rgba(0,0,0,' + (1 - alphaIn) + ')';
               ctx.fillRect(0, 0, 1920, 1080);
-              var t = totalFrames <= 1 ? 0 : idx / (totalFrames - 1);
-              var scale, ox, oy;
-              var iw2 = img.naturalWidth, ih2 = img.naturalHeight;
-              var baseScale2 = Math.max(1920/iw2, 1080/ih2);
+            }
+            // Fade out cuối cảnh
+            if (fi >= totalFrames - TRANSITION_FRAMES) {
+              var alphaOut = (totalFrames - 1 - fi) / TRANSITION_FRAMES;
+              ctx.fillStyle = 'rgba(0,0,0,' + (1 - alphaOut) + ')';
+              ctx.fillRect(0, 0, 1920, 1080);
+            }
 
-              if (effect === 0) {
-                scale = baseScale2 * (1.00 + 0.12 * t);
-                ox = (1920 - iw2 * scale) / 2;
-                oy = (1080 - ih2 * scale) / 2;
-              } else if (effect === 1) {
-                scale = baseScale2 * (1.12 - 0.12 * t);
-                ox = (1920 - iw2 * scale) / 2;
-                oy = (1080 - ih2 * scale) / 2;
-              } else if (effect === 2) {
-                scale = baseScale2 * 1.08;
-                var mp = Math.max(0, (iw2 * scale - 1920) / 2);
-                ox = (1920 - iw2 * scale) / 2 - mp * (t * 2 - 1);
-                oy = (1080 - ih2 * scale) / 2;
-              } else {
-                scale = baseScale2 * 1.08;
-                var mp2 = Math.max(0, (iw2 * scale - 1920) / 2);
-                ox = (1920 - iw2 * scale) / 2 + mp2 * (t * 2 - 1);
-                oy = (1080 - ih2 * scale) / 2;
-              }
+            // ✅ toDataURL thay toBlob — không bị GC thu hồi
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            var base64 = dataUrl.split(',')[1];
+            var binary = atob(base64);
+            var bytes = new Uint8Array(binary.length);
+            for (var b = 0; b < binary.length; b++) {
+              bytes[b] = binary.charCodeAt(b);
+            }
+            results[fi] = bytes;
 
-              ctx.drawImage(img, ox, oy, iw2 * scale, ih2 * scale);
-
-              // Fade in đầu cảnh (TRANSITION_FRAMES frames)
-              if (idx < TRANSITION_FRAMES) {
-                var alpha = idx / TRANSITION_FRAMES;
-                ctx.fillStyle = 'rgba(0,0,0,' + (1 - alpha) + ')';
-                ctx.fillRect(0, 0, 1920, 1080);
-              }
-              // Fade out cuối cảnh
-              if (idx >= totalFrames - TRANSITION_FRAMES) {
-                var alpha2 = (totalFrames - 1 - idx) / TRANSITION_FRAMES;
-                ctx.fillStyle = 'rgba(0,0,0,' + (1 - alpha2) + ')';
-                ctx.fillRect(0, 0, 1920, 1080);
-              }
-
-              canvas.toBlob(function(blob) {
-                blob.arrayBuffer().then(function(buf) {
-                  results[idx] = new Uint8Array(buf);
-                  res();
-                });
-              }, 'image/jpeg', 0.85);
-            });
+            // Yield cho browser thở giữa các frame
+            await new Promise(function(r){ setTimeout(r, 0); });
           }
           resolve(results);
         })();
