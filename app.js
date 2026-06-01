@@ -581,7 +581,10 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
       concatLines.push("file '" + fname + "'");
       concatLines.push("duration " + KEYFRAME_INTERVAL.toFixed(6));
 
-      if (fi % 10 === 0) await new Promise(function(r){ setTimeout(r, 0); });
+      if (fi % 5 === 0) {
+  await new Promise(function(r){ setTimeout(r, 0); });
+  await checkPauseCancel(); // ⚡ Gọi chốt chặn kiểm tra Pause/Cancel
+}
     }
 
     concatLines.push("file '" + frameFiles[frameFiles.length - 1] + "'");
@@ -624,9 +627,14 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
 /* ============ START MANUAL ============ */
 async function startManual() {
   try {
+    // 1. KHÓA NÚT NGAY LẬP TỨC ĐỂ CHỐNG DOUBLE-CLICK
+    document.getElementById('btn-manual').disabled = true;
     APP.useKenBurns = await askRenderMode();
-document.getElementById('btn-manual').disabled = true;
+    
     showProgress('Đang khởi tạo...');
+    APP.isPaused = false;
+    APP.isCancelled = false;
+    document.querySelectorAll('.btn-pause-render, .btn-cancel-render').forEach(function(b){ b.disabled = false; }); 
     APP.segments = [];
     APP.activeSegIdx = -1;
     document.getElementById('segments-area').style.display = 'none';
@@ -689,7 +697,7 @@ document.getElementById('btn-manual').disabled = true;
 
     // 7. Chia segments (mỗi 10 phút)
     var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
-    addLog('📦 Chia thành ' + segs.length + ' đoạn (mỗi 10 phút)', 'log-ok');
+    addLog('📦 Chia thành ' + segs.length + ' đoạn', 'log-ok');
     APP.segments = segs.map(function(s, idx){ return Object.assign({}, s, {idx: idx, blobUrl: null, size: 0, status: 'pending'}); });
 
     // Hiển thị segment cards (pending)
@@ -721,19 +729,25 @@ document.getElementById('btn-manual').disabled = true;
       try {
         var outData = await renderSegMP4(ff, segTimeline, imgMap, APP.manualMp3, seg.start, seg.end, 'm_' + si);
         var blob = new Blob([outData], { type: 'video/mp4' });
-        APP.segments[si].blobUrl = URL.createObjectURL(blob);
-        APP.segments[si].size = outData.length;
-        APP.segments[si].status = 'ok';
-        addLog('✅ ' + segLabel + ' xong (' + fmtSize(outData.length) + ')', 'log-ok');
-        renderSegmentCards();
+        
+        // 2. THÊM ÁO GIÁP BẢO VỆ MẢNG KHI BỊ RESET
+        if (APP.segments[si]) {
+          APP.segments[si].blobUrl = URL.createObjectURL(blob);
+          APP.segments[si].size = outData.length;
+          APP.segments[si].status = 'ok';
+          addLog('✅ ' + segLabel + ' xong (' + fmtSize(outData.length) + ')', 'log-ok');
+          renderSegmentCards();
+        }
       } catch (e) {
-        APP.segments[si].status = 'error';
-        addLog('❌ ' + segLabel + ' lỗi: ' + e.message, 'log-err');
-        renderSegmentCards();
+        if (APP.segments[si]) {
+          APP.segments[si].status = 'error';
+          addLog('❌ ' + segLabel + ' lỗi: ' + e.message, 'log-err');
+          renderSegmentCards();
+        }
       }
     }
 
-     setProgressPct(100);
+    setProgressPct(100);
     addLog('🎉 Hoàn tất! ' + APP.segments.filter(function(s){return s.status==='ok';}).length + '/' + APP.segments.length + ' đoạn thành công.', 'log-ok');
     document.getElementById('progress-title').textContent = '✅ Hoàn tất!';
     var progIcon = document.querySelector('#progress-card .progress-header .material-icons');
@@ -745,8 +759,13 @@ document.getElementById('btn-manual').disabled = true;
     setTimeout(function(){ hideProgress(); }, 3000);
     
   } catch (err) {
-    addLog('❌ Lỗi: ' + err.message, 'log-err');
-    console.error('[Manual] Error:', err);
+    if (err.message === "USER_CANCELLED") {
+      addLog('🛑 Đã Hủy quá trình ghép video thành công!', 'log-err');
+      document.getElementById('progress-title').textContent = 'Đã hủy!';
+    } else {
+      addLog('❌ Lỗi: ' + err.message, 'log-err');
+      console.error(err);
+    }
   } finally {
     document.getElementById('btn-manual').disabled = false;
   }
@@ -1027,9 +1046,14 @@ function cancelReRender() {
 /* ============ START AUTO (giữ nguyên logic cũ) ============ */
 async function startAuto() {
   try {
+    // 1. KHÓA NÚT NGAY LẬP TỨC ĐỂ CHỐNG DOUBLE-CLICK
+    document.getElementById('btn-auto').disabled = true;
     APP.useKenBurns = await askRenderMode();
-document.getElementById('btn-auto').disabled = true;
+    
     showProgress('Đọc file...');
+    APP.isPaused = false;
+    APP.isCancelled = false;
+    document.querySelectorAll('.btn-pause-render, .btn-cancel-render').forEach(function(b){ b.disabled = false; });
     APP.segments = [];
 
     var txtContent = await APP.autoTxt.text();
@@ -1057,6 +1081,8 @@ document.getElementById('btn-auto').disabled = true;
         addLog('  ⚠ Cảnh ' + (i+1) + ' lỗi: ' + e.message, 'log-warn');
       }
       await sleep(2500);
+      // Chốt chặn kiểm tra Pause/Cancel khi đang tạo ảnh AI
+      await checkPauseCancel(); 
     }
 
     setProgressPct(70);
@@ -1076,13 +1102,19 @@ document.getElementById('btn-auto').disabled = true;
       try {
         var outData = await renderSegMP4(ff, segTimeline, imgMap, APP.autoMp3, seg.start, seg.end, 'a_' + si);
         var blob = new Blob([outData], { type: 'video/mp4' });
-        APP.segments[si].blobUrl = URL.createObjectURL(blob);
-        APP.segments[si].size = outData.length;
-        APP.segments[si].status = 'ok';
-        addLog('✅ Đoạn ' + (si+1) + ' xong', 'log-ok');
+        
+        // 2. THÊM ÁO GIÁP BẢO VỆ MẢNG
+        if (APP.segments[si]) {
+          APP.segments[si].blobUrl = URL.createObjectURL(blob);
+          APP.segments[si].size = outData.length;
+          APP.segments[si].status = 'ok';
+          addLog('✅ Đoạn ' + (si+1) + ' xong', 'log-ok');
+        }
       } catch(e) {
-        APP.segments[si].status = 'error';
-        addLog('❌ Đoạn ' + (si+1) + ' lỗi: ' + e.message, 'log-err');
+        if (APP.segments[si]) {
+          APP.segments[si].status = 'error';
+          addLog('❌ Đoạn ' + (si+1) + ' lỗi: ' + e.message, 'log-err');
+        }
       }
       renderSegmentCards();
     }
@@ -1091,8 +1123,14 @@ document.getElementById('btn-auto').disabled = true;
     addLog('🎉 Hoàn tất!', 'log-ok');
 
   } catch(err) {
-    addLog('❌ ' + err.message, 'log-err');
-    console.error(err);
+    // 3. THÊM THÔNG BÁO NẾU NGƯỜI DÙNG BẤM HỦY (Tab AUTO)
+    if (err.message === "USER_CANCELLED") {
+      addLog('🛑 Đã Hủy quá trình ghép video thành công!', 'log-err');
+      document.getElementById('progress-title').textContent = 'Đã hủy!';
+    } else {
+      addLog('❌ ' + err.message, 'log-err');
+      console.error(err);
+    }
   } finally {
     document.getElementById('btn-auto').disabled = false;
   }
@@ -1195,3 +1233,41 @@ function askRenderMode() {
   });
 }
 function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+/* ============ BỘ ĐIỀU KHIỂN PAUSE / CANCEL ============ */
+APP.isPaused = false;
+APP.isCancelled = false;
+
+function togglePause() {
+  APP.isPaused = !APP.isPaused;
+  var btns = document.querySelectorAll('.btn-pause-text');
+  var icons = document.querySelectorAll('.btn-pause-icon');
+  
+  if (APP.isPaused) {
+    btns.forEach(function(b){ b.textContent = 'Tiếp tục'; });
+    icons.forEach(function(i){ i.textContent = 'play_arrow'; });
+    addLog('⏸ Đã tạm dừng. Bấm "Tiếp tục" để chạy tiếp...', 'log-warn');
+  } else {
+    btns.forEach(function(b){ b.textContent = 'Tạm dừng'; });
+    icons.forEach(function(i){ i.textContent = 'pause'; });
+    addLog('▶ Đang tiếp tục xử lý...', 'log-ok');
+  }
+}
+
+function cancelRender() {
+  if (confirm("🛑 Bạn có chắc chắn muốn DỪNG HẲN tiến trình đang chạy?")) {
+    APP.isCancelled = true;
+    APP.isPaused = false; // Nhả phanh nếu đang pause để code chạy vào bẫy Cancel
+    document.querySelectorAll('.btn-cancel-render').forEach(function(b){ b.disabled = true; });
+    document.querySelectorAll('.btn-pause-render').forEach(function(b){ b.disabled = true; });
+  }
+}
+
+// Hàm chặn (Blocker) - Cắm hàm này vào các vòng lặp nặng để kiểm tra
+async function checkPauseCancel() {
+  if (APP.isCancelled) throw new Error("USER_CANCELLED");
+  while (APP.isPaused) {
+    await new Promise(function(r) { setTimeout(r, 500); }); // Ngủ 0.5s rồi kiểm tra lại
+    if (APP.isCancelled) throw new Error("USER_CANCELLED");
+  }
+}
