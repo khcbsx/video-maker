@@ -21,7 +21,7 @@ var APP = {
   // Render state
   scenes: [],             // parsed scenes
   audioDuration: 0,       // giây
-  segmentDuration: 180,   // 10 phút mỗi đoạn
+  segmentDuration: 60,   // 2 phút mỗi đoạn
   segments: [],           // [{idx, start, end, scenes, blobUrl, size}]
   activeSegIdx: -1,       // đoạn đang mở trong player
 
