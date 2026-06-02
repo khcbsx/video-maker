@@ -44,53 +44,39 @@
 
       <!-- TAB MANUAL -->
       <div id="panel-manual" class="tab-panel active">
-        <div class="compact-file-group">
-          <div class="compact-file-row" id="dz-manual-mp3" onclick="document.getElementById('inp-manual-mp3').click()" title="Kéo thả file MP3 vào đây">
-            <span class="material-icons file-icon" style="color: var(--accent2);">audio_file</span>
-            <div class="file-name" id="info-manual-mp3">1. Chọn Audio (.mp3)</div>
-            <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-mp3" accept=".mp3" hidden/>
-          </div>
-
-          <div class="compact-file-row" id="dz-manual-txt" onclick="document.getElementById('inp-manual-txt').click()" title="Kéo thả file TXT vào đây">
-            <span class="material-icons file-icon" style="color: var(--success);">text_snippet</span>
-            <div class="file-name" id="info-manual-txt">2. Chọn Script (.txt)</div>
-            <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-txt" accept=".txt" hidden/>
-          </div>
-
-          <div class="compact-file-row" id="dz-manual-imgs" onclick="document.getElementById('inp-manual-imgs').click()" title="Kéo thả nhiều file ảnh vào đây">
-            <span class="material-icons file-icon" style="color: var(--warning);">photo_library</span>
-            <div class="file-name" id="info-manual-imgs">3. Chọn Ảnh (scene_...)</div>
-            <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-imgs" accept="image/*" multiple hidden/>
-          </div>
-        </div>
-
-        <button class="btn-primary" id="btn-manual" onclick="startManual()" disabled>
-          <span class="material-icons">movie</span>
-          Ghép Video
+        
+        <button class="btn-secondary" onclick="addManualSlot()" style="width: 100%; margin-bottom: 16px; background: rgba(139, 92, 246, 0.1); border-color: var(--accent); color: var(--accent);">
+          <span class="material-icons">post_add</span> Thêm Chương Mới (Slot)
         </button>
+
+        <div id="manual-slots-container"></div>
+
         <div class="panel-section" style="margin-top: 12px; margin-bottom: 8px; padding: 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm);">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <label style="font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px;">
               <span class="material-icons" style="font-size: 16px; color: var(--accent);">hourglass_top</span>
-              Thời lượng mỗi đoạn (phút):
+              Cắt mỗi đoạn (phút):
             </label>
             <input type="number" id="cfg-manual-duration" value="10" min="1" max="120" style="width: 60px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); text-align: center; font-size: 12px; font-weight: bold;"/>
           </div>
         </div>
-        <div style="display: flex; gap: 6px;">
-  <button class="btn-secondary btn-pause-render" onclick="togglePause()" disabled style="flex: 1; padding: 10px 4px; font-size: 11px;">
-    <span class="material-icons btn-pause-icon" style="font-size: 16px;">pause</span> <span class="btn-pause-text">Tạm dừng</span>
-  </button>
-  <button class="btn-secondary btn-cancel-render" onclick="cancelRender()" disabled style="flex: 1; padding: 10px 4px; font-size: 11px; color: var(--error);">
-    <span class="material-icons" style="font-size: 16px;">stop</span> Dừng hẳn
-  </button>
-  <button class="btn-secondary" id="btn-manual-reset" onclick="resetManual()" style="flex: 1; padding: 10px 4px; font-size: 11px;">
-    <span class="material-icons" style="font-size: 16px;">restart_alt</span> Làm mới
-  </button>
-</div>
+
+        <button class="btn-primary" id="btn-manual" onclick="startBatchManual()" disabled>
+          <span class="material-icons">movie</span>
+          Ghép Hàng Loạt (Batch)
+        </button>
+
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+          <button class="btn-secondary btn-pause-render" onclick="togglePause()" disabled style="flex: 1; padding: 10px 4px; font-size: 11px;">
+            <span class="material-icons btn-pause-icon" style="font-size: 16px;">pause</span> <span class="btn-pause-text">Tạm dừng</span>
+          </button>
+          <button class="btn-secondary btn-cancel-render" onclick="cancelRender()" disabled style="flex: 1; padding: 10px 4px; font-size: 11px; color: var(--error);">
+            <span class="material-icons" style="font-size: 16px;">stop</span> Dừng hẳn
+          </button>
+          <button class="btn-secondary" id="btn-manual-reset" onclick="resetManualBatch()" style="flex: 1; padding: 10px 4px; font-size: 11px;">
+            <span class="material-icons" style="font-size: 16px;">delete_sweep</span> Xóa hết
+          </button>
+        </div>
       </div>
 
       <!-- TAB AUTO -->
