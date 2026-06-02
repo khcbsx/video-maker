@@ -636,6 +636,9 @@ async function startManual() {
     APP.useKenBurns = await askRenderMode();
     
     showProgress('Đang khởi tạo...');
+     // Đọc số phút từ giao diện và quy đổi sang giây (mặc định là 10 phút nếu ô trống)
+    var inputMin = parseFloat(document.getElementById('cfg-manual-duration').value) || 10;
+    APP.segmentDuration = inputMin * 60;
     
     // 3. KHỞI TẠO NÚT TẠM DỪNG / HỦY
     APP.isPaused = false;
@@ -1066,6 +1069,9 @@ async function startAuto() {
     APP.useKenBurns = await askRenderMode();
     
     showProgress('Đọc file...');
+    // Đọc số phút từ giao diện và quy đổi sang giây cho tab AUTO
+    var inputMin = parseFloat(document.getElementById('cfg-auto-duration').value) || 10;
+    APP.segmentDuration = inputMin * 60;
     APP.isPaused = false;
     APP.isCancelled = false;
     document.querySelectorAll('.btn-pause-render, .btn-cancel-render').forEach(function(b){ b.disabled = false; });
@@ -1132,6 +1138,10 @@ async function startAuto() {
         }
       }
       renderSegmentCards();
+      try { ff.exit(); } catch(ex) {}
+      APP.ff = null;
+      APP.ffLoaded = false;
+      ff = await getFF();
     }
 
     setProgressPct(100);
