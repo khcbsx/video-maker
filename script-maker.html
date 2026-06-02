@@ -1,26 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Trợ Lý Kịch Bản AI</title>
-  <link rel="stylesheet" href="script-maker.css">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Trợ Lý Kịch Bản AI</title>
+    <link rel="stylesheet" href="script-maker.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-  <h1>Trợ Lý Kịch Bản AI</h1>
-  <div class="app-grid">
-    <div class="glass-card">
-      <h3>Cấu hình</h3>
-      <button onclick="document.getElementById('docxInput').click()">Tải file Word</button>
-      <input type="file" id="docxInput" style="display:none">
-      <button class="convert-btn" onclick="buildScript()">Phân Vai AI</button>
+    <div class="container">
+        <header>
+            <h1>Trợ Lý Kịch Bản AI</h1>
+        </header>
+        <div class="app-grid">
+            <aside class="glass-card">
+                <h3><span class="material-icons">settings</span> Cấu hình</h3>
+                <div id="voice-settings">
+                    <label>Người dẫn truyện:</label>
+                    <select id="voiceNarrator" class="voice-dropdown"></select>
+                </div>
+                <button class="upload-btn" onclick="document.getElementById('docxInput').click()">
+                    <span class="material-icons">file_upload</span> Tải Word (.docx)
+                </button>
+                <input type="file" id="docxInput" accept=".docx" style="display:none">
+                <button class="convert-btn" id="buildScriptBtn" onclick="buildScript()">
+                    <span class="material-icons">auto_awesome</span> Phân Vai AI
+                </button>
+            </aside>
+            <section class="glass-card">
+                <h3><span class="material-icons">edit</span> Kịch bản</h3>
+                <textarea id="scriptOutput" placeholder="Kết quả sẽ hiển thị ở đây..."></textarea>
+                <button class="convert-btn" onclick="startAudioGeneration()" style="background:var(--primary-grad)">
+                    <span class="material-icons">headphones</span> Thu Âm MP3
+                </button>
+            </section>
+        </div>
     </div>
-    <div class="glass-card">
-      <h3>Kịch bản</h3>
-      <textarea id="scriptOutput"></textarea>
-      <button class="convert-btn" onclick="startAudioGeneration()">Thu Âm MP3</button>
-    </div>
-  </div>
-  <script src="script-maker.js"></script>
+    <script src="script-maker.js"></script>
 </body>
 </html>
