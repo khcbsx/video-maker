@@ -44,44 +44,27 @@
 
       <!-- TAB MANUAL -->
       <div id="panel-manual" class="tab-panel active">
-        <div class="panel-section">
-          <div class="section-label">
-            <span class="material-icons">music_note</span> Audio MP3
-          </div>
-          <div class="drop-zone" id="dz-manual-mp3" onclick="document.getElementById('inp-manual-mp3').click()">
-            <span class="material-icons drop-icon">audio_file</span>
-            <p class="drop-title">Kéo thả hoặc click</p>
-            <p class="drop-hint">Chấp nhận .mp3</p>
+        <div class="compact-file-group">
+          <div class="compact-file-row" id="dz-manual-mp3" onclick="document.getElementById('inp-manual-mp3').click()" title="Kéo thả file MP3 vào đây">
+            <span class="material-icons file-icon" style="color: var(--accent2);">audio_file</span>
+            <div class="file-name" id="info-manual-mp3">1. Chọn Audio (.mp3)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
             <input type="file" id="inp-manual-mp3" accept=".mp3" hidden/>
           </div>
-          <div class="file-info" id="info-manual-mp3"></div>
-        </div>
 
-        <div class="panel-section">
-          <div class="section-label">
-            <span class="material-icons">description</span> Script TXT
-          </div>
-          <div class="drop-zone" id="dz-manual-txt" onclick="document.getElementById('inp-manual-txt').click()">
-            <span class="material-icons drop-icon">text_snippet</span>
-            <p class="drop-title">Kéo thả hoặc click</p>
-            <p class="drop-hint">Chấp nhận .txt</p>
+          <div class="compact-file-row" id="dz-manual-txt" onclick="document.getElementById('inp-manual-txt').click()" title="Kéo thả file TXT vào đây">
+            <span class="material-icons file-icon" style="color: var(--success);">text_snippet</span>
+            <div class="file-name" id="info-manual-txt">2. Chọn Script (.txt)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
             <input type="file" id="inp-manual-txt" accept=".txt" hidden/>
           </div>
-          <div class="file-info" id="info-manual-txt"></div>
-        </div>
 
-        <div class="panel-section">
-          <div class="section-label">
-            <span class="material-icons">image</span> Ảnh cảnh
-            <span class="badge-hint">scene_XXXXX.XXXs.jpg</span>
-          </div>
-          <div class="drop-zone drop-zone-images" id="dz-manual-imgs" onclick="document.getElementById('inp-manual-imgs').click()">
-            <span class="material-icons drop-icon">photo_library</span>
-            <p class="drop-title">Kéo thả nhiều ảnh</p>
-            <p class="drop-hint">JPG · tên: scene_00000.000s.jpg</p>
+          <div class="compact-file-row" id="dz-manual-imgs" onclick="document.getElementById('inp-manual-imgs').click()" title="Kéo thả nhiều file ảnh vào đây">
+            <span class="material-icons file-icon" style="color: var(--warning);">photo_library</span>
+            <div class="file-name" id="info-manual-imgs">3. Chọn Ảnh (scene_...)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
             <input type="file" id="inp-manual-imgs" accept="image/*" multiple hidden/>
           </div>
-          <div class="file-info" id="info-manual-imgs"></div>
         </div>
 
         <button class="btn-primary" id="btn-manual" onclick="startManual()" disabled>
@@ -112,30 +95,27 @@
 
       <!-- TAB AUTO -->
       <div id="panel-auto" class="tab-panel">
-        <div class="panel-section">
-          <div class="section-label">
-            <span class="material-icons">music_note</span> Audio MP3
+        <div class="compact-file-group">
+          <div class="compact-file-row" id="dz-manual-mp3" onclick="document.getElementById('inp-manual-mp3').click()" title="Kéo thả file MP3 vào đây">
+            <span class="material-icons file-icon" style="color: var(--accent2);">audio_file</span>
+            <div class="file-name" id="info-manual-mp3">1. Chọn Audio (.mp3)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
+            <input type="file" id="inp-manual-mp3" accept=".mp3" hidden/>
           </div>
-          <div class="drop-zone" id="dz-auto-mp3" onclick="document.getElementById('inp-auto-mp3').click()">
-            <span class="material-icons drop-icon">audio_file</span>
-            <p class="drop-title">Kéo thả hoặc click</p>
-            <p class="drop-hint">Chấp nhận .mp3</p>
-            <input type="file" id="inp-auto-mp3" accept=".mp3" hidden/>
-          </div>
-          <div class="file-info" id="info-auto-mp3"></div>
-        </div>
 
-        <div class="panel-section">
-          <div class="section-label">
-            <span class="material-icons">description</span> Script TXT
+          <div class="compact-file-row" id="dz-manual-txt" onclick="document.getElementById('inp-manual-txt').click()" title="Kéo thả file TXT vào đây">
+            <span class="material-icons file-icon" style="color: var(--success);">text_snippet</span>
+            <div class="file-name" id="info-manual-txt">2. Chọn Script (.txt)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
+            <input type="file" id="inp-manual-txt" accept=".txt" hidden/>
           </div>
-          <div class="drop-zone" id="dz-auto-txt" onclick="document.getElementById('inp-auto-txt').click()">
-            <span class="material-icons drop-icon">text_snippet</span>
-            <p class="drop-title">Kéo thả hoặc click</p>
-            <p class="drop-hint">Chấp nhận .txt · có [IMAGE PROMPT]</p>
-            <input type="file" id="inp-auto-txt" accept=".txt" hidden/>
+
+          <div class="compact-file-row" id="dz-manual-imgs" onclick="document.getElementById('inp-manual-imgs').click()" title="Kéo thả nhiều file ảnh vào đây">
+            <span class="material-icons file-icon" style="color: var(--warning);">photo_library</span>
+            <div class="file-name" id="info-manual-imgs">3. Chọn Ảnh (scene_...)</div>
+            <span class="material-icons file-action">add_circle_outline</span>
+            <input type="file" id="inp-manual-imgs" accept="image/*" multiple hidden/>
           </div>
-          <div class="file-info" id="info-auto-txt"></div>
         </div>
 
         <button class="btn-primary btn-ai" id="btn-auto" onclick="startAuto()" disabled>
