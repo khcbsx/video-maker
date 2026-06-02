@@ -241,26 +241,27 @@
 
 <div class="modal-overlay" id="custom-confirm-modal" style="display: none;">
     <div class="modal-card">
-      <div class="modal-header">
-        <span class="material-icons" style="color: var(--warning);">tune</span>
-        <h3>Tùy chọn Render Video</h3>
+      <div class="modal-header" style="display: flex; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="material-icons" style="color: var(--warning);">tune</span>
+          <h3>Tùy chọn Render Video</h3>
+        </div>
+        <span class="material-icons" id="btn-modal-close" style="cursor: pointer; color: var(--text3); font-size: 20px;">close</span>
       </div>
       <div class="modal-body">
         <p>Bạn muốn áp dụng hiệu ứng chuyển động cho hình ảnh không?</p>
-        
         <div class="render-option">
           <span class="material-icons" style="color: var(--accent2);">movie_filter</span>
           <div>
             <strong>Bật hiệu ứng Ken Burns</strong>
-            <p>Ảnh lướt, phóng to/thu nhỏ và mờ dần (Chờ khá lâu, máy phải render từng khung hình).</p>
+            <p>Ảnh lướt, phóng to/thu nhỏ và mờ dần (Chờ khá lâu).</p>
           </div>
         </div>
-        
         <div class="render-option">
           <span class="material-icons" style="color: var(--success);">bolt</span>
           <div>
             <strong>Ảnh tĩnh cơ bản</strong>
-            <p>Ghép thẳng ảnh gốc và Audio (Render siêu tốc, tối ưu tuyệt đối cho máy yếu).</p>
+            <p>Ghép thẳng ảnh gốc và Audio (Siêu tốc).</p>
           </div>
         </div>
       </div>
@@ -273,6 +274,20 @@
           <span class="material-icons">movie</span>
           Ken Burns (Đẹp)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cancel-confirm-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 360px; text-align: center;">
+      <div style="margin-bottom: 16px;">
+        <span class="material-icons" style="font-size: 48px; color: var(--error);">warning</span>
+      </div>
+      <h3 style="margin-top: 0; color: var(--text);">Xác nhận dừng hẳn?</h3>
+      <p style="color: var(--text2); font-size: 14px;">Bạn có chắc chắn muốn DỪNG HẲN tiến trình? Các đoạn đang render dở sẽ bị lỗi.</p>
+      <div class="modal-actions" style="margin-top: 24px;">
+        <button class="btn-secondary" id="btn-cancel-no">Không, chạy tiếp</button>
+        <button class="btn-primary" id="btn-cancel-yes" style="background: var(--error);">Có, dừng lại</button>
       </div>
     </div>
   </div>
