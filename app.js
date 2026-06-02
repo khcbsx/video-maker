@@ -116,8 +116,16 @@ function onManualImgs(files) {
   APP.manualImgs = imgs;
   var dz = document.getElementById('dz-manual-imgs');
   dz.classList.add('has-file');
-  dz.querySelector('.drop-title').textContent = valid + ' ảnh đã chọn';
+  dz.querySelector('.file-name').textContent = valid + ' ảnh đã chọn';
   setInfo('info-manual-imgs', '✅ ' + valid + ' file ảnh');
+  
+  dz.style.borderColor = 'var(--success)';
+  dz.style.background = 'rgba(16, 185, 129, 0.1)';
+  var actionIcon = dz.querySelector('.file-action');
+  if (actionIcon) {
+    actionIcon.textContent = 'check_circle';
+    actionIcon.style.color = 'var(--success)';
+  }
   checkManualReady();
 }
 function onAutoMp3(f) {
@@ -135,9 +143,23 @@ function onAutoTxt(f) {
 
 function markDz(id, name) {
   var dz = document.getElementById(id);
+  if (!dz) return;
   dz.classList.add('has-file');
-  dz.querySelector('.drop-title').textContent = name;
+  
+  // Đổi chữ drop-title thành file-name
+  var titleEl = dz.querySelector('.file-name');
+  if (titleEl) titleEl.textContent = name;
+  
+  // Đổi màu viền xanh lá và đổi icon thành dấu check
+  dz.style.borderColor = 'var(--success)';
+  dz.style.background = 'rgba(16, 185, 129, 0.1)';
+  var actionIcon = dz.querySelector('.file-action');
+  if (actionIcon) {
+    actionIcon.textContent = 'check_circle';
+    actionIcon.style.color = 'var(--success)';
+  }
 }
+
 function setInfo(id, txt) {
   document.getElementById(id).textContent = txt;
 }
@@ -162,9 +184,21 @@ function resetManual() {
     var dz = document.getElementById(id);
     dz.classList.remove('has-file','dragover');
   });
-  document.getElementById('dz-manual-mp3').querySelector('.drop-title').textContent = 'Kéo thả hoặc click';
-  document.getElementById('dz-manual-txt').querySelector('.drop-title').textContent = 'Kéo thả hoặc click';
-  document.getElementById('dz-manual-imgs').querySelector('.drop-title').textContent = 'Kéo thả nhiều ảnh';
+  document.getElementById('dz-manual-mp3').querySelector('.file-name').textContent = '1. Chọn Audio (.mp3)';
+  document.getElementById('dz-manual-txt').querySelector('.file-name').textContent = '2. Chọn Script (.txt)';
+  document.getElementById('dz-manual-imgs').querySelector('.file-name').textContent = '3. Chọn Ảnh (scene_...)';
+
+  // Trả lại màu và icon ban đầu
+  ['dz-manual-mp3','dz-manual-txt','dz-manual-imgs'].forEach(function(id){
+    var dz = document.getElementById(id);
+    dz.style.borderColor = '';
+    dz.style.background = '';
+    var actionIcon = dz.querySelector('.file-action');
+    if (actionIcon) {
+      actionIcon.textContent = 'add_circle_outline';
+      actionIcon.style.color = '';
+    }
+  });
 
   // Reset file inputs để có thể chọn lại cùng file
   document.getElementById('inp-manual-mp3').value = '';
@@ -217,8 +251,16 @@ function resetAuto() {
   ['dz-auto-mp3','dz-auto-txt'].forEach(function(id){
     var dz = document.getElementById(id);
     dz.classList.remove('has-file','dragover');
-    dz.querySelector('.drop-title').textContent = 'Kéo thả hoặc click';
+    dz.style.borderColor = '';
+    dz.style.background = '';
+    var actionIcon = dz.querySelector('.file-action');
+    if (actionIcon) {
+      actionIcon.textContent = 'add_circle_outline';
+      actionIcon.style.color = '';
+    }
   });
+  document.getElementById('dz-auto-mp3').querySelector('.file-name').textContent = '1. Chọn Audio (.mp3)';
+  document.getElementById('dz-auto-txt').querySelector('.file-name').textContent = '2. Chọn Script (Có Prompt AI)';
 
   // Reset file inputs
   document.getElementById('inp-auto-mp3').value = '';
