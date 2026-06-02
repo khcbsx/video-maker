@@ -418,15 +418,66 @@ async function startBatchManual() {
         ff = await getFF(); 
       } // KẾT THÚC CHƯƠNG HIỆN TẠI
 
-      // 🌟 KÍCH HOẠT AUTO-DOWNLOAD & GIẢI PHÓNG RAM CHO CHƯƠNG NÀY 🌟
-      setProgressPct(98);
-      addLog(`💾 Đang tự động tải MP4 Chương ${slotId} xuống máy...`, 'log-warn');
-      downloadFinal(slotId); // Gửi id để đặt tên file
+      // 🌟 KÍCH HOẠT NỐI FILE (MERGE) & AUTO-DOWNLOAD 🌟
+      setProgressPct(95);
+      addLog(`🎬 Đang nối các đoạn thành 1 file MP4 duy nhất cho Chương ${slotId}...`, 'log-warn');
       
-      // Chờ 3 giây cho tải xong rồi DỌN RÁC RAM ảo
+      try {
+        var okSegs = APP.segments.filter(function(s) { return s.status === 'ok'; });
+        if (okSegs.length > 0) {
+          if (okSegs.length === 1) {
+            // Nếu chỉ có 1 đoạn (thời lượng ngắn), tải luôn
+            var a = document.createElement('a');
+            a.href = okSegs[0].blobUrl;
+            a.download = `Chuong_${slotId}_Full.mp4`;
+            a.click();
+          } else {
+            // NẾU CÓ NHIỀU ĐOẠN: Dùng FFmpeg nối lại (Copy stream, không render lại nên siêu nhanh)
+            var listTxt = '';
+            // Load lại FFmpeg cho chắc chắn
+            var ffMerge = await getFF(); 
+            
+            for (var k = 0; k < okSegs.length; k++) {
+              // Lấy dữ liệu file MP4 đã render từ RAM
+              var segBlob = await fetch(okSegs[k].blobUrl).then(r => r.blob());
+              var segData = new Uint8Array(await segBlob.arrayBuffer());
+              var partName = `part_${k}.mp4`;
+              ffMerge.FS('writeFile', partName, segData);
+              listTxt += `file '${partName}'\n`;
+            }
+            // Tạo file list để nối
+            ffMerge.FS('writeFile', 'merge_list.txt', new TextEncoder().encode(listTxt));
+            
+            // Chạy lệnh nối không re-encode (-c copy)
+            await ffMerge.run('-f', 'concat', '-safe', '0', '-i', 'merge_list.txt', '-c', 'copy', 'final_merge.mp4');
+            
+            var finalData = ffMerge.FS('readFile', 'final_merge.mp4');
+            var finalBlob = new Blob([finalData], { type: 'video/mp4' });
+            var finalUrl = URL.createObjectURL(finalBlob);
+            
+            addLog(`💾 Tải MP4 Chương ${slotId} hoàn chỉnh xuống máy...`, 'log-ok');
+            var a = document.createElement('a');
+            a.href = finalUrl;
+            a.download = `Chuong_${slotId}_Full.mp4`;
+            a.click();
+            
+            // Dọn rác trong file system của FFmpeg
+            for (var k = 0; k < okSegs.length; k++) { try { ffMerge.FS('unlink', `part_${k}.mp4`); } catch(e){} }
+            try { ffMerge.FS('unlink', 'merge_list.txt'); } catch(e){}
+            try { ffMerge.FS('unlink', 'final_merge.mp4'); } catch(e){}
+            
+            // Xóa file tổng khỏi RAM sau 5 giây để tránh đầy bộ nhớ
+            setTimeout(() => URL.revokeObjectURL(finalUrl), 5000);
+          }
+        }
+      } catch (err) {
+        addLog(`❌ Lỗi khi nối file Chương ${slotId}: ` + err.message, 'log-err');
+      }
+
+      // 🧹 TIẾN HÀNH DỌN RÁC RAM ẢO CHO CHƯƠNG VỪA XONG
       await sleep(3000); 
       APP.segments.forEach(function(seg){ if (seg.blobUrl) URL.revokeObjectURL(seg.blobUrl); });
-      imgMap = {}; // Xóa sạch mảng ảnh trong RAM
+      imgMap = {}; // Xóa sạch mảng ảnh của chương cũ khỏi RAM
       
       // Đánh dấu Slot này đã Done trên UI
       currentSlot.status = 'done';
