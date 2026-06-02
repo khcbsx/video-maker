@@ -615,6 +615,7 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
   var segId = 'seg_' + segLabel;
   var FPS = 24;
 
+  // NHÁNH 1: RENDER BASIC TĨNH (GIỮ NGUYÊN)
   if (!APP.useKenBurns) {
     var concatLines = []; var frameFiles = [];
     for (var i = 0; i < scenesInSeg.length; i++) {
@@ -638,34 +639,84 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
     return outData;
   }
 
+  // NHÁNH 2: RENDER KEN BURNS (ĐÃ NÂNG CẤP 8 HIỆU ỨNG & CROSSFADE)
   var TRANSITION_FRAMES = 24; 
   var KEYFRAME_INTERVAL = 1 / FPS; 
   var sceneMp4Files = [];
+  
+  // Biến tạm lưu dữ liệu cảnh trước để làm Crossfade
+  var prevImgObj = null;
+  var prevEffectIdx = 0;
+  var prevTotalFrames = 0;
+
   for (var i = 0; i < scenesInSeg.length; i++) {
-    var sc = scenesInSeg[i]; var jpegData = imgMap[sc.fileName];
+    var sc = scenesInSeg[i]; 
+    var jpegData = imgMap[sc.fileName];
     if (!jpegData) throw new Error('Thiếu ảnh');
     var totalFrames = Math.max(2, Math.round(sc.duration * FPS));
-    var effect = i % 4;
+    
+    // 🌟 MỞ RỘNG THÀNH 8 HIỆU ỨNG
+    var effect = i % 8;
+    
     var url = URL.createObjectURL(new Blob([jpegData], {type:'image/jpeg'}));
     var img = await new Promise(function(resolve, reject) { var i_obj = new Image(); i_obj.onload = function() { resolve(i_obj); }; i_obj.onerror = reject; i_obj.src = url; });
     URL.revokeObjectURL(url);
+    
     var canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
-    var ctx = canvas.getContext('2d'); var frameFiles = []; var concatLines = [];
+    var ctx = canvas.getContext('2d'); 
+    var frameFiles = []; var concatLines = [];
 
-    for (var fi = 0; fi < totalFrames; fi++) {
-      var t = totalFrames <= 1 ? 0 : fi / (totalFrames - 1);
+    // HÀM VẼ 1 FRAME (Tính toán tọa độ cho 8 góc)
+    function drawKenBurnsFrame(targetCtx, imgObj, fx, fIdx, maxFrames) {
+      var t = maxFrames <= 1 ? 0 : fIdx / (maxFrames - 1);
       var easeT = -(Math.cos(Math.PI * t) - 1) / 2;
-      var iw = img.naturalWidth, ih = img.naturalHeight;
+      var iw = imgObj.naturalWidth, ih = imgObj.naturalHeight;
       var baseScale = Math.max(1920/iw, 1080/ih);
       var scale, ox, oy;
-      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 1920, 1080);
-      if (effect === 0) { scale = baseScale * (1.00 + 0.12 * easeT); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2; } 
-      else if (effect === 1) { scale = baseScale * (1.12 - 0.12 * easeT); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2; } 
-      else if (effect === 2) { scale = baseScale * 1.08; var mp = Math.max(0, (iw * scale - 1920) / 2); ox = (1920 - iw * scale) / 2 - mp * (easeT * 2 - 1); oy = (1080 - ih * scale) / 2; } 
-      else { scale = baseScale * 1.08; var mp2 = Math.max(0, (iw * scale - 1920) / 2); ox = (1920 - iw * scale) / 2 + mp2 * (easeT * 2 - 1); oy = (1080 - ih * scale) / 2; }
-      ctx.drawImage(img, ox, oy, iw * scale, ih * scale);
-      if (fi < TRANSITION_FRAMES) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - (fi / TRANSITION_FRAMES)) + ')'; ctx.fillRect(0, 0, 1920, 1080); }
-      if (fi >= totalFrames - TRANSITION_FRAMES) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - ((totalFrames - 1 - fi) / TRANSITION_FRAMES)) + ')'; ctx.fillRect(0, 0, 1920, 1080); }
+
+      if (fx === 0) { // 1. Zoom In
+        scale = baseScale * (1.00 + 0.12 * easeT); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2; 
+      } else if (fx === 1) { // 2. Zoom Out
+        scale = baseScale * (1.12 - 0.12 * easeT); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2; 
+      } else if (fx === 2) { // 3. Pan Right
+        scale = baseScale * 1.08; var mp = Math.max(0, (iw * scale - 1920) / 2); ox = (1920 - iw * scale) / 2 - mp * (easeT * 2 - 1); oy = (1080 - ih * scale) / 2; 
+      } else if (fx === 3) { // 4. Pan Left
+        scale = baseScale * 1.08; var mp2 = Math.max(0, (iw * scale - 1920) / 2); ox = (1920 - iw * scale) / 2 + mp2 * (easeT * 2 - 1); oy = (1080 - ih * scale) / 2; 
+      } else if (fx === 4) { // 5. Pan Down
+        scale = baseScale * 1.08; var mp3 = Math.max(0, (ih * scale - 1080) / 2); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2 - mp3 * (easeT * 2 - 1);
+      } else if (fx === 5) { // 6. Pan Up
+        scale = baseScale * 1.08; var mp4 = Math.max(0, (ih * scale - 1080) / 2); ox = (1920 - iw * scale) / 2; oy = (1080 - ih * scale) / 2 + mp4 * (easeT * 2 - 1);
+      } else if (fx === 6) { // 7. Zoom Top-Left
+        scale = baseScale * (1.00 + 0.12 * easeT); ox = - (iw * scale - 1920) * (1 - easeT) * 0.2; oy = - (ih * scale - 1080) * (1 - easeT) * 0.2;
+      } else { // 8. Zoom Bottom-Right
+        scale = baseScale * (1.00 + 0.12 * easeT); ox = (1920 - iw * scale) + (iw * scale - 1920) * (1 - easeT) * 0.2; oy = (1080 - ih * scale) + (ih * scale - 1080) * (1 - easeT) * 0.2;
+      }
+      targetCtx.drawImage(imgObj, ox, oy, iw * scale, ih * scale);
+    }
+
+    for (var fi = 0; fi < totalFrames; fi++) {
+      ctx.clearRect(0, 0, 1920, 1080);
+      ctx.fillStyle = '#000'; 
+      ctx.fillRect(0, 0, 1920, 1080);
+
+      // 🌟 THỰC HIỆN CROSSFADE (CHỒNG MỜ)
+      if (i > 0 && fi < TRANSITION_FRAMES && prevImgObj) {
+        // Vẽ ảnh cũ nằm dưới (Opacity 100%)
+        ctx.globalAlpha = 1.0;
+        var virtualFrameIdx = prevTotalFrames - TRANSITION_FRAMES + fi;
+        drawKenBurnsFrame(ctx, prevImgObj, prevEffectIdx, virtualFrameIdx, prevTotalFrames);
+
+        // Vẽ ảnh mới đè lên trên với Opacity tăng dần từ 0 -> 100%
+        var alpha = fi / TRANSITION_FRAMES;
+        ctx.globalAlpha = alpha;
+        drawKenBurnsFrame(ctx, img, effect, fi, totalFrames);
+        ctx.globalAlpha = 1.0; // Trả lại chuẩn
+      } else {
+        // Vẽ bình thường nếu không nằm trong vùng chuyển cảnh
+        ctx.globalAlpha = 1.0;
+        drawKenBurnsFrame(ctx, img, effect, fi, totalFrames);
+      }
+
       var dataUrl = canvas.toDataURL('image/jpeg', 0.85); var binary = atob(dataUrl.split(',')[1]);
       var bytes = new Uint8Array(binary.length); for (var b = 0; b < binary.length; b++) bytes[b] = binary.charCodeAt(b);
       var fname = 'f_' + segId + '_' + i + '_' + fi + '.jpg';
@@ -673,6 +724,12 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
       concatLines.push("file '" + fname + "'"); concatLines.push("duration " + KEYFRAME_INTERVAL.toFixed(6));
       if (fi % 5 === 0) { await new Promise(function(r){ setTimeout(r, 0); }); await checkPauseCancel(); }
     }
+    
+    // Lưu lại ảnh này để làm nền cho cảnh sau
+    prevImgObj = img;
+    prevEffectIdx = effect;
+    prevTotalFrames = totalFrames;
+
     concatLines.push("file '" + frameFiles[frameFiles.length - 1] + "'");
     var concatFname = 'concat_' + segId + '_' + i + '.txt';
     ff.FS('writeFile', concatFname, new TextEncoder().encode(concatLines.join('\n') + '\n'));
@@ -682,6 +739,7 @@ async function renderSegMP4(ff, scenesInSeg, imgMap, audioFile, segStart, segEnd
     frameFiles.forEach(function(f) { try { ff.FS('unlink', f); } catch(e){} });
     try { ff.FS('unlink', concatFname); } catch(e){}
   }
+  
   var videoConcatFname = 'video_list_' + segId + '.txt';
   ff.FS('writeFile', videoConcatFname, new TextEncoder().encode(sceneMp4Files.map(function(f){ return "file '" + f + "'"; }).join('\n')));
   var mp3Data = new Uint8Array(await audioFile.arrayBuffer()); var mp3Fname = 'audio_' + segId + '.mp3';
