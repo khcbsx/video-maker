@@ -114,7 +114,7 @@ function addManualSlot() {
     <div class="slot-card" id="slot-card-${sid}">
       <div class="slot-header">
         <span>Chương ${sid}</span>
-        <button class="btn-remove-slot" onclick="removeManualSlot(${sid})" title="Xóa Chương này"><span class="material-icons">close</span></button>
+        <button class="btn-remove-slot" onclick="removeManualSlot(${sid})" title="Xóa Chương này"><span class="material-icons">delete_outline</span></button>
       </div>
       <div class="compact-file-group">
         <div class="compact-file-row" id="dz-mp3-${sid}" onclick="document.getElementById('inp-mp3-${sid}').click()">
