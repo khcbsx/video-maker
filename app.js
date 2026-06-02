@@ -631,9 +631,15 @@ async function startManual() {
   try {
     // 1. KHÓA NÚT NGAY LẬP TỨC ĐỂ CHỐNG DOUBLE-CLICK
     document.getElementById('btn-manual').disabled = true;
+    var mode = await askRenderMode();
+     // Nếu người dùng bấm X hoặc bấm ra ngoài nền đen -> Hủy lệnh
+    if (mode === null) {
+      document.getElementById('btn-manual').disabled = false;
+      return; 
+    }
     
     // 2. GỌI POPUP CHỌN CHẾ ĐỘ RENDER
-    APP.useKenBurns = await askRenderMode();
+    APP.useKenBurns = mode;
     
     showProgress('Đang khởi tạo...');
      // Đọc số phút từ giao diện và quy đổi sang giây (mặc định là 10 phút nếu ô trống)
@@ -1103,7 +1109,12 @@ async function startAuto() {
   try {
     // 1. KHÓA NÚT NGAY LẬP TỨC ĐỂ CHỐNG DOUBLE-CLICK
     document.getElementById('btn-auto').disabled = true;
-    APP.useKenBurns = await askRenderMode();
+    var mode = await askRenderMode();
+     if (mode === null) {
+      document.getElementById('btn-auto').disabled = false;
+      return; 
+    }
+    APP.useKenBurns = mode;
     
     showProgress('Đọc file...');
     // Đọc số phút từ giao diện và quy đổi sang giây cho tab AUTO
@@ -1293,26 +1304,33 @@ function fmtSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
-/* ============ CUSTOM CONFIRM MODAL ============ */
+/* ============ BỘ ĐIỀU KHIỂN POPUP ============ */
 function askRenderMode() {
   return new Promise(function(resolve) {
     var modal = document.getElementById('custom-confirm-modal');
     var btnOk = document.getElementById('btn-modal-ok');
     var btnCancel = document.getElementById('btn-modal-cancel');
+    var btnClose = document.getElementById('btn-modal-close'); // Nút X
 
-    modal.style.display = 'flex'; // Hiện Popup
+    modal.style.display = 'flex';
 
     var cleanup = function() {
-      modal.style.display = 'none'; // Ẩn Popup
+      modal.style.display = 'none';
       btnOk.removeEventListener('click', onOk);
       btnCancel.removeEventListener('click', onCancel);
+      btnClose.removeEventListener('click', onClose);
+      modal.removeEventListener('mousedown', onOutsideClick);
     };
 
     var onOk = function() { cleanup(); resolve(true); };
     var onCancel = function() { cleanup(); resolve(false); };
+    var onClose = function() { cleanup(); resolve(null); }; // Trả về null nếu tắt ngang
+    var onOutsideClick = function(e) { if(e.target === modal) { cleanup(); resolve(null); } };
 
     btnOk.addEventListener('click', onOk);
     btnCancel.addEventListener('click', onCancel);
+    btnClose.addEventListener('click', onClose);
+    modal.addEventListener('mousedown', onOutsideClick); // Bấm ra nền đen để tắt
   });
 }
 function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
@@ -1337,14 +1355,50 @@ function togglePause() {
   }
 }
 
-function cancelRender() {
-  if (confirm("🛑 Bạn có chắc chắn muốn DỪNG HẲN tiến trình đang chạy?")) {
+function askCancelConfirm() {
+  return new Promise(function(resolve) {
+    var modal = document.getElementById('cancel-confirm-modal');
+    var btnYes = document.getElementById('btn-cancel-yes');
+    var btnNo = document.getElementById('btn-cancel-no');
+
+    modal.style.display = 'flex';
+
+    var cleanup = function() {
+      modal.style.display = 'none';
+      btnYes.removeEventListener('click', onYes);
+      btnNo.removeEventListener('click', onNo);
+      modal.removeEventListener('mousedown', onOutsideClick);
+    };
+
+    var onYes = function() { cleanup(); resolve(true); };
+    var onNo = function() { cleanup(); resolve(false); };
+    var onOutsideClick = function(e) { if(e.target === modal) { cleanup(); resolve(false); } };
+
+    btnYes.addEventListener('click', onYes);
+    btnNo.addEventListener('click', onNo);
+    modal.addEventListener('mousedown', onOutsideClick);
+  });
+}
+
+async function cancelRender() {
+  // Tạm khóa luồng render lại trong lúc chờ người dùng suy nghĩ chọn Có hay Không
+  var wasPaused = APP.isPaused; 
+  APP.isPaused = true; 
+
+  var isConfirmed = await askCancelConfirm();
+  
+  if (isConfirmed) {
     APP.isCancelled = true;
-    APP.isPaused = false; // Nhả phanh nếu đang pause để code chạy vào bẫy Cancel
+    APP.isPaused = false; // Nhả phanh để vòng lặp đâm vào bẫy Cancel
     document.querySelectorAll('.btn-cancel-render').forEach(function(b){ b.disabled = true; });
     document.querySelectorAll('.btn-pause-render').forEach(function(b){ b.disabled = true; });
+  } else {
+    // Nếu bấm Không, trả lại trạng thái chạy bình thường
+    APP.isPaused = wasPaused; 
   }
 }
+
+
 
 // Hàm chặn (Blocker) - Cắm hàm này vào các vòng lặp nặng để kiểm tra
 async function checkPauseCancel() {
