@@ -299,7 +299,7 @@ function hideProgress() {
 
 
 /* =============================================
-   LÕI XỬ LÝ: START BATCH MANUAL (TỰ ĐỘNG CÀY CUỐC)
+   LÕI XỬ LÝ: START BATCH MANUAL (AUTO CÀY CUỐC & FAIL-SAFE)
    ============================================= */
 async function startBatchManual() {
   try {
@@ -324,6 +324,7 @@ async function startBatchManual() {
     for (var q = 0; q < queue.length; q++) {
       var currentSlot = queue[q];
       var slotId = currentSlot.id;
+      var slotHasError = false; // 🚩 CỜ ĐÁNH DẤU LỖI CHO CHƯƠNG NÀY
       
       // Đánh dấu UI đang chạy slot này
       var card = document.getElementById(`slot-card-${slotId}`);
@@ -331,7 +332,7 @@ async function startBatchManual() {
       currentSlot.status = 'processing';
       
       showProgress(`Đang xử lý Chương ${slotId} (${q+1}/${queue.length})...`);
-      addLog(`========== BẮT ĐẦU CHƯƠNG ${slotId} ==========`, 'log-warn');
+      addLog(`\n========== BẮT ĐẦU CHƯƠNG ${slotId} ==========`, 'log-warn');
 
       // Tẩy não biến toàn cục để không dính dữ liệu chương cũ
       APP.segments = [];
@@ -361,7 +362,9 @@ async function startBatchManual() {
         setProgressPct(10 + (i / imgKeys.length) * 15);
       }
 
-      // 5. Load FFmpeg
+      // 5. Load FFmpeg mới tinh cho Chương này
+      try { if (APP.ff) APP.ff.exit(); } catch(ex){}
+      APP.ff = null; APP.ffLoaded = false;
       var ff = await getFF();
       
       // 6. Chia đoạn
@@ -384,7 +387,7 @@ async function startBatchManual() {
         var seg = APP.segments[si];
         var segLabel = 'Đoạn ' + (si + 1) + '/' + APP.segments.length;
         addLog('🎬 Render ' + segLabel + '...', '');
-        setProgressPct(25 + (si / APP.segments.length) * 70);
+        setProgressPct(25 + (si / APP.segments.length) * 65);
 
         var segTimeline = filterTimelineForSeg(timeline, seg.start, seg.end, imgMap);
         var fallbackData = getFallbackImgData(imgMap, scenes, seg.start);
@@ -405,95 +408,86 @@ async function startBatchManual() {
             renderSegmentCards();
           }
         } catch (e) {
+          // 🚨 BẮT LỖI VÀ KÍCH HOẠT QUY TRÌNH "FAIL-SAFE"
           if (APP.segments[si]) {
             APP.segments[si].status = 'error';
-            addLog('❌ ' + segLabel + ' lỗi: ' + e.message, 'log-err');
+            addLog('❌ ' + segLabel + ' LỖI: ' + e.message, 'log-err');
             renderSegmentCards();
           }
+          slotHasError = true; // Bật cờ lỗi cho Chương này
+          break; // THOÁT NGAY VÒNG LẶP ĐOẠN (Không thèm chạy các đoạn sau nữa)
         }
 
-        // Tẩy não FFmpeg sau mỗi đoạn
+        // Tẩy não FFmpeg sau mỗi đoạn (Nếu không lỗi)
         try { ff.exit(); } catch(ex) {}
         APP.ff = null; APP.ffLoaded = false;
         ff = await getFF(); 
       } // KẾT THÚC CHƯƠNG HIỆN TẠI
 
-      // 🌟 KÍCH HOẠT NỐI FILE (MERGE) & AUTO-DOWNLOAD 🌟
-      setProgressPct(95);
-      addLog(`🎬 Đang nối các đoạn thành 1 file MP4 duy nhất cho Chương ${slotId}...`, 'log-warn');
-      
-      try {
-        var okSegs = APP.segments.filter(function(s) { return s.status === 'ok'; });
-        if (okSegs.length > 0) {
-          if (okSegs.length === 1) {
-            // Nếu chỉ có 1 đoạn (thời lượng ngắn), tải luôn
-            var a = document.createElement('a');
-            a.href = okSegs[0].blobUrl;
-            a.download = `Chuong_${slotId}_Full.mp4`;
-            a.click();
-          } else {
-            // NẾU CÓ NHIỀU ĐOẠN: Dùng FFmpeg nối lại (Copy stream, không render lại nên siêu nhanh)
-            var listTxt = '';
-            // Load lại FFmpeg cho chắc chắn
-            var ffMerge = await getFF(); 
-            
-            for (var k = 0; k < okSegs.length; k++) {
-              // Lấy dữ liệu file MP4 đã render từ RAM
-              var segBlob = await fetch(okSegs[k].blobUrl).then(r => r.blob());
-              var segData = new Uint8Array(await segBlob.arrayBuffer());
-              var partName = `part_${k}.mp4`;
-              ffMerge.FS('writeFile', partName, segData);
-              listTxt += `file '${partName}'\n`;
-            }
-            // Tạo file list để nối
-            ffMerge.FS('writeFile', 'merge_list.txt', new TextEncoder().encode(listTxt));
-            
-            // Chạy lệnh nối không re-encode (-c copy)
-            await ffMerge.run('-f', 'concat', '-safe', '0', '-i', 'merge_list.txt', '-c', 'copy', 'final_merge.mp4');
-            
-            var finalData = ffMerge.FS('readFile', 'final_merge.mp4');
-            var finalBlob = new Blob([finalData], { type: 'video/mp4' });
-            var finalUrl = URL.createObjectURL(finalBlob);
-            
-            addLog(`💾 Tải MP4 Chương ${slotId} hoàn chỉnh xuống máy...`, 'log-ok');
-            var a = document.createElement('a');
-            a.href = finalUrl;
-            a.download = `Chuong_${slotId}_Full.mp4`;
-            a.click();
-            
-            // Dọn rác trong file system của FFmpeg
-            for (var k = 0; k < okSegs.length; k++) { try { ffMerge.FS('unlink', `part_${k}.mp4`); } catch(e){} }
-            try { ffMerge.FS('unlink', 'merge_list.txt'); } catch(e){}
-            try { ffMerge.FS('unlink', 'final_merge.mp4'); } catch(e){}
-            
-            // Xóa file tổng khỏi RAM sau 5 giây để tránh đầy bộ nhớ
-            setTimeout(() => URL.revokeObjectURL(finalUrl), 5000);
-          }
-        }
-      } catch (err) {
-        addLog(`❌ Lỗi khi nối file Chương ${slotId}: ` + err.message, 'log-err');
+      // ==========================================
+      // XỬ LÝ KẾT QUẢ CỦA CHƯƠNG
+      // ==========================================
+      if (slotHasError) {
+         // KỊCH BẢN 1: BỊ LỖI -> BỎ QUA NỐI FILE, BÁO ĐỎ
+         addLog(`🚨 HỦY BỎ CHƯƠNG ${slotId} do có sự cố. Hệ thống sẽ dọn RAM và chạy tiếp Chương sau...`, 'log-err');
+         currentSlot.status = 'error';
+         if(card) {
+           card.classList.remove('processing');
+           card.style.borderColor = 'var(--error)';
+           card.querySelector('.slot-header span').textContent += ' (Bị Lỗi)';
+           card.querySelector('.slot-header span').style.color = 'var(--error)';
+         }
+      } else {
+         // KỊCH BẢN 2: THÀNH CÔNG -> NỐI FILE (MERGE) VÀ TẢI XUỐNG
+         setProgressPct(95);
+         addLog(`🎬 Đang nối các đoạn thành 1 file MP4 duy nhất cho Chương ${slotId}...`, 'log-warn');
+         try {
+           var okSegs = APP.segments.filter(function(s) { return s.status === 'ok'; });
+           if (okSegs.length === 1) {
+             var a = document.createElement('a'); a.href = okSegs[0].blobUrl; a.download = `Chuong_${slotId}_Full.mp4`; a.click();
+           } else if (okSegs.length > 1) {
+             var listTxt = '';
+             var ffMerge = await getFF(); 
+             for (var k = 0; k < okSegs.length; k++) {
+               var segBlob = await fetch(okSegs[k].blobUrl).then(r => r.blob());
+               var segData = new Uint8Array(await segBlob.arrayBuffer());
+               var partName = `part_${k}.mp4`;
+               ffMerge.FS('writeFile', partName, segData);
+               listTxt += `file '${partName}'\n`;
+             }
+             ffMerge.FS('writeFile', 'merge_list.txt', new TextEncoder().encode(listTxt));
+             await ffMerge.run('-f', 'concat', '-safe', '0', '-i', 'merge_list.txt', '-c', 'copy', 'final_merge.mp4');
+             var finalData = ffMerge.FS('readFile', 'final_merge.mp4');
+             var finalUrl = URL.createObjectURL(new Blob([finalData], { type: 'video/mp4' }));
+             
+             addLog(`💾 Tải MP4 Chương ${slotId} hoàn chỉnh xuống máy...`, 'log-ok');
+             var a = document.createElement('a'); a.href = finalUrl; a.download = `Chuong_${slotId}_Full.mp4`; a.click();
+             
+             setTimeout(() => URL.revokeObjectURL(finalUrl), 5000); // Tải xong tự xóa URL sau 5s
+           }
+         } catch (err) {
+           addLog(`❌ Lỗi khi nối file Chương ${slotId}: ` + err.message, 'log-err');
+         }
+
+         currentSlot.status = 'done';
+         if(card) {
+           card.classList.remove('processing');
+           card.classList.add('done');
+           card.querySelector('.slot-header span').textContent += ' (Hoàn tất)';
+         }
       }
 
-      // 🧹 TIẾN HÀNH DỌN RÁC RAM ẢO CHO CHƯƠNG VỪA XONG
+      // 🧹 LUÔN DỌN DẸP RAM DÙ THÀNH CÔNG HAY THẤT BẠI
       await sleep(3000); 
       APP.segments.forEach(function(seg){ if (seg.blobUrl) URL.revokeObjectURL(seg.blobUrl); });
-      imgMap = {}; // Xóa sạch mảng ảnh của chương cũ khỏi RAM
-      
-      // Đánh dấu Slot này đã Done trên UI
-      currentSlot.status = 'done';
-      if(card) {
-        card.classList.remove('processing');
-        card.classList.add('done');
-        card.querySelector('.slot-header span').textContent += ' (Đã xong)';
-      }
-      
-      addLog(`✅ CHƯƠNG ${slotId} HOÀN TẤT & GIẢI PHÓNG RAM.`, 'log-ok');
-      await sleep(1000);
+      imgMap = {}; // Xóa sạch mảng ảnh trong RAM
+      addLog(`♻ Đã dọn dẹp RAM Chương ${slotId}.`, 'log-ok');
+      await sleep(1500); // Nghỉ 1.5 giây cho máy nguội trước khi cày Chương mới
       
     } // Đâm vòng lặp sang Chương tiếp theo (Slot 2, 3...)
 
     setProgressPct(100);
-    document.getElementById('progress-title').textContent = '✅ Đã hoàn thành toàn bộ Hàng đợi!';
+    document.getElementById('progress-title').textContent = '✅ Đã hoàn thành tiến trình Auto!';
     setTimeout(function(){ hideProgress(); }, 5000);
     
   } catch (err) {
@@ -508,7 +502,6 @@ async function startBatchManual() {
     checkBatchReady();
   }
 }
-
 /* ============ CÁC HÀM CŨ ĐƯỢC GIỮ NGUYÊN (FFMPEG, PARSE TXT, RENDER SEG MP4...) ============ */
 // Từ đây trở xuống tôi copy y nguyên ruột các hàm phụ trợ của bạn để đảm bảo không sai lệch.
 
