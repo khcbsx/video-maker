@@ -658,3 +658,28 @@ body {
   transition: color 0.2s ease;
 }
 .compact-file-row:hover .file-action { color: var(--accent); }
+
+/* ===== NÚT XÓA SLOT CHUYÊN NGHIỆP ===== */
+.slot-header .btn-remove-slot {
+  background: transparent !important; /* Ép vô hình nền */
+  border: none !important;            /* Xóa sạch viền mặc định */
+  outline: none !important;           /* Bỏ viền xanh khi click */
+  color: var(--text3) !important;     /* Màu xám chìm */
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
+}
+.slot-header .btn-remove-slot .material-icons {
+  font-size: 18px !important; /* Thu nhỏ icon cho tinh tế */
+}
+.slot-header .btn-remove-slot:hover {
+  color: var(--error) !important; /* Đổi màu đỏ khi rê chuột */
+  background: rgba(239, 68, 68, 0.15) !important; /* Nền đỏ nhạt */
+}
