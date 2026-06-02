@@ -96,28 +96,21 @@
       <!-- TAB AUTO -->
       <div id="panel-auto" class="tab-panel">
         <div class="compact-file-group">
-          <div class="compact-file-row" id="dz-manual-mp3" onclick="document.getElementById('inp-manual-mp3').click()" title="Kéo thả file MP3 vào đây">
+          <div class="compact-file-row" id="dz-auto-mp3" onclick="document.getElementById('inp-auto-mp3').click()" title="Kéo thả file MP3 vào đây">
             <span class="material-icons file-icon" style="color: var(--accent2);">audio_file</span>
-            <div class="file-name" id="info-manual-mp3">1. Chọn Audio (.mp3)</div>
+            <div class="file-name" id="info-auto-mp3">1. Chọn Audio (.mp3)</div>
             <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-mp3" accept=".mp3" hidden/>
+            <input type="file" id="inp-auto-mp3" accept=".mp3" hidden/>
           </div>
 
-          <div class="compact-file-row" id="dz-manual-txt" onclick="document.getElementById('inp-manual-txt').click()" title="Kéo thả file TXT vào đây">
+          <div class="compact-file-row" id="dz-auto-txt" onclick="document.getElementById('inp-auto-txt').click()" title="Kéo thả file TXT vào đây">
             <span class="material-icons file-icon" style="color: var(--success);">text_snippet</span>
-            <div class="file-name" id="info-manual-txt">2. Chọn Script (.txt)</div>
+            <div class="file-name" id="info-auto-txt">2. Chọn Script (Có Prompt AI)</div>
             <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-txt" accept=".txt" hidden/>
-          </div>
-
-          <div class="compact-file-row" id="dz-manual-imgs" onclick="document.getElementById('inp-manual-imgs').click()" title="Kéo thả nhiều file ảnh vào đây">
-            <span class="material-icons file-icon" style="color: var(--warning);">photo_library</span>
-            <div class="file-name" id="info-manual-imgs">3. Chọn Ảnh (scene_...)</div>
-            <span class="material-icons file-action">add_circle_outline</span>
-            <input type="file" id="inp-manual-imgs" accept="image/*" multiple hidden/>
+            <input type="file" id="inp-auto-txt" accept=".txt" hidden/>
           </div>
         </div>
-
+        
         <button class="btn-primary btn-ai" id="btn-auto" onclick="startAuto()" disabled>
           <span class="material-icons">auto_awesome</span>
           Tạo Ảnh AI + Ghép
