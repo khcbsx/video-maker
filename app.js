@@ -179,18 +179,10 @@ function resetManual() {
   APP.manualTxt = null;
   APP.manualImgs = {};
 
-  // Reset drop zones
+  // Reset giao diện các ô nạp file
   ['dz-manual-mp3','dz-manual-txt','dz-manual-imgs'].forEach(function(id){
     var dz = document.getElementById(id);
     dz.classList.remove('has-file','dragover');
-  });
-  document.getElementById('dz-manual-mp3').querySelector('.file-name').textContent = '1. Chọn Audio (.mp3)';
-  document.getElementById('dz-manual-txt').querySelector('.file-name').textContent = '2. Chọn Script (.txt)';
-  document.getElementById('dz-manual-imgs').querySelector('.file-name').textContent = '3. Chọn Ảnh (scene_...)';
-
-  // Trả lại màu và icon ban đầu
-  ['dz-manual-mp3','dz-manual-txt','dz-manual-imgs'].forEach(function(id){
-    var dz = document.getElementById(id);
     dz.style.borderColor = '';
     dz.style.background = '';
     var actionIcon = dz.querySelector('.file-action');
@@ -200,15 +192,15 @@ function resetManual() {
     }
   });
 
+  // Khôi phục lại chữ mặc định (Không bị xóa trắng nữa)
+  document.getElementById('info-manual-mp3').textContent = '1. Chọn Audio (.mp3)';
+  document.getElementById('info-manual-txt').textContent = '2. Chọn Script (.txt)';
+  document.getElementById('info-manual-imgs').textContent = '3. Chọn Ảnh (scene_...)';
+
   // Reset file inputs để có thể chọn lại cùng file
   document.getElementById('inp-manual-mp3').value = '';
   document.getElementById('inp-manual-txt').value = '';
   document.getElementById('inp-manual-imgs').value = '';
-
-  // Reset info text
-  ['info-manual-mp3','info-manual-txt','info-manual-imgs'].forEach(function(id){
-    document.getElementById(id).textContent = '';
-  });
 
   // Disable nút ghép
   document.getElementById('btn-manual').disabled = true;
@@ -247,7 +239,7 @@ function resetAuto() {
   APP.autoMp3 = null;
   APP.autoTxt = null;
 
-  // Reset drop zones
+  // Reset giao diện các ô nạp file
   ['dz-auto-mp3','dz-auto-txt'].forEach(function(id){
     var dz = document.getElementById(id);
     dz.classList.remove('has-file','dragover');
@@ -259,17 +251,14 @@ function resetAuto() {
       actionIcon.style.color = '';
     }
   });
-  document.getElementById('dz-auto-mp3').querySelector('.file-name').textContent = '1. Chọn Audio (.mp3)';
-  document.getElementById('dz-auto-txt').querySelector('.file-name').textContent = '2. Chọn Script (Có Prompt AI)';
+  
+  // Khôi phục chữ
+  document.getElementById('info-auto-mp3').textContent = '1. Chọn Audio (.mp3)';
+  document.getElementById('info-auto-txt').textContent = '2. Chọn Script (Có Prompt AI)';
 
   // Reset file inputs
   document.getElementById('inp-auto-mp3').value = '';
   document.getElementById('inp-auto-txt').value = '';
-
-  // Reset info
-  ['info-auto-mp3','info-auto-txt'].forEach(function(id){
-    document.getElementById(id).textContent = '';
-  });
 
   // Disable nút
   document.getElementById('btn-auto').disabled = true;
