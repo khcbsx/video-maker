@@ -708,7 +708,30 @@ async function startManual() {
     // 7. Chia segments (theo cấu hình APP.segmentDuration)
     var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
     addLog('📦 Chia thành ' + segs.length + ' đoạn', 'log-ok');
-    APP.segments = segs.map(function(s, idx){ return Object.assign({}, s, {idx: idx, blobUrl: null, size: 0, status: 'pending'}); });
+    
+    APP.segments = segs.map(function(s, idx){
+      // Lấy timeline riêng của đoạn này để tìm ảnh đầu tiên làm Thumbnail
+      var segTimeline = filterTimelineForSeg(timeline, s.start, s.end, imgMap);
+      var thumbUrl = null;
+      
+      if (segTimeline && segTimeline.length > 0) {
+        var firstScene = segTimeline[0];
+        var imgData = imgMap[firstScene.fileName];
+        if (imgData) {
+          // Tạo đường dẫn ảnh tạm thời từ bộ nhớ RAM
+          var blob = new Blob([imgData], { type: 'image/jpeg' });
+          thumbUrl = URL.createObjectURL(blob);
+        }
+      }
+
+      return Object.assign({}, s, {
+        idx: idx, 
+        blobUrl: null, 
+        size: 0, 
+        status: 'pending',
+        thumbUrl: thumbUrl // Lưu đường dẫn ảnh nền vào đây
+      });
+    });
 
     // Hiển thị segment cards (pending)
     renderSegmentCards();
@@ -862,24 +885,38 @@ function getFallbackImgData(imgMap, scenes, segStart) {
 /* ============ RENDER SEGMENT CARDS UI ============ */
 function renderSegmentCards() {
   var grid = document.getElementById('segments-grid');
-  grid.innerHTML = '';
-  APP.segments.forEach(function (seg, idx) {
-    var card = document.createElement('div');
-    card.className = 'seg-card' + (idx === APP.activeSegIdx ? ' active' : '');
-    card.onclick = function () { openSegment(idx); };
+  if (!grid) return;
+  var html = '';
 
-    var badgeClass = seg.status === 'ok' ? 'ok' : 'pending';
-    var badgeText = seg.status === 'ok' ? '✅ Xong' : (seg.status === 'error' ? '❌ Lỗi' : '⏳ Đang xử lý');
-
-    card.innerHTML =
-      '<span class="material-icons seg-card-icon">smart_display</span>' +
-      '<div class="seg-card-title">Đoạn ' + (idx + 1) + '</div>' +
-      '<div class="seg-card-time">' + fmtTime(seg.start) + ' → ' + fmtTime(seg.end) + '</div>' +
-      (seg.size ? '<div class="seg-card-size">' + fmtSize(seg.size) + '</div>' : '') +
-      '<span class="seg-card-badge ' + badgeClass + '">' + badgeText + '</span>';
-
-    grid.appendChild(card);
+  APP.segments.forEach(function(seg) {
+    var label = 'Đoạn ' + (seg.idx + 1);
+    var timeStr = fmtTime(seg.start) + ' → ' + fmtTime(seg.end);
+    var sizeStr = seg.size > 0 ? fmtSize(seg.size) : '';
+    
+    var badgeClass = 'badge-pending';
+    var badgeText = 'Chờ xử lý';
+    if (seg.status === 'ok') { badgeClass = 'badge-ok'; badgeText = 'Xong'; }
+    else if (seg.status === 'error') { badgeClass = 'badge-err'; badgeText = 'Lỗi'; }
+    else if (seg.status === 'processing') { badgeClass = 'badge-proc'; badgeText = 'Đang xử lý'; }
+    
+    // 🎨 THỰC HIỆN PHỦ LỚP MÀU TỐI LÊN THUMBNAIL ẢNH NỀN
+    var cardStyle = '';
+    if (seg.thumbUrl) {
+      cardStyle = 'style="background: linear-gradient(rgba(23, 23, 33, 0.75), rgba(15, 15, 22, 0.93)), url(' + seg.thumbUrl + ') center/cover no-repeat;"';
+    }
+    
+    html += '<div class="segment-card ' + seg.status + '" ' + cardStyle + ' onclick="openSegment(' + seg.idx + ')">';
+    html += '  <span class="material-icons card-icon">play_arrow</span>';
+    html += '  <div class="card-title" style="font-weight: 700; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">' + label + '</div>';
+    html += '  <div class="card-time" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">' + timeStr + '</div>';
+    if (sizeStr) {
+      html += '  <div class="card-size" style="font-size: 11px; color: var(--text3); margin-top: 2px;">' + sizeStr + '</div>';
+    }
+    html += '  <div class="card-status ' + badgeClass + '">' + badgeText + '</div>';
+    html += '</div>';
   });
+
+  grid.innerHTML = html;
 }
 
 /* ============ OPEN SEGMENT ============ */
@@ -1112,7 +1149,28 @@ async function startAuto() {
 
     var timeline = buildFullTimeline(scenes.filter(function(s){ return imgMap[s.fileName]; }), audioDuration);
     var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
-    APP.segments = segs.map(function(s,idx){ return Object.assign({},s,{idx:idx,blobUrl:null,size:0,status:'pending'}); });
+    
+    APP.segments = segs.map(function(s, idx){
+      var segTimeline = filterTimelineForSeg(timeline, s.start, s.end, imgMap);
+      var thumbUrl = null;
+      
+      if (segTimeline && segTimeline.length > 0) {
+        var firstScene = segTimeline[0];
+        var imgData = imgMap[firstScene.fileName];
+        if (imgData) {
+          var blob = new Blob([imgData], { type: 'image/jpeg' });
+          thumbUrl = URL.createObjectURL(blob);
+        }
+      }
+
+      return Object.assign({}, s, {
+        idx: idx, 
+        blobUrl: null, 
+        size: 0, 
+        status: 'pending',
+        thumbUrl: thumbUrl
+      });
+    });
     renderSegmentCards();
     document.getElementById('segments-area').style.display = 'block';
 
