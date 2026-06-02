@@ -1,1 +1,26 @@
-
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Trợ Lý Kịch Bản AI</title>
+  <link rel="stylesheet" href="script-maker.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <h1>Trợ Lý Kịch Bản AI</h1>
+  <div class="app-grid">
+    <div class="glass-card">
+      <h3>Cấu hình</h3>
+      <button onclick="document.getElementById('docxInput').click()">Tải file Word</button>
+      <input type="file" id="docxInput" style="display:none">
+      <button class="convert-btn" onclick="buildScript()">Phân Vai AI</button>
+    </div>
+    <div class="glass-card">
+      <h3>Kịch bản</h3>
+      <textarea id="scriptOutput"></textarea>
+      <button class="convert-btn" onclick="startAudioGeneration()">Thu Âm MP3</button>
+    </div>
+  </div>
+  <script src="script-maker.js"></script>
+</body>
+</html>
