@@ -678,55 +678,31 @@ function detectGenderLocal(dialogText, proseContext) {
     var text = (dialogText || '').toLowerCase();
     var prose = (proseContext || '').toLowerCase();
     
-    // Hàm tìm vị trí xuất hiện GẦN NHẤT (cuối cùng) của từ khóa trong chuỗi
-    function findLastIndex(src, wordList) {
-        if (!wordList) return -1;
-        var maxIdx = -1;
+    function hasWord(src, wordList) {
+        if (!wordList) return false;
         for (var i = 0; i < wordList.length; i++) {
             var w = wordList[i].toLowerCase();
-            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?=[\\s,\\.!?;:\\-"\'`\\[\\](){}]|$)', 'gi');
-            var match;
-            while ((match = regex.exec(src)) !== null) {
-                if (match.index > maxIdx) {
-                    maxIdx = match.index;
-                }
-            }
+            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '($|[\\s,\\.!?;:\\-"\'`\]{}())', 'i');
+            if (regex.test(src)) return true;
         }
-        return maxIdx;
+        return false;
     }
 
-    // BƯỚC 1: Quét ngữ cảnh LỜI DẪN TRUYỆN (prose)
+    // 1. Kiểm tra Lời dẫn (Prose) - Độ tin cậy: SURE
     if (prose.length > 0) {
-        var lastMaleIdx = findLastIndex(prose, GENDER_DICT.proseMALE);
-        var lastFemaleIdx = findLastIndex(prose, GENDER_DICT.proseFEMALE);
+        // Kiểm tra xem từ nào xuất hiện cuối cùng (gần câu thoại nhất)
+        var lastMaleIdx = prose.lastIndexOf(GENDER_DICT.proseMALE.find(w => prose.includes(w))); // Logic đơn giản hóa
+        // Tuy nhiên, dùng logic ưu tiên từ điển của bạn:
+        if (hasWord(prose, GENDER_DICT.proseMALE)) return { gender: 'male', confidence: 'sure' };
+        if (hasWord(prose, GENDER_DICT.proseFEMALE)) return { gender: 'female', confidence: 'sure' };
+    }
 
-        // ƯU TIÊN 1: So sánh trực tiếp Nam/Nữ (Ai gần nhất thì thắng)
-        if (lastMaleIdx !== -1 || lastFemaleIdx !== -1) {
-            if (lastFemaleIdx > lastMaleIdx) return { gender: 'female' };
-            return { gender: 'male' };
-        }
-        
-        // ƯU TIÊN 2: Nếu không thấy Nam/Nữ, mới xét đến nhóm Uncertain
-        var lastUncertainIdx = findLastIndex(prose, GENDER_DICT.uncertain);
-        if (lastUncertainIdx !== -1) return { gender: 'male' }; 
-    }
-    
-    // BƯỚC 2: Quét BÊN TRONG CÂU THOẠI
-    var lastMaleDlg = findLastIndex(text, GENDER_DICT.dialogMALE);
-    var lastFemaleDlg = findLastIndex(text, GENDER_DICT.dialogFEMALE);
-    
-    // ƯU TIÊN 1: Có từ khóa Nam/Nữ rõ ràng trong thoại
-    if (lastMaleDlg !== -1 || lastFemaleDlg !== -1) {
-        if (lastFemaleDlg > lastMaleDlg) return { gender: 'female' };
-        return { gender: 'male' };
-    }
-    
-    // ƯU TIÊN 2: Nếu trong thoại chỉ có nhóm Uncertain (Ví dụ: "Ta không biết")
-    var lastUncertainDlg = findLastIndex(text, GENDER_DICT.uncertain);
-    if (lastUncertainDlg !== -1) return { gender: 'male' };
-    
-    // BƯỚC 3: Mặc định nếu cộc lốc không có bất kỳ dấu hiệu nào -> Nam Minh
-    return { gender: 'male' }; 
+    // 2. Kiểm tra Trong lời thoại (Dialog) - Độ tin cậy: LIKELY
+    if (hasWord(text, GENDER_DICT.dialogFEMALE)) return { gender: 'female', confidence: 'likely' };
+    if (hasWord(text, GENDER_DICT.dialogMALE)) return { gender: 'male', confidence: 'likely' };
+
+    // 3. Mặc định - Độ tin cậy: UNCERTAIN -> Gán giọng Nam Minh (Mặc định của bạn)
+    return { gender: 'male', confidence: 'uncertain' };
 }
 
 // ── PHẦN 2: ĐỘNG CƠ PHÂN VAI NỘI BỘ (LOCAL AI AUDIO AUTOMATION) ────────────────
