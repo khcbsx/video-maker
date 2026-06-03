@@ -27,535 +27,25 @@ var pitchRateFemale   = 1.00;
 // ══════════════════════════════════════════════════════
 const GENDER_DICT = {
 
-  // ───────────────────────────────────────────────────
-  // NAM — văn xuôi / ngôi kể / miêu tả trước lời thoại
-  // ───────────────────────────────────────────────────
-  proseMALE: [
-    'hắn','lão','y','chàng','ông','anh ta','hắn ta',
-    'gã','gã ta','vị này','vị kia','người này','người kia',
-    'lão già','lão nhân','đạo nhân','lão giả','lão tiên',
-    'tiên sinh','cư sĩ','đạo sĩ','hòa thượng','thiền sư',
-    'chưởng môn','môn chủ','tông chủ','các chủ','điện chủ',
-    'cung chủ','thành chủ','đảo chủ','sơn chủ','trang chủ',
-    'lão phu','lão đạo','bần đạo','bần tăng','tiểu tăng',
-    'đại sư','sư phụ','sư tổ','sư bá','sư thúc','sư huynh',
-    'sư đệ','vị huynh','huynh đài','các hạ','túc hạ',
-    'phụ thân','cha','bố','ba','ông nội','ông ngoại',
-    'anh','anh cả','anh hai','huynh trưởng',
-    'anh ấy','bạn trai','chồng','ông xã','người yêu',
-    'sếp nam','nam chính','nam phụ','thiếu gia','thiếu chủ',
-    'tổng tài','giám đốc','chủ tịch','bác sĩ nam',
-    'vương gia','hoàng thượng','hoàng đế','thánh thượng',
-    'thái tử','hoàng tử','vương tử','quận vương','thân vương',
-    'tướng quân','nguyên soái','đại nhân','đại học sĩ',
-    'thừa tướng','tể tướng','quốc sư','pháp sư nam',
-    'công tử','lang quân','hầu gia','bá gia',
-    'ông ta','ông ấy','cậu ta','cậu ấy','anh chàng',
-    'chàng trai','cậu trai','cậu bé','thằng bé','thằng nhóc',
-    'thằng con trai','con trai','trai trẻ','nam sinh','nam học sinh',
-    'nam nhân','nam tử','đàn ông','người đàn ông','gã đàn ông',
-    'người nam','phái nam','đấng nam nhi','trang nam tử',
-    'thiếu niên','thanh niên','trung niên nam tử','ông chú',
-    'ông lão','lão đầu','lão đầu tử','lão bá','lão trượng',
-    'lão đại','đại ca','nhị ca','tam ca','tiểu ca','ca nhi',
-    'hán tử','đại hán','tráng hán','nam tử hán','nam nhi',
-    'lang tử','lãng tử','kiếm khách','đao khách','hiệp khách',
-    'du hiệp','hiệp sĩ','võ giả nam','tu sĩ nam','nam tu',
-    'đạo trưởng','chân nhân','thượng nhân','tán nhân',
-    'lão tổ','lão tổ tông','lão quái','lão ma','ma đầu nam',
-    'ma quân','ma tôn','yêu vương','quỷ vương','long vương',
-    'đế quân','tiên quân','thần quân','minh quân',
-    'thánh quân','quân thượng','tôn thượng','chí tôn',
-    'đại trưởng lão','trưởng lão nam','hộ pháp nam',
-    'đường chủ','phân đà chủ','bang chủ','minh chủ',
-    'gia chủ','tộc trưởng','tộc chủ','viện chủ','phủ chủ',
-    'thân phụ','gia phụ','nghiêm phụ','cha già','cha ruột',
-    'cha nuôi','dưỡng phụ','nghĩa phụ','phụ hoàng','hoàng phụ',
-    'bố già','ba già','tía','thầy','cậu ruột','chú ruột',
-    'bác trai','dượng','dượng phụ','ông bác','ông cậu',
-    'anh trai','em trai','đệ đệ','bào huynh',
-    'bào đệ','trưởng nam','thứ nam','đích tử','con trưởng',
-    'con thứ','quý tử','ái tử','hiền tế','con rể','chàng rể',
-    'anh rể','em rể','cháu trai','tôn tử','ngoại tôn',
-    'người chồng','chồng cô','chồng nàng','chồng bà',
-    'vị hôn phu','hôn phu','phu quân','tướng công',
-    'quan nhân','lang tế','lang quân của nàng','người đàn ông của cô',
-    'bạn trai cũ','bạn trai mới','người yêu cũ của cô',
-    'người yêu nam','ông chồng','đức lang quân',
-    'sếp tổng','ông chủ','nam sếp','sếp của cô','sếp của nàng',
-    'tổng giám đốc','phó tổng','ceo nam','chủ tịch nam',
-    'đại thiếu gia','nhị thiếu gia','tam thiếu gia',
-    'cậu chủ','ông chủ trẻ','phú nhị đại','công tử nhà giàu',
-    'nam minh tinh','nam diễn viên','nam ca sĩ','nam idol',
-    'ảnh đế','nam thần','soái ca','hot boy','hotboy',
-    'nam giáo viên','thầy giáo','nam bác sĩ','nam y tá',
-    'nam cảnh sát','nam luật sư','nam thư ký','nam trợ lý',
-    'nam phóng viên','nam sát thủ','nam vệ sĩ','nam quân nhân',
-    'binh sĩ nam','đội trưởng nam','cảnh vệ nam',
-    'đức vua','quân vương','vua','thiên tử','hoàng thái tử',
-    'đông cung thái tử','thế tử','tiểu vương gia',
-    'hoàng thúc','hoàng bá','hoàng huynh','hoàng đệ',
-    'thái thượng hoàng','nhiếp chính vương','phò mã',
-    'quốc công','công gia','hầu tước','bá tước','nam tước',
-    'huyện lệnh','tri phủ','tri huyện','thượng thư',
-    'đô đốc','đề đốc','thống lĩnh','đại thống lĩnh',
-    'đại tướng','võ tướng','văn thần','quan văn','quan võ',
-    'ngự sử','thái phó','thái sư','thiếu sư','thiếu phó',
-    'trạng nguyên','thám hoa','bảng nhãn','cử nhân','tú tài',
-    'quốc vương','hoàng đế bệ hạ','hoàng tử điện hạ',
-    'vương tử điện hạ','công tước nam','hầu tước nam',
-    'bá tước nam','tử tước nam','nam tước nam',
-    'kỵ sĩ nam','phù thủy nam',
-    'ma pháp sư nam','thợ săn nam','chiến binh nam',
-    'dũng sĩ nam','vua rồng','vua sói','lang vương',
-    'huyết hoàng','ma vương','quỷ đế',
-    'ổng','ảnh',
-    'anh ba','anh tư','anh năm','anh sáu','anh bảy',
-    'anh tám','anh chín','anh mười',
-    'cậu nhỏ','cậu cả','cậu hai','cậu ba',
-    'cậu tư','cậu năm','cậu sáu','cậu bảy','cậu út',
-    'thằng ấy','thằng đó','thằng kia','thằng nọ',
-    'thằng cha','thằng chả','thằng quỷ','thằng ranh',
-    'thằng oắt','thằng cu','cu cậu','cu tí','cu bin',
-    'cu lớn','cu nhỏ','bé trai','con trai nhỏ',
-    'người con trai','người nam nhân','người đàn ông ấy',
-    'người đàn ông kia','gã trai','gã thanh niên','gã trung niên',
-    'gã áo đen','gã áo trắng','gã áo xanh','gã cao lớn',
-    'chàng thanh niên','chàng thiếu niên','chàng thư sinh',
-    'chàng công tử','chàng kiếm khách','chàng hiệp khách',
-    'chàng trai trẻ','chàng trai ấy','chàng trai kia',
-    'nam thanh niên','nam thiếu niên','nam tử trẻ tuổi',
-    'nam tử trung niên','nam tử áo đen','nam tử áo trắng',
-    'nam tử áo xanh','nam tử tuấn mỹ','nam tử cao lớn',
-    'nam tử xa lạ','nam tử thần bí','nam tử lạnh lùng',
-    'mỹ nam','mỹ nam tử','tuấn nam','nam tử tuấn tú',
-    'nam tử khôi ngô','nam tử anh tuấn','nam tử phong lưu',
-    'nam tử nho nhã','nam tử ôn nhu','nam tử tà mị',
-    'nam nhân áo đen','nam nhân áo trắng','nam nhân trung niên',
-    'nam nhân trẻ tuổi','nam nhân xa lạ','nam nhân thần bí',
-    'ông nội nó','ông ngoại nó','ông cụ','ông cụ ấy',
-    'cụ ông','cụ thân sinh','cụ thân sinh ra hắn',
-    'người cha','người bố','người ba','người tía',
-    'cha hắn','cha nàng','cha cô','cha anh','cha cậu',
-    'bố hắn','bố nàng','bố cô','bố anh','bố cậu',
-    'ba hắn','ba nàng','ba cô','ba anh','ba cậu',
-    'tía hắn','tía nàng','tía cô','tía anh','tía cậu',
-    'người anh','người anh trai','anh trai cô','anh trai nàng',
-    'anh trai hắn','em trai cô','em trai nàng','em trai hắn',
-    'đứa em trai','cậu em trai','ông anh','ông em',
-    'chú ấy','chú ta','bác ấy','bác trai ấy',
-    'dượng ấy','dượng ta','cậu ruột ấy','cậu họ',
-    'chú họ','bác họ','anh họ','em họ nam',
-    'ông chồng ấy','anh chồng','em chồng nam',
-    'bố chồng','cha chồng','ba chồng','tía chồng',
-    'bố vợ','cha vợ','ba vợ','tía vợ',
-    'ông thông gia','cha dượng','bố dượng','ba dượng',
-    'nam sinh ấy','nam sinh kia','cậu học sinh',
-    'học sinh nam','sinh viên nam','nam sinh viên',
-    'lớp trưởng nam','lớp phó nam','hotboy trường',
-    'nam thần học đường','đàn anh','tiền bối nam',
-    'học trưởng','học đệ','nam học trưởng','nam học đệ',
-    'cậu bạn cùng bàn','bạn nam cùng lớp','bạn trai cùng lớp',
-    'nam giáo sư','thầy chủ nhiệm','thầy hiệu trưởng',
-    'nam hiệu trưởng','thầy giám thị',
-    'ông giám đốc','anh giám đốc','ông tổng giám đốc',
-    'anh tổng giám đốc','ông chủ tịch','anh chủ tịch',
-    'ông phó tổng','anh phó tổng','ông trưởng phòng',
-    'anh trưởng phòng','nam trưởng phòng','nam quản lý',
-    'nam đồng nghiệp','đồng nghiệp nam','nam nhân viên',
-    'nhân viên nam','nam khách hàng','khách hàng nam',
-    'nam tài xế','tài xế nam','nam shipper','shipper nam',
-    'nam đầu bếp','đầu bếp nam','nam phục vụ','phục vụ nam',
-    'nam bảo vệ','bảo vệ nam','nam quản gia','quản gia nam',
-    'nam thư ký riêng','trợ lý nam riêng',
-    'nam bác sĩ phẫu thuật','nam bác sĩ tâm lý',
-    'nam nghiên cứu viên','nam khoa học gia',
-    'nam kỹ sư','kỹ sư nam','nam lập trình viên',
-    'lập trình viên nam','nam hacker','hacker nam',
-    'nam cảnh sát hình sự','nam thanh tra','nam điều tra viên',
-    'nam đặc vụ','đặc vụ nam','nam điệp viên','điệp viên nam',
-    'nam pháp y','pháp y nam','nam thẩm phán',
-    'thẩm phán nam','nam kiểm sát viên','nam công tố viên',
-    'nam luật sư biện hộ','nam doanh nhân','doanh nhân nam',
-    'ông trùm','trùm xã hội đen','đại ca giang hồ',
-    'ông chủ bang phái','nam mafia','mafia nam',
-    'nam nghệ sĩ','nghệ sĩ nam','nam người mẫu','người mẫu nam',
-    'nam streamer','streamer nam','nam youtuber','youtuber nam',
-    'nam vũ công','vũ công nam','nam rapper','rapper nam',
-    'nam idol quốc dân','nam thần tượng','thần tượng nam',
-    'nam diễn viên chính','nam diễn viên phụ',
-    'nam ca sĩ chính','nam ca sĩ phụ',
-    'ảnh đế quốc dân','nam minh tinh hàng đầu',
-    'nam binh','binh lính nam','người lính nam',
-    'anh lính','ông lính','chàng lính',
-    'nam chiến sĩ','chiến sĩ nam','nam sĩ quan',
-    'sĩ quan nam','nam chỉ huy','chỉ huy nam',
-    'nam đội trưởng đặc nhiệm','đặc nhiệm nam',
-    'nam lính đánh thuê','lính đánh thuê nam',
-    'nam xạ thủ','xạ thủ nam','nam tay súng',
-    'tay súng nam','nam sát thủ chuyên nghiệp',
-    'sát thủ nam chuyên nghiệp','nam kiếm sĩ','kiếm sĩ nam',
-    'nam võ sĩ','võ sĩ nam','nam quyền thủ','quyền thủ nam',
-    'đức ông','ông hoàng','ông hoàng tử',
-    'vị vua ấy','vị hoàng đế ấy','vị quân vương ấy',
-    'vị vương gia ấy','vị thái tử ấy','vị hoàng tử ấy',
-    'vị tướng quân ấy','vị đại nhân ấy',
-    'hoàng nam','hoàng trưởng tử','hoàng thứ tử',
-    'đại hoàng tử','nhị hoàng tử','tam hoàng tử',
-    'tứ hoàng tử','ngũ hoàng tử','lục hoàng tử',
-    'thất hoàng tử','bát hoàng tử','cửu hoàng tử',
-    'thập hoàng tử','thập tam hoàng tử','thập tứ hoàng tử',
-    'a ca','đại a ca','nhị a ca','tam a ca',
-    'tứ a ca','ngũ a ca','lục a ca','thất a ca',
-    'bát a ca','cửu a ca','thập a ca',
-    'thế tử gia','tiểu thế tử','vương thế tử',
-    'quận mã','ngạch phò','phò mã gia',
-    'lão vương gia','lão hầu gia','lão quốc công',
-    'tiểu hầu gia','tiểu quốc công',
-    'hầu gia trẻ tuổi','bá gia trẻ tuổi',
-    'thư sinh','nho sinh','hàn sĩ','sĩ tử',
-    'văn nhân','mưu sĩ','quân sư','môn khách nam',
-    'thái y nam','ngự y nam','y quan nam',
-    'cẩm y vệ nam','thị vệ nam','ám vệ nam',
-    'ngự tiền thị vệ','nam thị vệ','nam cận vệ',
-    'đại lão gia','nhị lão gia','tam lão gia',
-    'lão thái gia','thái lão gia','hầu phủ thế tử',
-    'công phủ thế tử','đích trưởng tử','con trai trưởng',
-    'con trai thứ','thứ tử','庶 tử','con trai dòng chính',
-    'con trai dòng thứ','trưởng công tử','nhị công tử',
-    'tam công tử','tứ công tử','ngũ công tử',
-    'công tử bột','công tử phong lưu','công tử áo trắng',
-    'hoàng a mã','phụ hoàng đại nhân','hoàng gia gia',
-    'hoàng tổ phụ','thái tử ca ca','hoàng huynh ấy',
-    'hoàng đệ ấy','vương thúc','hoàng thúc ấy',
-    'quốc cữu','cữu cữu','cậu của hoàng hậu',
-    'nam tu sĩ kia','vị nam tu','nam tiên nhân',
-    'tiên nhân nam','nam chân quân','chân quân nam',
-    'nam đạo quân','đạo quân nam','nam thánh nhân',
-    'thánh nhân nam','nam thần vương','thần vương nam',
-    'nam thần đế','thần đế nam','nam tiên đế',
-    'tiên đế nam','nam ma đế','ma đế nam',
-    'nam yêu đế','yêu đế nam','nam quỷ đế',
-    'quỷ đế nam','nam đan sư','đan sư nam',
-    'nam khí sư','khí sư nam','nam phù tu',
-    'phù tu nam','nam trận tu','trận tu nam',
-    'nam kiếm tiên','kiếm tiên nam','nam đao tu',
-    'đao tu nam','nam ma tu','ma tu nam',
-    'nam yêu tu','yêu tu nam','nam quỷ tu',
-    'quỷ tu nam','nam hồn sư','hồn sư nam',
-    'nam ngự thú sư','nam triệu hồi sư',
-    'nam trưởng lão ấy','vị trưởng lão nam',
-    'nam hộ pháp ấy','vị hộ pháp nam',
-    'nam phong chủ','phong chủ nam','nam đường chủ',
-    'nam đàn chủ','nam giáo chủ','giáo chủ nam',
-    'nam ma giáo chủ','ma giáo chủ nam',
-    'thiếu tông chủ nam','thiếu cốc chủ nam',
-    'thiếu cung chủ nam','thiếu đảo chủ nam',
-    'thiếu thành chủ nam','thiếu trang chủ nam',
-    'nam ma cà rồng','ma cà rồng nam','nam vampire',
-    'vampire nam','nam người sói','người sói nam',
-    'nam elf','elf nam','nam tinh linh','tinh linh nam',
-    'nam bán thần','bán thần nam','nam á thần',
-    'á thần nam','nam thiên sứ','thiên sứ nam',
-    'nam ác ma','ác ma nam','nam quỷ hút máu',
-    'nam phù thủy hắc ám','phù thủy hắc ám nam',
-    'nam necromancer','necromancer nam',
-    'nam pháp sư vong linh','pháp sư vong linh nam',
-    'mr','mister','sir','lord','gentleman',
-    'ông smith','ông john','ông william',
-    'ngài công tước','ngài hầu tước','ngài bá tước',
-    'ngài tử tước','ngài nam tước','ngài bá tước trẻ',
-    'quý ông','vị quý ông','vị lãnh chúa',
-    'lãnh chúa nam','đức vua cha','vua cha',
-    'hoàng tử cả','hoàng tử thứ','tiểu vương tử',
-    'vị thân vương','vương công'
-  ],
-
-  // ───────────────────────────────────────────────────
-  // NỮ — văn xuôi / ngôi kể / miêu tả trước lời thoại
-  // ───────────────────────────────────────────────────
-  proseFEMALE: [
-    'nàng','cô','thị','chị','bà','mẹ','cô ta','nàng ta',
-    'bà ta','chị ta','vị nữ','cô gái','thiếu nữ',
-    'cô nương','tiểu thư','phu nhân','nữ hiệp','nữ nhân',
-    'nữ đệ tử','nữ đồ đệ','sư tỷ','sư muội','nữ tông chủ',
-    'nữ cung chủ','nữ chưởng môn','nữ đại sư','tiên tử',
-    'tiên nữ','nữ thần','nữ ma đầu','yêu nữ','hồ ly',
-    'ma nữ','nữ cường giả','nữ tu sĩ','nữ pháp sư',
-    'mẫu thân','má','bà nội','bà ngoại',
-    'chị cả','chị hai','tỷ trưởng',
-    'cô ấy','bạn gái','vợ','bà xã','người yêu nữ',
-    'nữ chính','nữ phụ','tiểu hoa đán','nữ bác sĩ',
-    'nữ giám đốc','nữ tổng tài','cô chủ','tiểu cô nương',
-    'công chúa','quận chúa','vương phi','hoàng hậu',
-    'thái hậu','quý phi','phi tử','mỹ nhân',
-    'giai nhân','tuyệt sắc','nữ quan','nữ tướng',
-    'pháp sư nữ','thuật sĩ nữ','kiếm khách nữ',
-    'bà ấy','chị ấy','em ấy','cô nàng','nàng ấy',
-    'ả','ả ta','mụ','mụ ta','mụ già','bà lão',
-    'lão bà','lão phụ','lão phu nhân','bà cụ',
-    'cô bé','bé gái','con bé','nhỏ ấy','nhỏ đó',
-    'cô gái trẻ','thiếu nữ trẻ','nữ sinh','nữ học sinh',
-    'nữ tử','nữ lang','nữ nhân ấy','đàn bà','người đàn bà',
-    'người phụ nữ','phụ nữ','phái nữ','hồng nhan',
-    'mỹ nữ','giai nữ','ngọc nữ','thục nữ','liệt nữ',
-    'thiếu phụ','phụ nhân','quý bà','bà chủ','nữ chủ nhân',
-    'bạch y nữ tử','hồng y nữ tử',
-    'hắc y nữ tử','lam y nữ tử','cô gái áo trắng',
-    'nữ tu','nữ tu tiên','tiên cô','tiên nga','tiên cơ',
-    'thánh nữ','vu nữ','nữ vu','nữ đạo sĩ','đạo cô',
-    'nữ kiếm tu','nữ kiếm khách','nữ đao khách',
-    'nữ hiệp khách','nữ võ giả','nữ luyện đan sư',
-    'nữ trận pháp sư','nữ phù sư','nữ yêu','yêu nữ áo đỏ',
-    'xà nữ','long nữ','hồ nữ','miêu nữ','lang nữ',
-    'nữ ma quân','nữ ma tôn','nữ yêu vương','nữ quỷ vương',
-    'nữ đế','nữ hoàng','nữ vương','nữ quân vương',
-    'nữ thần quan','nữ tế ti','thánh mẫu','ma hậu',
-    'yêu hậu','quỷ hậu','long hậu',
-    'thân mẫu','gia mẫu','từ mẫu','mẹ ruột','mẹ nuôi',
-    'dưỡng mẫu','nghĩa mẫu','mẫu hậu','hoàng mẫu',
-    'mẫu phi','mợ','dì','dì ruột','cô ruột',
-    'thím','bác gái','bà dì','bà thím','bà mợ',
-    'chị gái','em gái','muội muội','tỷ tỷ','bào tỷ',
-    'bào muội','trưởng nữ','thứ nữ','đích nữ','con gái',
-    'ái nữ','quý nữ','khuê nữ','nữ nhi','cháu gái',
-    'tôn nữ','ngoại tôn nữ','chị dâu','em dâu',
-    'con dâu','nàng dâu','mẹ chồng','mẹ vợ',
-    'người vợ','vợ anh','vợ hắn','vợ chàng','vợ ông',
-    'thê tử','nương tử','hiền thê','ái thê','chính thê',
-    'vợ cả','vợ lẽ','thiếp thất','tiểu thiếp','vị hôn thê',
-    'hôn thê','bạn gái cũ','bạn gái mới','người yêu cũ của anh',
-    'cô vợ','bà vợ','nàng vợ',
-    'nữ sếp','sếp nữ','bà chủ trẻ','cô chủ nhỏ',
-    'nữ ceo','ceo nữ','nữ chủ tịch','nữ phó tổng',
-    'nữ thư ký','nữ trợ lý','nữ luật sư','nữ giáo viên',
-    'cô giáo','nữ y tá','y tá nữ','nữ cảnh sát',
-    'nữ quân nhân','nữ vệ sĩ','nữ sát thủ','nữ phóng viên',
-    'nữ diễn viên','nữ ca sĩ','nữ idol','nữ minh tinh',
-    'ảnh hậu','thiên hậu','tiểu hoa','hoa đán',
-    'hot girl','hotgirl','nữ thần quốc dân',
-    'hoàng thái hậu','thái hoàng thái hậu','hoàng quý phi',
-    'thục phi','hiền phi','đức phi','lệ phi','phi tần',
-    'tần phi','chiêu nghi','tiệp dư','quý nhân','thường tại',
-    'đáp ứng','mỹ nhân cung đình','tài nhân','cung phi',
-    'cung tần','nương nương','hoàng hậu nương nương',
-    'quý phi nương nương','vương phi nương nương',
-    'thái tử phi','thế tử phi','trắc phi','chính phi',
-    'thứ phi','quận vương phi','công nương','tiểu quận chúa',
-    'trưởng công chúa','đại công chúa','nhị công chúa',
-    'tam công chúa','nữ quan cung đình','cung nữ',
-    'nha hoàn','thị nữ','tỳ nữ thân cận','nữ tỳ',
-    'ma ma','dung ma ma','nhũ mẫu','bà vú',
-    'tú nữ','quan nữ','nữ sử',
-    'nữ công tước','nữ hầu tước','nữ bá tước',
-    'nữ tử tước','nữ nam tước','công chúa điện hạ',
-    'nữ hoàng bệ hạ','hoàng hậu bệ hạ','vương hậu',
-    'công nương điện hạ','nữ kỵ sĩ','phù thủy nữ',
-    'nữ phù thủy','ma nữ phương tây','nữ chiến binh',
-    'nữ dũng sĩ','nữ thợ săn',
-    'bả','cổ','chỉ',
-    'em gái ấy',
-    'chị ba','chị tư','chị năm','chị sáu',
-    'chị bảy','chị tám','chị chín','chị mười',
-    'cô hai','cô ba','cô tư','cô năm','cô sáu',
-    'cô bảy','cô tám','cô chín','cô út',
-    'dì hai','dì ba','dì tư','dì năm','dì sáu',
-    'dì bảy','dì tám','dì chín','dì út',
-    'con nhỏ ấy','con nhỏ đó','con nhỏ kia',
-    'nhỏ ấy','nhỏ kia','nhỏ này','nhỏ đó',
-    'con bé ấy','con bé kia','bé gái ấy',
-    'bé gái kia','cô bé ấy','cô bé kia',
-    'người con gái','người nữ nhân','người phụ nữ ấy',
-    'người phụ nữ kia','người đàn bà ấy','người đàn bà kia',
-    'cô gái ấy','cô gái kia','cô gái nhỏ',
-    'cô gái trẻ tuổi','cô gái xinh đẹp','cô gái xa lạ',
-    'cô gái thần bí','cô gái áo đỏ','cô gái áo xanh',
-    'cô gái áo đen',
-    'nữ tử ấy','nữ tử kia','nữ tử trẻ tuổi',
-    'nữ tử trung niên','nữ tử áo đỏ','nữ tử áo xanh',
-    'nữ tử áo đen','nữ tử áo trắng','nữ tử xinh đẹp',
-    'nữ tử tuyệt mỹ','nữ tử xa lạ','nữ tử thần bí',
-    'nữ tử lạnh lùng','nữ tử ôn nhu','nữ tử quyến rũ',
-    'nữ tử yêu kiều','nữ tử thanh lệ','nữ tử thanh tú',
-    'nữ nhân áo đỏ','nữ nhân áo xanh','nữ nhân áo đen',
-    'nữ nhân áo trắng','nữ nhân trẻ tuổi','nữ nhân trung niên',
-    'nữ nhân xinh đẹp','nữ nhân thần bí',
-    'mỹ phụ','mỹ phụ nhân','mỹ thiếu phụ',
-    'đại mỹ nhân','tuyệt thế mỹ nhân','hồng y mỹ nhân',
-    'bạch y mỹ nhân','hắc y mỹ nhân','lam y mỹ nhân',
-    'giai nhân áo trắng','giai nhân áo đỏ',
-    'thiếu nữ áo trắng','thiếu nữ áo đỏ','thiếu nữ áo xanh',
-    'thiếu nữ áo đen','thiếu nữ thanh xuân',
-    'tiểu mỹ nhân','tiểu yêu nữ','tiểu nha đầu',
-    'nha đầu ấy','nha đầu kia','nha đầu nhỏ',
-    'tiểu nha hoàn','nha hoàn nhỏ',
-    'người mẹ','người má','người mạ','người u',
-    'mẹ hắn','mẹ nàng','mẹ cô','mẹ anh','mẹ cậu',
-    'má hắn','má nàng','má cô','má anh','má cậu',
-    'mạ hắn','mạ nàng','mạ cô','mạ anh','mạ cậu',
-    'u hắn','u nàng','u cô','u anh','u cậu',
-    'bu hắn','bu nàng','bu cô','bu anh','bu cậu',
-    'người chị','người chị gái','chị gái cô','chị gái nàng',
-    'chị gái hắn','em gái cô','em gái nàng','em gái hắn',
-    'đứa em gái','cô em gái','bà chị','bà em',
-    'dì ấy','dì ta','mợ ấy','mợ ta','cô ruột ấy',
-    'cô họ','dì họ','mợ họ','chị họ','em họ nữ',
-    'bác gái ấy','thím ấy','thím ta',
-    'bà vợ ấy','chị vợ','em vợ nữ',
-    'mẹ chồng ấy','má chồng','mạ chồng',
-    'mẹ vợ ấy','má vợ','mạ vợ',
-    'bà thông gia','mẹ kế','má kế','mẹ ghẻ',
-    'bà mẹ kế','bà mẹ chồng','bà mẹ vợ',
-    'nữ sinh ấy','nữ sinh kia','cô học sinh',
-    'học sinh nữ','sinh viên nữ','nữ sinh viên',
-    'lớp trưởng nữ','lớp phó nữ','hotgirl trường',
-    'hoa khôi trường','hoa khôi lớp','nữ thần học đường',
-    'đàn chị','tiền bối nữ','học tỷ','học muội',
-    'nữ học tỷ','nữ học muội','cô bạn cùng bàn',
-    'bạn nữ cùng lớp','bạn gái cùng lớp',
-    'cô chủ nhiệm','nữ chủ nhiệm','cô hiệu trưởng',
-    'nữ hiệu trưởng','cô giám thị','nữ giám thị',
-    'bà giám đốc','cô giám đốc','bà tổng giám đốc',
-    'cô tổng giám đốc','bà chủ tịch','cô chủ tịch',
-    'bà phó tổng','cô phó tổng','bà trưởng phòng',
-    'cô trưởng phòng','nữ trưởng phòng','nữ quản lý',
-    'nữ đồng nghiệp','đồng nghiệp nữ','nữ nhân viên',
-    'nhân viên nữ','nữ khách hàng','khách hàng nữ',
-    'nữ tài xế','tài xế nữ','nữ shipper','shipper nữ',
-    'nữ đầu bếp','đầu bếp nữ','nữ phục vụ','phục vụ nữ',
-    'nữ bảo vệ','bảo vệ nữ','nữ quản gia','quản gia nữ',
-    'nữ thư ký riêng','trợ lý nữ riêng',
-    'nữ bác sĩ phẫu thuật','nữ bác sĩ tâm lý',
-    'nữ giáo sư','nữ nghiên cứu viên','nữ khoa học gia',
-    'nữ kỹ sư','kỹ sư nữ','nữ lập trình viên',
-    'lập trình viên nữ','nữ hacker','hacker nữ',
-    'nữ cảnh sát hình sự','nữ thanh tra','nữ điều tra viên',
-    'nữ đặc vụ','đặc vụ nữ','nữ điệp viên','điệp viên nữ',
-    'nữ pháp y','pháp y nữ','nữ thẩm phán',
-    'thẩm phán nữ','nữ kiểm sát viên','nữ công tố viên',
-    'nữ luật sư biện hộ','nữ doanh nhân','doanh nhân nữ',
-    'bà trùm','trùm nữ','nữ trùm xã hội đen',
-    'đại tỷ giang hồ','chị đại','nữ mafia','mafia nữ',
-    'nữ nghệ sĩ','nghệ sĩ nữ','nữ người mẫu','người mẫu nữ',
-    'nữ streamer','streamer nữ','nữ youtuber','youtuber nữ',
-    'nữ vũ công','vũ công nữ','nữ rapper','rapper nữ',
-    'nữ idol quốc dân','nữ thần tượng','thần tượng nữ',
-    'nữ diễn viên chính','nữ diễn viên phụ',
-    'nữ ca sĩ chính','nữ ca sĩ phụ',
-    'ảnh hậu quốc dân','nữ minh tinh hàng đầu',
-    'tiểu hoa lưu lượng','đại hoa đán','nữ hoàng giải trí',
-    'nữ binh','binh lính nữ','người lính nữ',
-    'cô lính','nữ chiến sĩ','chiến sĩ nữ',
-    'nữ sĩ quan','sĩ quan nữ','nữ chỉ huy','chỉ huy nữ',
-    'nữ đội trưởng đặc nhiệm','đặc nhiệm nữ',
-    'nữ lính đánh thuê','lính đánh thuê nữ',
-    'nữ xạ thủ','xạ thủ nữ','nữ tay súng',
-    'tay súng nữ','nữ sát thủ chuyên nghiệp',
-    'sát thủ nữ chuyên nghiệp','nữ kiếm sĩ','kiếm sĩ nữ',
-    'nữ võ sĩ','võ sĩ nữ','nữ quyền thủ','quyền thủ nữ',
-    'vị công chúa ấy','vị quận chúa ấy','vị vương phi ấy',
-    'vị hoàng hậu ấy','vị thái hậu ấy','vị quý phi ấy',
-    'vị phi tử ấy','vị nương nương ấy',
-    'hoàng nữ','hoàng trưởng nữ','hoàng thứ nữ',
-    'tứ công chúa','ngũ công chúa','lục công chúa',
-    'thất công chúa','bát công chúa','cửu công chúa',
-    'thập công chúa','tiểu công chúa',
-    'cách cách','đại cách cách','nhị cách cách',
-    'tam cách cách','tứ cách cách','ngũ cách cách',
-    'lục cách cách','thất cách cách','bát cách cách',
-    'cửu cách cách','tiểu cách cách',
-    'công chúa nhỏ','công chúa út','trưởng công chúa điện hạ',
-    'đại trưởng công chúa','hoàng cô','hoàng tỷ',
-    'hoàng muội','hoàng tẩu','hoàng thẩm',
-    'thái tử phi ấy','thế tử phi ấy','vương phi trẻ',
-    'trắc vương phi','chính vương phi','hầu phu nhân',
-    'quốc công phu nhân','bá phu nhân','tướng quân phu nhân',
-    'thừa tướng phu nhân','tri phủ phu nhân',
-    'phu nhân nhà quan','mệnh phụ phu nhân',
-    'cáo mệnh phu nhân','lão phu nhân','lão thái thái',
-    'đại phu nhân','nhị phu nhân','tam phu nhân',
-    'tứ phu nhân','ngũ phu nhân','thiếu phu nhân',
-    'tiểu phu nhân','đại tiểu thư','nhị tiểu thư',
-    'tam tiểu thư','tứ tiểu thư','ngũ tiểu thư',
-    'lục tiểu thư','thất tiểu thư','bát tiểu thư',
-    'cửu tiểu thư','thập tiểu thư',
-    'đích trưởng nữ','con gái trưởng','con gái thứ',
-    'thứ nữ','con gái dòng chính','con gái dòng thứ',
-    'khuê tú','danh môn khuê tú','tiểu thư khuê các',
-    'thư nữ','đích nữ hầu phủ','đích nữ tướng phủ',
-    'thứ nữ hầu phủ','thứ nữ tướng phủ',
-    'thái hậu nương nương',
-    'thái hoàng thái hậu nương nương','hoàng quý phi nương nương',
-    'thục phi nương nương',
-    'hiền phi nương nương','đức phi nương nương',
-    'lệ phi nương nương','phi nương nương',
-    'tần nương nương','quý tần','thục tần','hiền tần',
-    'đức tần','lệ tần','chiêu dung','chiêu viên',
-    'tu nghi','tu dung','tu viên','sung nghi',
-    'sung dung','sung viên','tiệp dư nương nương',
-    'quý nhân nương nương','thường tại nương nương',
-    'đáp ứng nương nương','tài nhân nương nương',
-    'mỹ nhân nương nương','lương nhân','lương đệ',
-    'nhũ nương','giáo dưỡng ma ma','quản sự ma ma',
-    'chưởng sự cô cô','cung nữ thân cận','đại cung nữ',
-    'tiểu cung nữ','nữ quan thân cận',
-    'nữ tu sĩ kia','vị nữ tu','nữ tiên nhân',
-    'tiên nhân nữ','nữ chân quân','chân quân nữ',
-    'nữ đạo quân','đạo quân nữ','nữ thánh nhân',
-    'thánh nhân nữ','nữ thần vương','thần vương nữ',
-    'nữ thần đế','thần đế nữ','nữ tiên đế',
-    'tiên đế nữ','nữ ma đế','ma đế nữ',
-    'nữ yêu đế','yêu đế nữ','nữ quỷ đế',
-    'quỷ đế nữ','nữ đan sư','đan sư nữ',
-    'nữ khí sư','khí sư nữ','nữ phù tu',
-    'phù tu nữ','nữ trận tu','trận tu nữ',
-    'nữ kiếm tiên','kiếm tiên nữ','nữ đao tu',
-    'đao tu nữ','nữ ma tu','ma tu nữ',
-    'nữ yêu tu','yêu tu nữ','nữ quỷ tu',
-    'quỷ tu nữ','nữ hồn sư','hồn sư nữ',
-    'nữ ngự thú sư','nữ triệu hồi sư',
-    'nữ trưởng lão ấy','vị trưởng lão nữ',
-    'nữ hộ pháp ấy','vị hộ pháp nữ',
-    'nữ phong chủ','phong chủ nữ','nữ đường chủ',
-    'nữ đàn chủ','nữ giáo chủ','giáo chủ nữ',
-    'nữ ma giáo chủ','ma giáo chủ nữ',
-    'thiếu tông chủ nữ','thiếu cốc chủ nữ',
-    'thiếu cung chủ nữ','thiếu đảo chủ nữ',
-    'thiếu thành chủ nữ','thiếu trang chủ nữ',
-    'nữ oa','tiểu nữ oa','nữ hài','tiểu nữ hài',
-    'nữ ma cà rồng','ma cà rồng nữ','nữ vampire',
-    'vampire nữ','nữ người sói','người sói nữ',
-    'nữ elf','elf nữ','nữ tinh linh','tinh linh nữ',
-    'nữ bán thần','bán thần nữ','nữ á thần',
-    'á thần nữ','nữ thiên sứ','thiên sứ nữ',
-    'nữ ác ma','ác ma nữ','nữ quỷ hút máu',
-    'nữ phù thủy hắc ám','phù thủy hắc ám nữ',
-    'nữ necromancer','necromancer nữ',
-    'nữ pháp sư vong linh','pháp sư vong linh nữ',
-    'mrs','miss','ms','madam','madame','lady',
-    'mademoiselle','maam','ma’am',
-    'bà smith','cô mary','cô anna','cô elizabeth',
-    'quý cô','vị quý cô','quý bà','vị quý bà',
-    'phu nhân công tước','phu nhân hầu tước',
-    'phu nhân bá tước','phu nhân tử tước',
-    'phu nhân nam tước','nữ lãnh chúa',
-    'lãnh chúa nữ','đức mẹ','mẫu hậu phương tây',
-    'nữ vương điện hạ','công chúa cả','công chúa thứ',
-    'tiểu công nương','tiểu thư quý tộc'    
-  ],
-
-  // ───────────────────────────────────────────────────
+   // ───────────────────────────────────────────────────
   // NAM — trong lời thoại, tự xưng / mẫu câu nam
   // ───────────────────────────────────────────────────
   dialogMALE: [
+    // Tự xưng nam
     'huynh','đệ','bổn tọa',
     'tiểu đệ','tại hạ','tiểu nhân',
     'lão tử','ta đây','bổn vương','bổn tôn',
     'bổn thiếu gia','bổn công tử','bổn tướng quân',
+
+    // Gọi người khác (người nói là nam)
     'hiền muội','tiểu muội','muội muội','nàng ơi',
     'phu nhân của ta','vợ ta','nàng ta',
+
+    // Hiện đại
     'anh nói','anh nghĩ','anh muốn','anh cần',
     'tôi là đàn ông','mình là con trai',
+    
+    // Tự xưng nam rõ
     'ta là nam nhân','ta là đàn ông','ta là con trai',
     'ta là nam tử','ta là nam nhi','ta là chồng nàng',
     'ta là phu quân của nàng','ta là tướng công của nàng',
@@ -573,6 +63,8 @@ const GENDER_DICT = {
     'bản tướng','bản tọa','bản tôn','bản quân',
     'lão phu đây','lão đạo đây','bần tăng đây',
     'bần đạo đây','tại hạ là nam nhân',
+
+    // Nam gọi nữ / cách nói thường gặp
     'nương tử','nương tử à','nương tử của ta',
     'ái thê','ái thê của ta','hiền thê','hiền thê của ta',
     'phu nhân à','phu nhân của bổn vương',
@@ -582,6 +74,8 @@ const GENDER_DICT = {
     'tiểu muội à','hiền muội à','em yêu',
     'em nghe anh nói','em đừng khóc','em đừng sợ',
     'em là của anh','vợ à','vợ yêu','bà xã à',
+
+    // Hiện đại — mẫu câu nam hay dùng khi tự xưng anh/chú/bố
     'anh sẽ','anh biết','anh không','anh đã',
     'anh chưa','anh xin lỗi','anh thương em',
     'anh yêu em','anh nhớ em','anh bảo rồi',
@@ -591,6 +85,8 @@ const GENDER_DICT = {
     'chú nói','chú biết','chú sẽ','chú không',
     'bác trai nói','ba nói','bố nói','cha nói',
     'tía nói','ông xã nói','chồng nói',
+
+    // Tự xưng nam hiện đại
     'anh đây mà','anh ở đây','anh về rồi','anh tới rồi',
     'anh đến rồi','anh đi đây','anh đi trước',
     'anh qua đón em','anh đưa em về','anh đưa em đi',
@@ -605,6 +101,8 @@ const GENDER_DICT = {
     'anh là bạn trai của em','anh là chồng của em',
     'anh là vị hôn phu của em','anh là ba của con',
     'anh là bố của con','ba là đàn ông','bố là đàn ông',
+
+    // Tự xưng theo tuổi/vai vế nam
     'chú đây','chú tới rồi','chú về rồi','chú biết rồi',
     'chú hiểu rồi','chú xin lỗi','chú giúp cháu',
     'bác trai đây','bác tới rồi','bác biết rồi',
@@ -614,6 +112,8 @@ const GENDER_DICT = {
     'cha về rồi','tía về rồi','ba thương con',
     'bố thương con','cha thương con','tía thương con',
     'ba xin lỗi con','bố xin lỗi con','cha xin lỗi con',
+
+    // Tự xưng cổ đại / quyền lực nam
     'bổn vương đã nói','bổn vương không cho phép',
     'bổn vương muốn nàng','bổn vương sẽ bảo vệ nàng',
     'bản vương đã nói','bản vương không cho phép',
@@ -631,6 +131,8 @@ const GENDER_DICT = {
     'vi thần là nam nhân','thần là nam nhân',
     'mạt tướng đã rõ','mạt tướng tuân lệnh',
     'mạt tướng lĩnh mệnh','mạt tướng không dám',
+
+    // Tự xưng giang hồ / tiên hiệp nam
     'tại hạ xin hỏi','tại hạ cáo từ','tại hạ bái kiến',
     'tiểu sinh xin hỏi','tiểu sinh bái kiến',
     'ngu huynh','vi huynh','vi huynh biết',
@@ -650,6 +152,8 @@ const GENDER_DICT = {
     'bổn ma quân','bản ma quân','bổn ma tôn',
     'bản ma tôn','bổn tiên quân','bản tiên quân',
     'bổn thần quân','bản thần quân',
+
+    // Nam gọi nữ
     'nương tử nghe ta nói','nương tử đừng giận',
     'nương tử đừng khóc','nương tử yên tâm',
     'nương tử tin ta','nương tử là của ta',
@@ -664,6 +168,8 @@ const GENDER_DICT = {
     'tiểu thư xin dừng bước','tiểu thư đừng sợ',
     'em gái à','bé ngoan của anh','cô bé ngốc',
     'vợ yêu nghe anh nói','bà xã nghe anh nói',
+
+    // Đam mỹ / BL — thường vẫn là nam
     'anh yêu em, bảo bối','ông xã của em đây',
     'lão công của em đây','chồng của em đây',
     'anh là lão công của em','anh là công của em',
@@ -677,13 +183,20 @@ const GENDER_DICT = {
   // NỮ — trong lời thoại, tự xưng / mẫu câu nữ
   // ───────────────────────────────────────────────────
   dialogFEMALE: [
+    // Tự xưng nữ
     'thiếp','tiện thiếp','tiểu nữ','nô tỳ','tỳ nữ',
     'muội','tỷ tỷ','tiểu tỷ','bổn cô nương','bổn công chúa',
     'bổn tiểu thư','tiểu muội đây','ta là nữ',
+
+    // Gọi người khác (người nói là nữ)
     'ca ca ơi','huynh ơi','lang quân','phu quân',
     'chàng ơi','anh ơi','tướng quân ơi','vương gia ơi',
+
+    // Hiện đại
     'em nói','em nghĩ','em muốn','em cần',
     'tôi là phụ nữ','mình là con gái','chị nói','chị nghĩ',
+
+    // Tự xưng nữ rõ
     'ta là nữ nhân','ta là phụ nữ','ta là con gái',
     'ta là nữ tử','ta là nữ nhi','ta là vợ chàng',
     'ta là thê tử của chàng','ta là nương tử của chàng',
@@ -701,6 +214,8 @@ const GENDER_DICT = {
     'bổn cô nương đây','tiểu nữ không dám',
     'tiểu nữ xin phép','muội đây','tỷ đây',
     'chị đây','em đây','bà đây','mẹ đây','má đây',
+
+    // Nữ gọi nam / cách nói thường gặp
     'phu quân à','phu quân ơi','tướng công à',
     'tướng công ơi','quan nhân à','quan nhân ơi',
     'lang quân à','lang quân ơi','chàng à',
@@ -714,6 +229,8 @@ const GENDER_DICT = {
     'anh đừng đi','anh đừng giận','anh tin em',
     'anh yêu em không','chồng à','chồng yêu',
     'ông xã à',
+
+    // Hiện đại — mẫu câu nữ hay dùng khi tự xưng em/chị/mẹ
     'em sẽ','em biết','em không','em đã',
     'em chưa','em xin lỗi','em thương anh',
     'em yêu anh','em nhớ anh','em bảo rồi',
@@ -725,6 +242,8 @@ const GENDER_DICT = {
     'mẹ nói','má nói','u nói','bu nói',
     'mợ nói','dì nói','cô nói','thím nói',
     'bà xã nói','vợ nói',
+
+    // Tự xưng nữ hiện đại
     'em đây mà','em ở đây','em về rồi','em tới rồi',
     'em đến rồi','em đi đây','em đi trước',
     'em chờ anh','em đợi anh','em gọi cho anh',
@@ -739,6 +258,8 @@ const GENDER_DICT = {
     'em là bạn gái của anh','em là vợ của anh',
     'em là vị hôn thê của anh','em là mẹ của con',
     'em là má của con','mẹ là phụ nữ','má là phụ nữ',
+
+    // Tự xưng theo tuổi/vai vế nữ
     'chị tới rồi','chị về rồi','chị biết rồi',
     'chị hiểu rồi','chị xin lỗi','chị giúp em',
     'cô đây','cô tới rồi','cô biết rồi',
@@ -752,6 +273,8 @@ const GENDER_DICT = {
     'mạ về rồi','u về rồi','mẹ thương con',
     'má thương con','mạ thương con','u thương con',
     'mẹ xin lỗi con','má xin lỗi con','mạ xin lỗi con',
+
+    // Tự xưng cổ đại / cung đình nữ
     'thiếp biết rồi','thiếp hiểu rồi','thiếp không dám',
     'thiếp sai rồi','thiếp xin lỗi chàng',
     'thiếp nhớ chàng','thiếp yêu chàng','thiếp thương chàng',
@@ -782,6 +305,8 @@ const GENDER_DICT = {
     'nô tỳ không biết','nô tỳ oan uổng',
     'nô gia biết rồi','nô gia không dám',
     'nô gia xin hỏi','nô gia cáo lui',
+
+    // Tự xưng giang hồ / tiên hiệp nữ
     'tiểu muội xin hỏi','tiểu muội cáo từ',
     'ngu muội xin hỏi','ngu muội cáo từ',
     'muội biết rồi','muội sai rồi','muội xin lỗi',
@@ -797,6 +322,8 @@ const GENDER_DICT = {
     'bổn thánh nữ đã nói','bản thánh nữ đã nói',
     'bổn ma nữ đã nói','bản ma nữ đã nói',
     'bổn yêu nữ đã nói','bản yêu nữ đã nói',
+
+    // Nữ gọi nam
     'phu quân nghe thiếp nói','phu quân đừng giận',
     'phu quân đừng đi','phu quân tin thiếp',
     'tướng công nghe thiếp nói','tướng công đừng giận',
@@ -816,6 +343,8 @@ const GENDER_DICT = {
     'anh là người đàn ông của em',
     'chồng nghe em nói','ông xã nghe em nói',
     'lão công nghe em nói',
+
+    // Bách hợp / GL — thường là nữ
     'chị yêu em','em yêu chị','tỷ yêu muội',
     'muội yêu tỷ','ta là của nàng',
     'em là bạn gái của chị','chị là bạn gái của em',
@@ -826,10 +355,13 @@ const GENDER_DICT = {
 
   // ───────────────────────────────────────────────────
   // TỪ KHÔNG CHẮC / PHỤ THUỘC NGỮ CẢNH
+  // Nên cho điểm thấp hoặc dùng API/LLM fallback
   // ───────────────────────────────────────────────────
   uncertain: [
     'ta','ngươi','người','ai','đó','kẻ','vị','bọn','chúng',
     'họ','mình','tự','bản thân','chính','đây','này',
+
+    // Đại từ / danh xưng trung tính
     'tôi','tớ','tao','mày','mi','ngài',
     'quý vị','mọi người','chư vị','chư quân','chúng ta',
     'chúng tôi','chúng mình','bọn ta','bọn tôi','bọn họ',
@@ -838,6 +370,8 @@ const GENDER_DICT = {
     'nhân vật ấy','nhân vật đó','người trẻ tuổi',
     'đứa trẻ','đứa bé','tiểu hài tử','hài tử',
     'đứa nhỏ','con nít','trẻ con',
+
+    // Xưng hô tu tiên / giang hồ trung tính
     'đạo hữu','tiền bối','hậu bối','vãn bối',
     'đồng môn','đồng đạo','bằng hữu','huynh đệ',
     'tỷ muội','sư tôn',
@@ -850,14 +384,18 @@ const GENDER_DICT = {
     'trận pháp sư','luyện đan sư','luyện khí sư',
     'ngự thú sư','khôi lỗi sư','thầy thuốc',
     'y sư','đại phu','lang y',
+
+    // Cổ đại / cung đình có thể nam hoặc nữ tùy truyện
     'bệ hạ','điện hạ','thánh giá','hoàng thân',
     'quý tộc','vương thất','hoàng tộc','quân chủ',
     'người trong cung','cung nhân','nội thị',
-    'thái giám','hoạn quan',
+    'thái giám','hoạn quan', // giới tính sinh học nam nhưng vai xã hội đặc biệt, nên tùy code xử lý
     'quan viên','quan lại','triều thần','thần tử',
     'thần','hạ quan','vi thần','ty chức',
     'thuộc hạ','hạ nhân','người hầu','gia nhân',
     'nô bộc','nô tài',
+
+    // Hiện đại trung tính
     'bạn','cậu','ấy','đằng ấy','người ta',
     'sếp','boss','leader','trưởng phòng','quản lý',
     'bác sĩ','y tá','luật sư','giáo viên',
@@ -866,12 +404,16 @@ const GENDER_DICT = {
     'idol','minh tinh','người mẫu','streamer',
     'game thủ','sát thủ','vệ sĩ','quân nhân',
     'binh sĩ','đội trưởng','thuyền trưởng',
+
+    // Cụm dễ gây nhầm nếu chỉ match đơn giản
     'người thương','người tình',
     'bạn đời','vợ chồng','phu thê','tình nhân',
     'hôn phu hôn thê','ý trung nhân','người trong lòng',
     'vị ấy','vị đại nhân',
     'vị tiền bối','vị đạo hữu','vị khách',
     'khách nhân','người lạ','ân nhân','cứu tinh',
+
+    // Đại từ cực kỳ phụ thuộc ngữ cảnh
     'nó','hắn ấy','y ấy',
     'đứa ấy','đứa kia','tên ấy','tên nọ',
     'kẻ nọ','kẻ kia','bóng người','thân ảnh',
@@ -879,10 +421,12 @@ const GENDER_DICT = {
     'người áo đỏ','người bịt mặt','kẻ bịt mặt',
     'người lạ mặt','người thần bí','người xa lạ',
     'người trung niên','người già',
-    'lão ấy','lão ta',
-    'tiểu tử',
+    'lão ấy','lão ta', // thường nam nhưng có khi chỉ người già chung
+    'tiểu tử', // thường nam, nhưng có lúc mắng chung
     'nhóc','nhóc con','bé con','cục cưng',
     'bảo bối','bé yêu','cưng','cưng à',
+
+    // Chức danh trung tính
     'sư trưởng','giáo sư','tiến sĩ','bác sĩ trưởng',
     'viện trưởng','hiệu trưởng','chủ nhiệm',
     'lớp trưởng','lớp phó',
@@ -895,16 +439,20 @@ const GENDER_DICT = {
     'thị vệ','ám vệ','người canh cửa',
     'người dẫn đường','người đưa tin',
     'sứ giả','đặc sứ','sứ thần',
+
+    // Xưng hô cổ đại trung tính hoặc cần ngữ cảnh
     'chủ thượng',
-    'lão gia',
+    'lão gia', // nam nhiều, nhưng có khi gọi chủ nhà
     'tiểu chủ','chủ cung',
     'cốc chủ','phong chủ',
     'giáo chủ',
     'trại chủ',
     'trưởng lão','hộ pháp','đàn chủ',
-    'chưởng quỹ','ông chủ bà chủ',
+    'chưởng quỹ','ông chủ bà chủ', // nếu match phrase lẫn lộn
     'khách quan','khách nhân','vị khách',
     'ân công','ân nhân','cứu mạng ân nhân',
+
+    // Tu tiên / võ hiệp trung tính
     'tiên hữu','ma hữu','yêu hữu',
     'đồng tu','tu giả','tu tiên giả',
     'người tu hành','người luyện võ','cao nhân',
@@ -920,6 +468,8 @@ const GENDER_DICT = {
     'ngự thú sư','hồn sư','triệu hồi sư',
     'kiếm tu','đao tu','pháp tu','thể tu',
     'ma tu','yêu tu','quỷ tu','tán tu',
+
+    // Gia đình nhưng không đủ biết giới tính người nói
     'con','cháu','bé','em bé','đứa con',
     'con nuôi','con riêng','con cả','con thứ',
     'con út','đứa cháu','cháu nội','cháu ngoại',
@@ -927,6 +477,8 @@ const GENDER_DICT = {
     'vợ chồng','phụ mẫu','cha mẹ','song thân',
     'nhạc phụ nhạc mẫu','thông gia',
     'người thân','thân nhân','bà con',
+
+    // Lời thoại xưng hô không xác định giới người nói
     'tôi nói','tôi nghĩ','tôi muốn','tôi cần',
     'tôi biết','tôi không','tôi đã','tôi sẽ',
     'tớ nói','tớ nghĩ','tớ muốn','tớ cần',
@@ -937,6 +489,8 @@ const GENDER_DICT = {
     'ngươi nói','ngươi nghĩ','ngươi muốn','ngươi cần',
     'cậu nói','cậu nghĩ','cậu muốn','cậu cần',
     'bạn nói','bạn nghĩ','bạn muốn','bạn cần',
+
+    // Nhật/Hàn/Trung trung tính hoặc phụ thuộc người nói
     'senpai','sempai','sensei','san','sama','kun','chan',
     'shifu','sư phụ trung quốc','laoshi','老師',
     'xuezhang','xuejie','sunbae','hoobae',
@@ -944,8 +498,10 @@ const GENDER_DICT = {
     'alpha','beta','omega','enigma',
     'alpha ấy','beta ấy','omega ấy',
     'abo alpha','abo beta','abo omega',
+
+    // Nên xử lý bằng ngữ cảnh đặc biệt
     'công','thụ','top','bottom',
-    'lão công',
+    'lão công', // trong đam mỹ có thể nam, ngôn tình thường nam/nữ
     'ông xã','vợ yêu','chồng yêu',
     'đạo lữ','song tu đạo lữ',
     'tình lang',
@@ -1116,39 +672,63 @@ function handleWordUploadScript(event) {
 }
 
 // ==============================================================================
-// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE)
+// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE) - NÂNG CẤP ĐO KHOẢNG CÁCH
 // ==============================================================================
 function detectGenderLocal(dialogText, proseContext) {
     var text = (dialogText || '').toLowerCase();
     var prose = (proseContext || '').toLowerCase();
     
-    // Hàm so khớp từ khóa chính xác (tránh lỗi nhận diện nhầm từ nằm trong từ khác)
-    function hasWord(src, wordList) {
-        if (!wordList) return false;
+    // Hàm tìm vị trí xuất hiện GẦN NHẤT (cuối cùng) của từ khóa trong chuỗi
+    function findLastIndex(src, wordList) {
+        if (!wordList) return -1;
+        var maxIdx = -1;
         for (var i = 0; i < wordList.length; i++) {
             var w = wordList[i].toLowerCase();
-            // Dùng Regex để bắt chính xác từ độc lập, bỏ qua dấu câu
-            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '($|[\\s,\\.!?;:\\-"\'`\\[\\](){}])', 'i');
-            if (regex.test(src)) return true;
+            // Biểu thức regex tìm từ chính xác, không bắt nhầm từ dính liền
+            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?=[\\s,\\.!?;:\\-"\'`\\[\\](){}]|$)', 'gi');
+            var match;
+            while ((match = regex.exec(src)) !== null) {
+                if (match.index > maxIdx) {
+                    maxIdx = match.index;
+                }
+            }
         }
-        return false;
+        return maxIdx;
     }
 
-    // BƯỚC 1: Quét ngữ cảnh lời dẫn truyện TRƯỚC câu thoại (Ưu tiên cao nhất)
+    // BƯỚC 1: Quét ngữ cảnh LỜI DẪN TRUYỆN TRƯỚC (prose)
     if (prose.length > 0) {
-        if (hasWord(prose, GENDER_DICT.proseFEMALE)) return { gender: 'female' };
-        if (hasWord(prose, GENDER_DICT.proseMALE)) return { gender: 'male' };
-        // Nếu lời dẫn chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
-        if (hasWord(prose, GENDER_DICT.uncertain)) return { gender: 'male' };
+        var lastMaleIdx = findLastIndex(prose, GENDER_DICT.proseMALE);
+        var lastFemaleIdx = findLastIndex(prose, GENDER_DICT.proseFEMALE);
+        var lastUncertainIdx = findLastIndex(prose, GENDER_DICT.uncertain);
+
+        // So sánh xem từ Nam, Nữ hay Không rõ ràng nằm gần câu thoại nhất
+        var maxIdx = Math.max(lastMaleIdx, lastFemaleIdx, lastUncertainIdx);
+
+        if (maxIdx !== -1) {
+            // Nếu từ Nữ nằm gần câu thoại nhất -> Giọng Nữ
+            if (maxIdx === lastFemaleIdx && lastFemaleIdx > lastMaleIdx) return { gender: 'female' };
+            // Nếu từ Nam nằm gần câu thoại nhất -> Giọng Nam
+            if (maxIdx === lastMaleIdx) return { gender: 'male' };
+            // Nếu từ Uncertain (không rõ) nằm sát nhất -> Chốt mặc định Giọng Nam
+            if (maxIdx === lastUncertainIdx) return { gender: 'male' }; 
+        }
     }
     
-    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét nội dung BÊN TRONG câu thoại
-    if (hasWord(text, GENDER_DICT.dialogFEMALE)) return { gender: 'female' };
-    if (hasWord(text, GENDER_DICT.dialogMALE)) return { gender: 'male' };
-    // Nếu lời thoại chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
-    if (hasWord(text, GENDER_DICT.uncertain)) return { gender: 'male' };
+    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét BÊN TRONG câu thoại
+    var lastMaleDlg = findLastIndex(text, GENDER_DICT.dialogMALE);
+    var lastFemaleDlg = findLastIndex(text, GENDER_DICT.dialogFEMALE);
+    var lastUncertainDlg = findLastIndex(text, GENDER_DICT.uncertain);
+
+    var maxDlgIdx = Math.max(lastMaleDlg, lastFemaleDlg, lastUncertainDlg);
     
-    // BƯỚC 3: Mặc định nếu không tìm thấy gì cả -> Giọng Nam
+    if (maxDlgIdx !== -1) {
+        if (maxDlgIdx === lastFemaleDlg && lastFemaleDlg > lastMaleDlg) return { gender: 'female' };
+        if (maxDlgIdx === lastMaleDlg) return { gender: 'male' };
+        if (maxDlgIdx === lastUncertainDlg) return { gender: 'male' };
+    }
+    
+    // BƯỚC 3: Mặc định nếu không tìm thấy gì cả -> Giọng Nam (Nam Minh)
     return { gender: 'male' }; 
 }
 
