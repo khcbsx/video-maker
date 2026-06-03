@@ -69,3 +69,57 @@ th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border)
 th { color: var(--text-muted); font-weight: 600; background: var(--input-bg); }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 textarea { width: 100%; height: 400px; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 16px; border-radius: 12px; font-size: 14px; }
+
+/* ================= PHỤC HỒI GIAO DIỆN CÀI ĐẶT GIỌNG ĐỌC ================= */
+.voice-group label { 
+    display: block; 
+    font-size: 13px; 
+    color: var(--text-muted); 
+    font-weight: 600; 
+    margin-bottom: 8px; 
+}
+
+.pitch-slider-wrap { 
+    margin-top: 12px; 
+    background: var(--input-bg); 
+    padding: 12px; 
+    border-radius: 8px; 
+    border: 1px solid var(--border); 
+}
+
+.pitch-slider-label { 
+    font-size: 12px; 
+    color: var(--primary); 
+    margin-bottom: 8px; 
+    text-align: center; 
+    font-weight: 600; 
+}
+
+.pitch-slider-row { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.pitch-range { 
+    flex: 1; 
+    accent-color: var(--primary); 
+    cursor: pointer; 
+}
+
+.pitch-reset-btn { 
+    background: transparent; 
+    border: 1px solid var(--border); 
+    color: var(--text-muted); 
+    border-radius: 4px; 
+    padding: 4px 8px; 
+    font-size: 11px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+}
+
+.pitch-reset-btn:hover { 
+    background: var(--border); 
+    color: var(--text); 
+}
+
