@@ -679,7 +679,7 @@ function extractNamesFromText(rawText) {
 }
 
 
-// Hàm đọc file .docx và tách danh sách chương truyện (ĐÃ TỐI ƯU SIÊU TỐC)
+// Hàm đọc file .docx và tách danh sách chương truyện (ĐÃ TỐI ƯU SIÊU TỐC & TÍCH HỢP LỌC TÊN)
 function handleWordUploadScript(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -688,8 +688,9 @@ function handleWordUploadScript(event) {
   reader.onload = function(e) {
     window.mammoth.extractRawText({ arrayBuffer: e.target.result })
       .then(function(result) {
+        var rawText = result.value;
         // Tách chương theo biểu thức chính quy chuẩn xác của bạn
-        var chapters = result.value.split(/\n(?=Chương\s+\d+)/i).filter(function(c) { return c.trim().length > 100; });
+        var chapters = rawText.split(/\n(?=Chương\s+\d+)/i).filter(function(c) { return c.trim().length > 100; });
         if (chapters.length === 0) {
           showToast('error', 'Không tìm thấy chương nào đúng định dạng "Chương [số]". Vui lòng kiểm tra lại file Word.');
           return;
@@ -700,9 +701,7 @@ function handleWordUploadScript(event) {
         var toSel = document.getElementById('chapToScript');
         if (!fromSel || !toSel) return;
         
-        // ==========================================
         // TỐI ƯU HÓA: Gộp chuỗi HTML thay vì vẽ lại nhiều lần
-        // ==========================================
         var optionsHTML = '';
         chapters.forEach(function(ch, idx) {
           var label = ch.substring(0, 40).trim() + '...';
@@ -712,15 +711,12 @@ function handleWordUploadScript(event) {
         // Dán 1 lần duy nhất vào DOM (Chống đơ trình duyệt)
         fromSel.innerHTML = optionsHTML;
         toSel.innerHTML = optionsHTML;
-        // ==========================================
         
         toSel.selectedIndex = chapters.length - 1;
         fromSel.disabled = false;
         toSel.disabled = false;
         
-        // ========================================================
         // Bật và gán giá trị ô nhập số
-        // ========================================================
         var inFrom = document.getElementById('inputChapFrom');
         var inTo = document.getElementById('inputChapTo');
         if (inFrom && inTo) {
@@ -728,18 +724,35 @@ function handleWordUploadScript(event) {
             inTo.disabled = false;
             inFrom.max = chapters.length;
             inTo.max = chapters.length;
-            
-            inFrom.value = 1; // Mặc định gõ sẵn số 1 (Chương 1)
-            inTo.value = chapters.length; // Mặc định gõ sẵn số chương cuối cùng
+            inFrom.value = 1; 
+            inTo.value = chapters.length; 
         }
-        // ========================================================
         
         var btnAdd = document.getElementById('btnAddScriptQueue');
         if (btnAdd) {
           btnAdd.disabled = false;
           btnAdd.style.opacity = '1';
-          extractNamesFromText(result.value); // Gọi hàm quét tên
         }
+
+        // ========================================================
+        // BẬT NÚT LỌC TÊN & QUÉT VĂN BẢN (ĐÃ TỐI ƯU HIỆU SUẤT)
+        // ========================================================
+        var btnFilter = document.getElementById('btnOpenNameFilter');
+        if (btnFilter) {
+          btnFilter.disabled = false;
+          btnFilter.style.opacity = '1';
+          
+          // Tối ưu: Chỉ cắt 100.000 ký tự đầu tiên để quét tên (Khoảng 15-20 chương)
+          // Đảm bảo không bị treo app khi file Word quá dài (1500+ chương)
+          var sampleTextForNames = rawText.substring(0, 100000); 
+          
+          // Gọi hàm quét tên (Hàm này bạn đã chèn ở bước trước)
+          if (typeof extractNamesFromText === 'function') {
+              extractNamesFromText(sampleTextForNames); 
+          }
+        }
+        // ========================================================
+
         showToast('success', 'Đã nạp thành công ' + chapters.length + ' chương từ file Word!');
       })
       .catch(function(err) {
