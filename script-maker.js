@@ -631,53 +631,61 @@ if (btnSave) {
     });
 }
 
-// ── Hàm quét tên tự động (BẢN CHUẨN: CHỈ BẮT CHỮ VIẾT HOA) ──
+// ── Hàm quét tên tự động (BẢN CHUẨN + CLICK TỰ NHẢY VÀO Ô) ──
 function extractNamesFromText(rawText) {
     var tagContainer = document.getElementById('scannedNamesTags');
     if (!tagContainer) return;
     
-    // Thuật toán Regex MỚI: Chỉ bắt cụm 2-4 chữ, bắt buộc MỖI CHỮ PHẢI VIẾT HOA CHỮ CÁI ĐẦU.
-    // \p{Lu}: Chữ viết hoa | \p{Ll}: Chữ viết thường | Cần có cờ 'gu' ở cuối
+    // Thuật toán Regex chỉ bắt chữ viết hoa
     var nameRegex = /(?:[A-Z\p{Lu}][a-z\p{Ll}]*\s+){1,3}[A-Z\p{Lu}][a-z\p{Ll}]*/gu;
     var matches = rawText.match(nameRegex) || [];
     
-    // Đếm tần suất xuất hiện
     var nameCounts = {};
-    
-    // Bộ lọc rác: Các từ hay đứng đầu câu (bị viết hoa) nhưng không phải tên người
     var stopWords = ["Nhưng Mà", "Tuy Nhiên", "Lúc Này", "Mặc Dù", "Bởi Vì", "Thế Nhưng", "Ngoài Ra", "Hơn Nữa", "Thật Ra", "Sau Khi", "Trước Khi", "Bỗng Nhiên", "Đột Nhiên", "Kỳ Thật"];
     
     matches.forEach(function(name) {
         var cleanName = name.trim();
-        // Lọc bỏ nếu độ dài quá ngắn hoặc nằm trong danh sách stopWords
         if (cleanName.length > 3 && !stopWords.includes(cleanName)) {
             nameCounts[cleanName] = (nameCounts[cleanName] || 0) + 1;
         }
     });
     
-    // Lấy những tên xuất hiện từ 2 lần trở lên, sắp xếp từ cao xuống thấp
     var validNames = Object.keys(nameCounts)
         .filter(name => nameCounts[name] > 1)
         .sort((a, b) => nameCounts[b] - nameCounts[a])
-        .slice(0, 40); // Lấy top 40 tên nhiều nhất
+        .slice(0, 40);
         
-    tagContainer.innerHTML = ''; // Xóa cũ
+    tagContainer.innerHTML = ''; 
     if (validNames.length === 0) {
         tagContainer.innerHTML = '<span style="color:var(--text-muted); font-size: 13px;">Không quét được tên nào rõ ràng.</span>';
         return;
     }
 
-    // Đổ thẻ tên (Tags) vào giao diện
+    // Đổ thẻ tên vào giao diện
     validNames.forEach(function(name) {
         var tag = document.createElement('span');
         tag.className = 'name-tag';
         tag.innerText = name + ' (' + nameCounts[name] + ')';
         
-        // Sự kiện: Bấm vào tên để copy nhanh
+        // SỰ KIỆN: Kiểm tra xem user đang chọn chế độ nào để xử lý
         tag.addEventListener('click', function() {
-            navigator.clipboard.writeText(name).then(() => {
-                showToast('info', 'Đã copy: ' + name);
-            });
+            var mode = document.querySelector('input[name="clickMode"]:checked').value;
+            
+            if (mode === 'copy') {
+                navigator.clipboard.writeText(name).then(() => { showToast('info', 'Đã copy: ' + name); });
+            } 
+            else if (mode === 'male') {
+                var txtMale = document.getElementById('tempMaleNames');
+                if (txtMale.value.trim() === '') txtMale.value = name;
+                else txtMale.value += ', ' + name;
+                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
+            } 
+            else if (mode === 'female') {
+                var txtFemale = document.getElementById('tempFemaleNames');
+                if (txtFemale.value.trim() === '') txtFemale.value = name;
+                else txtFemale.value += ', ' + name;
+                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
+            }
         });
         
         tagContainer.appendChild(tag);
