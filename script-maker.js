@@ -607,3 +607,106 @@ async function buildScriptManual() {
     }
   }, 200);
 }
+
+// ==============================================================================
+// HỆ THỐNG HÀNG ĐỢI KỊCH BẢN (SCRIPT QUEUE) - PHỤC VỤ TEST TÁCH CHƯƠNG
+// ==============================================================================
+
+// Bắt sự kiện bấm nút "Thêm vào mẻ chờ"
+document.getElementById('btnAddScriptQueue').addEventListener('click', function() {
+    var fromIdx = parseInt(document.getElementById('chapFromScript').value);
+    var toIdx = parseInt(document.getElementById('chapToScript').value);
+    
+    if (fromIdx > toIdx) {
+        alert("Lỗi: Chương bắt đầu phải nhỏ hơn hoặc bằng chương kết thúc!");
+        return;
+    }
+
+    // Tạo một mẻ (batch) mới
+    var batch = {
+        id: Date.now(),
+        from: fromIdx,
+        to: toIdx,
+        status: 'Chờ xử lý'
+    };
+    
+    scriptQueue.push(batch);
+    renderScriptQueue();
+    document.getElementById('btnStartScript').style.display = 'inline-flex'; // Hiện nút chạy
+});
+
+// Hiển thị danh sách hàng đợi ra bảng
+function renderScriptQueue() {
+    var tbody = document.getElementById('scriptQueueBody');
+    tbody.innerHTML = '';
+    
+    if (scriptQueue.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>';
+        document.getElementById('btnStartScript').style.display = 'none';
+        return;
+    }
+    
+    scriptQueue.forEach(function(b, index) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>Mẻ ${index + 1}</td>
+            <td>Chương ${b.from + 1} đến Chương ${b.to + 1}</td>
+            <td id="status-script-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</td>
+            <td>--</td>
+            <td style="text-align:center;">
+                <span class="material-icons" style="color:#ef4444; cursor:pointer;" onclick="removeScriptBatch(${b.id})">delete</span>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Xóa một mẻ khỏi hàng đợi
+window.removeScriptBatch = function(id) {
+    scriptQueue = scriptQueue.filter(function(b) { return b.id !== id; });
+    renderScriptQueue();
+}
+
+// Nút "CHẠY DỰNG KỊCH BẢN"
+document.getElementById('btnStartScript').addEventListener('click', async function() {
+    this.disabled = true;
+    this.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG XỬ LÝ...';
+    
+    for (var i = 0; i < scriptQueue.length; i++) {
+        var batch = scriptQueue[i];
+        if (batch.status === 'Đã xong ✅') continue;
+
+        document.getElementById('status-script-' + batch.id).innerText = 'Đang phân vai...';
+        document.getElementById('status-script-' + batch.id).style.color = '#3b82f6';
+        
+        var combinedScript = '';
+        
+        // Vòng lặp xử lý từng chương trong mẻ
+        for (var c = batch.from; c <= batch.to; c++) {
+            var chapText = globalScriptChapters[c];
+            var processedText = await runScriptAutomation(chapText, null);
+            combinedScript += processedText + '\n\n';
+        }
+
+        // Tự động tải file .txt xuống máy
+        var fileName = 'KichBan_Tu_Chuong_' + (batch.from + 1) + '_Den_' + (batch.to + 1) + '.txt';
+        downloadTextFile(fileName, combinedScript);
+        
+        batch.status = 'Đã xong ✅';
+        document.getElementById('status-script-' + batch.id).innerText = batch.status;
+        document.getElementById('status-script-' + batch.id).style.color = '#10b981';
+    }
+    
+    this.disabled = false;
+    this.innerHTML = '<span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN';
+    alert("Tuyệt vời! Đã phân vai xong toàn bộ hàng đợi và tải file .txt về máy.");
+});
+
+// Hàm hỗ trợ tải file TXT
+function downloadTextFile(filename, text) {
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
