@@ -446,6 +446,7 @@ function bindUIEvents() {
 }
 
 // Hàm đọc file .docx và tách danh sách chương truyện
+// Hàm đọc file .docx và tách danh sách chương truyện
 function handleWordUploadScript(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -479,6 +480,22 @@ function handleWordUploadScript(event) {
         toSel.selectedIndex = chapters.length - 1;
         fromSel.disabled = false;
         toSel.disabled = false;
+        
+        // ========================================================
+        // ĐOẠN CODE MỚI CHÈN VÀO ĐÂY: Bật và gán giá trị ô nhập số
+        // ========================================================
+        var inFrom = document.getElementById('inputChapFrom');
+        var inTo = document.getElementById('inputChapTo');
+        if (inFrom && inTo) {
+            inFrom.disabled = false;
+            inTo.disabled = false;
+            inFrom.max = chapters.length;
+            inTo.max = chapters.length;
+            
+            inFrom.value = 1; // Mặc định gõ sẵn số 1 (Chương 1)
+            inTo.value = chapters.length; // Mặc định gõ sẵn số chương cuối cùng
+        }
+        // ========================================================
         
         var btnAdd = document.getElementById('btnAddScriptQueue');
         if (btnAdd) {
@@ -710,3 +727,52 @@ function downloadTextFile(filename, text) {
     link.download = filename;
     link.click();
 }
+
+// ==============================================================================
+// GIAO DIỆN: CÀI ĐẶT SÁNG/TỐI & MÀU CHỦ ĐẠO
+// ==============================================================================
+
+document.getElementById('btnToggleSettings').addEventListener('click', function() {
+    document.getElementById('settingsPanel').classList.toggle('active');
+});
+
+function setTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+    document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+}
+
+function setColor(color) {
+    document.body.setAttribute('data-color', color);
+    // Đổi viền active cho nút màu
+    var circles = document.querySelectorAll('.color-circle');
+    circles.forEach(function(c, idx) {
+        c.classList.remove('active');
+        if(c.getAttribute('onclick').includes(color)) c.classList.add('active');
+    });
+}
+
+// Liên kết Input Number và Dropdown Select
+function syncChapSelect(inputId, selectId) {
+    var input = document.getElementById(inputId);
+    var select = document.getElementById(selectId);
+    
+    if (!input || !select) return;
+
+    // Khi gõ số -> Dropdown tự chuyển
+    input.addEventListener('input', function() {
+        var val = parseInt(this.value) - 1; // Select bắt đầu từ 0
+        if (val >= 0 && val < select.options.length) {
+            select.value = val;
+        }
+    });
+
+    // Khi chọn Dropdown -> Ô số tự cập nhật
+    select.addEventListener('change', function() {
+        input.value = parseInt(this.value) + 1;
+    });
+}
+
+// Gọi hàm đồng bộ này trong window.onload
+syncChapSelect('inputChapFrom', 'chapFromScript');
+syncChapSelect('inputChapTo', 'chapToScript');
