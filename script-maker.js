@@ -747,9 +747,9 @@ function handleWordUploadScript(event) {
           btnFilter.disabled = false;
           btnFilter.style.opacity = '1';
           
-          // Tối ưu: Chỉ cắt 100.000 ký tự đầu tiên để quét tên (Khoảng 15-20 chương)
+          // Tối ưu: Chỉ cắt 500.000 ký tự đầu tiên để quét tên (Khoảng 15-20 chương)
           // Đảm bảo không bị treo app khi file Word quá dài (1500+ chương)
-          var sampleTextForNames = rawText.substring(0, 100000); 
+          var sampleTextForNames = rawText.substring(0, 500000); 
           
           // Gọi hàm quét tên (Hàm này bạn đã chèn ở bước trước)
           if (typeof extractNamesFromText === 'function') {
