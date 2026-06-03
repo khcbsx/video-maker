@@ -353,6 +353,8 @@ const GENDER_DICT = {
   ]
 };
 
+
+
 // ── PHẦN 1: KHỞI TẠO DROPDOWNS & ĐỌC VĂN BẢN WORD (.DOCX) ────────────────────
 
 // Khởi tạo danh sách giọng đọc khi trang web tải xong
@@ -509,6 +511,39 @@ function handleWordUploadScript(event) {
       });
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ==============================================================================
+// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE)
+// ==============================================================================
+function detectGenderLocal(dialogText, proseContext) {
+    var text = (dialogText || '').toLowerCase();
+    var prose = (proseContext || '').toLowerCase();
+    
+    // Hàm so khớp từ khóa chính xác (tránh lỗi nhận diện nhầm từ nằm trong từ khác)
+    function hasWord(src, wordList) {
+        if (!wordList) return false;
+        for (var i = 0; i < wordList.length; i++) {
+            var w = wordList[i].toLowerCase();
+            // Dùng Regex để bắt chính xác từ độc lập, bỏ qua dấu câu
+            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '($|[\\s,\\.!?;:\\-"\'`\\[\\](){}])', 'i');
+            if (regex.test(src)) return true;
+        }
+        return false;
+    }
+
+    // BƯỚC 1: Quét ngữ cảnh lời dẫn truyện TRƯỚC câu thoại (Ưu tiên cao nhất)
+    if (prose.length > 0) {
+        if (hasWord(prose, GENDER_DICT.proseFEMALE)) return { gender: 'female' };
+        if (hasWord(prose, GENDER_DICT.proseMALE)) return { gender: 'male' };
+    }
+    
+    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét nội dung BÊN TRONG câu thoại
+    if (hasWord(text, GENDER_DICT.dialogFEMALE)) return { gender: 'female' };
+    if (hasWord(text, GENDER_DICT.dialogMALE)) return { gender: 'male' };
+    
+    // BƯỚC 3: Mặc định nếu không rõ ràng (Có thể tùy chỉnh ưu tiên nam)
+    return { gender: 'male' }; 
 }
 
 
