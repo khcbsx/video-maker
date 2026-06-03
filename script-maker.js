@@ -1324,7 +1324,7 @@ window.removeScriptBatch = function(id) {
     renderScriptQueue();
 }
 
-// Nút "CHẠY DỰNG KỊCH BẢN"
+// Nút "CHẠY DỰNG KỊCH BẢN" (Đã nâng cấp xuất file .docx)
 document.getElementById('btnStartScript').addEventListener('click', async function() {
     this.disabled = true;
     this.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG XỬ LÝ...';
@@ -1342,12 +1342,12 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         for (var c = batch.from; c <= batch.to; c++) {
             var chapText = globalScriptChapters[c];
             var processedText = await runScriptAutomation(chapText, null);
-            combinedScript += processedText + '\n\n';
+            combinedScript += processedText + '\n\n'; // Cách nhau 1 dòng giữa các chương
         }
 
-        // Tự động tải file .txt xuống máy
-        var fileName = 'KichBan_Tu_Chuong_' + (batch.from + 1) + '_Den_' + (batch.to + 1) + '.txt';
-        downloadTextFile(fileName, combinedScript);
+        // Tự động tải file dưới dạng .docx chuẩn
+        var fileName = 'KichBan_Tu_Chuong_' + (batch.from + 1) + '_Den_' + (batch.to + 1) + '.docx';
+        await downloadDocxFile(fileName, combinedScript);
         
         batch.status = 'Đã xong ✅';
         document.getElementById('status-script-' + batch.id).innerText = batch.status;
@@ -1356,13 +1356,43 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
     
     this.disabled = false;
     this.innerHTML = '<span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN';
-    showToast('success', 'Đã phân vai xong toàn bộ hàng đợi!');
+    showToast('success', 'Đã phân vai xong và tải file Word (.docx) về máy!');
 });
 
-// Hàm hỗ trợ tải file TXT
-function downloadTextFile(filename, text) {
-    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    var link = document.createElement("a");
+// Hàm hỗ trợ TẠO VÀ TẢI file .docx (Dùng thư viện docx.js)
+async function downloadDocxFile(filename, textContent) {
+    const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+    // Tách văn bản thành từng dòng dựa trên ký tự xuống dòng
+    const lines = textContent.split('\n');
+    
+    // Biến mỗi dòng thành một Paragraph (Đoạn văn) trong Word
+    const paragraphs = lines.map(line => {
+        return new Paragraph({
+            children: [
+                new TextRun({
+                    text: line,
+                    size: 28, // Kích thước font chữ (28 nửa point = 14pt)
+                    font: "Times New Roman" // Có thể đổi thành "Arial" hoặc font khác nếu muốn
+                })
+            ],
+            spacing: {
+                after: 120 // Tạo khoảng cách nhỏ sau mỗi đoạn (xuống dòng đẹp mắt)
+            }
+        });
+    });
+
+    // Khởi tạo file Word
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: paragraphs,
+        }]
+    });
+
+    // Đóng gói thành file Blob và kích hoạt tải về
+    const blob = await Packer.toBlob(doc);
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = filename;
     link.click();
