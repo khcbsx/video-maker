@@ -672,62 +672,40 @@ function handleWordUploadScript(event) {
 }
 
 // ==============================================================================
-// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE) - BẢN CHUẨN KẾT HỢP ĐO KHOẢNG CÁCH
+// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE)
 // ==============================================================================
 function detectGenderLocal(dialogText, proseContext) {
     var text = (dialogText || '').toLowerCase();
     var prose = (proseContext || '').toLowerCase();
     
-    // Hàm tìm vị trí xuất hiện GẦN NHẤT (cuối cùng) của từ khóa trong chuỗi
-    function findLastIndex(src, wordList) {
-        if (!wordList) return -1;
-        var maxIdx = -1;
+    // Hàm so khớp từ khóa chính xác (tránh lỗi nhận diện nhầm từ nằm trong từ khác)
+    function hasWord(src, wordList) {
+        if (!wordList) return false;
         for (var i = 0; i < wordList.length; i++) {
             var w = wordList[i].toLowerCase();
-            // Bắt chính xác cụm từ, bỏ qua dấu câu
-            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?=[\\s,\\.!?;:\\-"\'`\\[\\](){}]|$)', 'gi');
-            var match;
-            while ((match = regex.exec(src)) !== null) {
-                if (match.index > maxIdx) {
-                    maxIdx = match.index;
-                }
-            }
+            // Dùng Regex để bắt chính xác từ độc lập, bỏ qua dấu câu
+            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '($|[\\s,\\.!?;:\\-"\'`\\[\\](){}])', 'i');
+            if (regex.test(src)) return true;
         }
-        return maxIdx;
+        return false;
     }
 
-    // ── BƯỚC 1: KIỂM TRA NGỮ CẢNH TRƯỚC (SURE) ──
+    // BƯỚC 1: Quét ngữ cảnh lời dẫn truyện TRƯỚC câu thoại (Ưu tiên cao nhất)
     if (prose.length > 0) {
-        var lastMaleIdx = findLastIndex(prose, GENDER_DICT.proseMALE);
-        var lastFemaleIdx = findLastIndex(prose, GENDER_DICT.proseFEMALE);
-
-        // Ưu tiên 1: Có từ Nam hoặc Nữ -> Đo xem từ nào nằm sát câu thoại nhất
-        if (lastMaleIdx !== -1 || lastFemaleIdx !== -1) {
-            if (lastFemaleIdx > lastMaleIdx) return { gender: 'female', confidence: 'sure' };
-            return { gender: 'male', confidence: 'sure' };
-        }
-        
-        // Ưu tiên 2: Không có Nam/Nữ, nhưng có từ Không rõ ràng (Uncertain) -> Chốt Nam
-        var lastUncertainIdx = findLastIndex(prose, GENDER_DICT.uncertain);
-        if (lastUncertainIdx !== -1) return { gender: 'male', confidence: 'sure' }; 
+        if (hasWord(prose, GENDER_DICT.proseFEMALE)) return { gender: 'female' };
+        if (hasWord(prose, GENDER_DICT.proseMALE)) return { gender: 'male' };
+        // Nếu lời dẫn chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
+        if (hasWord(prose, GENDER_DICT.uncertain)) return { gender: 'male' };
     }
     
-    // ── BƯỚC 2: NẾU BƯỚC 1 KHÔNG CÓ MANH MỐI, KIỂM TRA TRONG LỜI THOẠI (LIKELY) ──
-    var lastMaleDlg = findLastIndex(text, GENDER_DICT.dialogMALE);
-    var lastFemaleDlg = findLastIndex(text, GENDER_DICT.dialogFEMALE);
+    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét nội dung BÊN TRONG câu thoại
+    if (hasWord(text, GENDER_DICT.dialogFEMALE)) return { gender: 'female' };
+    if (hasWord(text, GENDER_DICT.dialogMALE)) return { gender: 'male' };
+    // Nếu lời thoại chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
+    if (hasWord(text, GENDER_DICT.uncertain)) return { gender: 'male' };
     
-    // Ưu tiên 1: Ai xưng hô rõ ràng (thiếp, huynh) và nằm gần cuối hơn
-    if (lastMaleDlg !== -1 || lastFemaleDlg !== -1) {
-        if (lastFemaleDlg > lastMaleDlg) return { gender: 'female', confidence: 'likely' };
-        return { gender: 'male', confidence: 'likely' };
-    }
-    
-    // Ưu tiên 2: Trong thoại có chứa "ta", "ngươi" (Uncertain) -> Chốt Nam
-    var lastUncertainDlg = findLastIndex(text, GENDER_DICT.uncertain);
-    if (lastUncertainDlg !== -1) return { gender: 'male', confidence: 'likely' };
-    
-    // ── BƯỚC 3: KHÔNG TÌM THẤY BẤT KỲ DẤU HIỆU NÀO (UNCERTAIN) -> MẶC ĐỊNH NAM ──
-    return { gender: 'male', confidence: 'uncertain' }; 
+    // BƯỚC 3: Mặc định nếu không tìm thấy gì cả -> Giọng Nam
+    return { gender: 'male' }; 
 }
 
 // ── PHẦN 2: ĐỘNG CƠ PHÂN VAI NỘI BỘ (LOCAL AI AUDIO AUTOMATION) ────────────────
