@@ -6,13 +6,12 @@
     <title>AI Dựng Kịch Bản Phân Vai</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="script-maker.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>   
-    <script src="https://unpkg.com/docx@8.2.3/build/index.js"></script>   
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>   
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Nút Cài đặt (Góc phải) -->
         <div class="settings-wrapper">
             <button id="btnToggleSettings" class="btn-icon"><span class="material-icons">settings</span></button>
             <div id="settingsPanel" class="settings-panel">
@@ -100,12 +99,10 @@
                     <input type="file" id="wordFileInputScript" accept=".docx" style="display:none">
                 </label>
                 
-                <!-- Khu vực chọn TỪ chương -->
                 <span style="font-size: 13px; color: var(--text-muted); margin-left: 10px;">Từ:</span>
                 <input type="number" id="inputChapFrom" class="chap-num-input" placeholder="Số" min="1" disabled>
                 <select id="chapFromScript" class="voice-dropdown" style="width:140px" disabled></select>
                 
-                <!-- Khu vực chọn ĐẾN chương -->
                 <span style="font-size: 13px; color: var(--text-muted); margin-left: 10px;">Đến:</span>
                 <input type="number" id="inputChapTo" class="chap-num-input" placeholder="Số" min="1" disabled>
                 <select id="chapToScript" class="voice-dropdown" style="width:140px" disabled></select>
