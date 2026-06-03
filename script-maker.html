@@ -201,13 +201,18 @@
                 <button class="close-modal" id="btnCloseModal">&times;</button>
             </div>
             <div class="modal-body">
+                
                 <div class="scanned-names-section">
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
-                        Tên AI vừa quét được (Click để sao chép nhanh)
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Tên AI vừa quét được:</span>
+                        <div class="tag-click-mode" style="display: flex; gap: 15px; font-weight: bold;">
+                            <label style="cursor:pointer;"><input type="radio" name="clickMode" value="copy" checked> Copy</label>
+                            <label style="cursor:pointer; color: #3b82f6;"><input type="radio" name="clickMode" value="male"> 🎯 Thêm vào Nam</label>
+                            <label style="cursor:pointer; color: #ec4899;"><input type="radio" name="clickMode" value="female"> 🎯 Thêm vào Nữ</label>
+                        </div>
                     </div>
                     <div id="scannedNamesTags" class="tags-container">
-                        <!-- Thẻ tên sẽ được JS tự động đổ vào đây -->
-                    </div>
+                        </div>
                 </div>
                 <div class="grid-2" style="margin-top: 15px;">
                     <div class="sort-box male-box">
