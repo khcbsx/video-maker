@@ -631,25 +631,31 @@ if (btnSave) {
     });
 }
 
-// ── Hàm quét tên tự động ──
+// ── Hàm quét tên tự động (BẢN CHUẨN: CHỈ BẮT CHỮ VIẾT HOA) ──
 function extractNamesFromText(rawText) {
     var tagContainer = document.getElementById('scannedNamesTags');
     if (!tagContainer) return;
     
-    // Thuật toán Regex tìm cụm 2-4 chữ viết hoa liên tiếp (Tên Tiếng Việt/Trung)
-    var nameRegex = /(?:[A-ZÀ-Ỹ][a-zà-ỹ]*\s){1,3}[A-ZÀ-Ỹ][a-zà-ỹ]*/g;
+    // Thuật toán Regex MỚI: Chỉ bắt cụm 2-4 chữ, bắt buộc MỖI CHỮ PHẢI VIẾT HOA CHỮ CÁI ĐẦU.
+    // \p{Lu}: Chữ viết hoa | \p{Ll}: Chữ viết thường | Cần có cờ 'gu' ở cuối
+    var nameRegex = /(?:[A-Z\p{Lu}][a-z\p{Ll}]*\s+){1,3}[A-Z\p{Lu}][a-z\p{Ll}]*/gu;
     var matches = rawText.match(nameRegex) || [];
     
-    // Đếm tần suất xuất hiện để lọc rác (những từ vô tình viết hoa đầu câu)
+    // Đếm tần suất xuất hiện
     var nameCounts = {};
+    
+    // Bộ lọc rác: Các từ hay đứng đầu câu (bị viết hoa) nhưng không phải tên người
+    var stopWords = ["Nhưng Mà", "Tuy Nhiên", "Lúc Này", "Mặc Dù", "Bởi Vì", "Thế Nhưng", "Ngoài Ra", "Hơn Nữa", "Thật Ra", "Sau Khi", "Trước Khi", "Bỗng Nhiên", "Đột Nhiên", "Kỳ Thật"];
+    
     matches.forEach(function(name) {
         var cleanName = name.trim();
-        if (cleanName.length > 3) {
+        // Lọc bỏ nếu độ dài quá ngắn hoặc nằm trong danh sách stopWords
+        if (cleanName.length > 3 && !stopWords.includes(cleanName)) {
             nameCounts[cleanName] = (nameCounts[cleanName] || 0) + 1;
         }
     });
     
-    // Chỉ lấy những tên xuất hiện từ 2 lần trở lên, sắp xếp theo độ phổ biến
+    // Lấy những tên xuất hiện từ 2 lần trở lên, sắp xếp từ cao xuống thấp
     var validNames = Object.keys(nameCounts)
         .filter(name => nameCounts[name] > 1)
         .sort((a, b) => nameCounts[b] - nameCounts[a])
@@ -665,7 +671,7 @@ function extractNamesFromText(rawText) {
     validNames.forEach(function(name) {
         var tag = document.createElement('span');
         tag.className = 'name-tag';
-        tag.innerText = name + ' (' + nameCounts[name] + ')'; // Hiện số lần lặp
+        tag.innerText = name + ' (' + nameCounts[name] + ')';
         
         // Sự kiện: Bấm vào tên để copy nhanh
         tag.addEventListener('click', function() {
@@ -677,7 +683,6 @@ function extractNamesFromText(rawText) {
         tagContainer.appendChild(tag);
     });
 }
-
 
 // Hàm đọc file .docx và tách danh sách chương truyện (ĐÃ TỐI ƯU SIÊU TỐC & TÍCH HỢP LỌC TÊN)
 function handleWordUploadScript(event) {
