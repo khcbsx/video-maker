@@ -2,39 +2,166 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Trợ Lý Kịch Bản AI</title>
-    <link rel="stylesheet" href="script-maker.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dựng Kịch Bản Phân Vai</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="script-maker.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Trợ Lý Kịch Bản AI</h1>
+        <header class="page-header">
+            <h1>AI Dựng Kịch Bản Phân Vai</h1>
+            <p>Tự động biến tiểu thuyết thành kịch bản hội thoại đa nhân vật</p>
         </header>
-        <div class="app-grid">
-            <aside class="glass-card">
-                <h3><span class="material-icons">settings</span> Cấu hình</h3>
-                <div id="voice-settings">
-                    <label>Người dẫn truyện:</label>
+
+        <div class="glass-card">
+            <h3 class="card-title" style="color: var(--primary);">
+                <span class="material-icons">stars</span> Thiết lập nhân vật & Giọng đọc
+            </h3>
+            <div class="grid-3">
+                <div class="voice-group">
+                    <label>Giọng Dẫn truyện:</label>
                     <select id="voiceNarrator" class="voice-dropdown"></select>
+                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceNarrator">
+                        <div class="pitch-slider-label" id="pitch-label-voiceNarrator">▶ Giọng gốc (1.00)</div>
+                        <div class="pitch-slider-row">
+                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                            <input type="range" class="pitch-range" id="pitch-range-voiceNarrator" min="0.65" max="1.40" step="0.01" value="1.00">
+                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                            <button class="pitch-reset-btn">↺ Reset</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="upload-btn" onclick="document.getElementById('docxInput').click()">
-                    <span class="material-icons">file_upload</span> Tải Word (.docx)
-                </button>
-                <input type="file" id="docxInput" accept=".docx" style="display:none">
-                <button class="convert-btn" id="buildScriptBtn" onclick="buildScript()">
-                    <span class="material-icons">auto_awesome</span> Phân Vai AI
-                </button>
-            </aside>
-            <section class="glass-card">
-                <h3><span class="material-icons">edit</span> Kịch bản</h3>
-                <textarea id="scriptOutput" placeholder="Kết quả sẽ hiển thị ở đây..."></textarea>
-                <button class="convert-btn" onclick="startAudioGeneration()" style="background:var(--primary-grad)">
-                    <span class="material-icons">headphones</span> Thu Âm MP3
-                </button>
-            </section>
+                <div class="voice-group">
+                    <label>Giọng Nam:</label>
+                    <select id="voiceMale" class="voice-dropdown"></select>
+                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceMale">
+                        <div class="pitch-slider-label" id="pitch-label-voiceMale">▶ Giọng gốc (1.00)</div>
+                        <div class="pitch-slider-row">
+                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                            <input type="range" class="pitch-range" id="pitch-range-voiceMale" min="0.65" max="1.40" step="0.01" value="1.00">
+                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                            <button class="pitch-reset-btn">↺ Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="voice-group">
+                    <label>Giọng Nữ:</label>
+                    <select id="voiceFemale" class="voice-dropdown"></select>
+                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceFemale">
+                        <div class="pitch-slider-label" id="pitch-label-voiceFemale">▶ Giọng gốc (1.00)</div>
+                        <div class="pitch-slider-row">
+                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                            <input type="range" class="pitch-range" id="pitch-range-voiceFemale" min="0.65" max="1.40" step="0.01" value="1.00">
+                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                            <button class="pitch-reset-btn">↺ Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <div class="glass-card" style="border-color: var(--primary);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h3 class="card-title" style="color: var(--primary); margin:0;">
+                    <span class="material-icons">auto_awesome</span> Hàng đợi Dựng Kịch Bản Tự động
+                </h3>
+                <button id="btnStartScript" class="btn btn-green" style="display: none;">
+                    <span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN
+                </button>
+            </div>
+            
+            <div class="controls-row">
+                <label class="upload-btn" style="color: var(--primary); margin:0;">
+                    <span class="material-icons">file_upload</span> Tải Word gốc
+                    <input type="file" id="wordFileInputScript" accept=".docx" style="display:none">
+                </label>
+                <span style="font-size: 13px; color: var(--text-muted);">Từ:</span>
+                <select id="chapFromScript" class="voice-dropdown" style="width:150px" disabled></select>
+                <span style="font-size: 13px; color: var(--text-muted);">Đến:</span>
+                <select id="chapToScript" class="voice-dropdown" style="width:150px" disabled></select>
+                <button id="btnAddScriptQueue" class="btn btn-green" disabled style="opacity: 0.5;">
+                    <span class="material-icons">add_task</span> Thêm vào mẻ chờ
+                </button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mẻ số</th>
+                        <th>Phạm vi chương</th>
+                        <th>Trạng thái</th>
+                        <th>Tải Word</th>
+                        <th style="text-align:center;"><span class="material-icons" style="color:#ef4444; cursor:pointer;" title="Xóa tất cả">delete_sweep</span></th>
+                    </tr>
+                </thead>
+                <tbody id="scriptQueueBody">
+                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card" style="border-color: var(--blue);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h3 class="card-title" style="color: var(--blue); margin:0;">
+                    <span class="material-icons">headphones</span> Hàng đợi Tạo Audio Tự động
+                </h3>
+                <button id="btnStartAudio" class="btn btn-blue" style="display: none;">
+                    <span class="material-icons">play_circle</span> CHẠY TẠO AUDIO
+                </button>
+            </div>
+            
+            <div class="controls-row">
+                <label class="upload-btn" style="color: var(--blue); margin:0;">
+                    <span class="material-icons">file_upload</span> Tải Word đã phân vai
+                    <input type="file" id="wordFileInputAudio" accept=".docx" multiple style="display:none">
+                </label>
+                <span style="font-size: 13px; color: var(--text-muted);">File:</span>
+                <select id="chapFromAudio" class="voice-dropdown" style="width:250px" disabled></select>
+                <button id="btnAddAudioQueue" class="btn btn-blue" disabled style="opacity: 0.5;">
+                    <span class="material-icons">add_task</span> Thêm vào mẻ chờ
+                </button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mẻ số</th>
+                        <th>File / Chương</th>
+                        <th>Trạng thái</th>
+                        <th>Tải MP3</th>
+                        <th style="text-align:center;"><span class="material-icons" style="color:#ef4444; cursor:pointer;" title="Xóa tất cả">delete_sweep</span></th>
+                    </tr>
+                </thead>
+                <tbody id="audioQueueBody">
+                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="card-title"><span class="material-icons">build</span> Khu vực Xử lý Thủ công</h3>
+            <div class="grid-2">
+                <div>
+                    <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: var(--text-muted);">Văn bản gốc:</span>
+                        <button id="manualBuildBtn" class="btn btn-green" style="padding: 6px 12px; font-size: 12px;">Phân Vai AI</button>
+                    </div>
+                    <textarea id="rawStoryInput" placeholder="Dán văn bản truyện vào đây..."></textarea>
+                </div>
+                <div>
+                    <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: var(--text-muted);">Kịch bản AI:</span>
+                        <button id="manualAudioBtn" class="btn btn-blue" style="padding: 6px 12px; font-size: 12px;">Tạo Audio</button>
+                    </div>
+                    <textarea id="processedScriptOutput" placeholder="Kịch bản phân vai sẽ hiện ở đây, bạn có thể sửa thủ công..."></textarea>
+                </div>
+            </div>
+        </div>
+
     </div>
+    
     <script src="script-maker.js"></script>
 </body>
 </html>
