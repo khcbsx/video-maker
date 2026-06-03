@@ -1361,7 +1361,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
 
 // Hàm hỗ trợ TẠO VÀ TẢI file .docx (Dùng thư viện docx.js)
 async function downloadDocxFile(filename, textContent) {
-    const { Document, Packer, Paragraph, TextRun } = window.docx;
+    const { Document, Packer, Paragraph, TextRun } = docx;
 
     // Tách văn bản thành từng dòng dựa trên ký tự xuống dòng
     const lines = textContent.split('\n');
