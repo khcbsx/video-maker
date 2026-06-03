@@ -672,39 +672,53 @@ function handleWordUploadScript(event) {
 }
 
 // ==============================================================================
-// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE)
+// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (BẢN CHUẨN: ƯU TIÊN THOẠI TRƯỚC -> DẪN TRUYỆN SAU)
 // ==============================================================================
 function detectGenderLocal(dialogText, proseContext) {
     var text = (dialogText || '').toLowerCase();
     var prose = (proseContext || '').toLowerCase();
     
-    // Hàm so khớp từ khóa chính xác (tránh lỗi nhận diện nhầm từ nằm trong từ khác)
-    function hasWord(src, wordList) {
-        if (!wordList) return false;
+    // Hàm tìm vị trí xuất hiện GẦN NHẤT (cuối cùng) của từ khóa trong chuỗi
+    function findLastIndex(src, wordList) {
+        if (!wordList) return -1;
+        var maxIdx = -1;
         for (var i = 0; i < wordList.length; i++) {
             var w = wordList[i].toLowerCase();
-            // Dùng Regex để bắt chính xác từ độc lập, bỏ qua dấu câu
-            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '($|[\\s,\\.!?;:\\-"\'`\\[\\](){}])', 'i');
-            if (regex.test(src)) return true;
+            var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?=[\\s,\\.!?;:\\-"\'`\\[\\](){}]|$)', 'gi');
+            var match;
+            while ((match = regex.exec(src)) !== null) {
+                if (match.index > maxIdx) {
+                    maxIdx = match.index;
+                }
+            }
         }
-        return false;
+        return maxIdx;
     }
 
-    // BƯỚC 1: Quét ngữ cảnh lời dẫn truyện TRƯỚC câu thoại (Ưu tiên cao nhất)
+    // ── TẦNG 1 (ƯU TIÊN 1): TÌM TỪ KHÓA MẠNH (NAM/NỮ) TRONG LỜI THOẠI (DIALOG) ──
+    // Nếu nhân vật tự xưng rõ ràng (thiếp, phu quân, trẫm...) thì chốt luôn, không cần nhìn lời dẫn
+    var lastMaleDlg = findLastIndex(text, GENDER_DICT.dialogMALE);
+    var lastFemaleDlg = findLastIndex(text, GENDER_DICT.dialogFEMALE);
+    
+    if (lastMaleDlg !== -1 || lastFemaleDlg !== -1) {
+        if (lastFemaleDlg > lastMaleDlg) return { gender: 'female' };
+        return { gender: 'male' };
+    }
+
+    // ── TẦNG 2 (ƯU TIÊN 2): NẾU LỜI THOẠI KHÔNG RÕ, TÌM TRONG LỜI DẪN (PROSE) ──
+    // Dùng cho các câu thoại cộc lốc (VD: "Đi thôi!", "Được."), lúc này mới cần nhìn ngữ cảnh
     if (prose.length > 0) {
-        if (hasWord(prose, GENDER_DICT.proseFEMALE)) return { gender: 'female' };
-        if (hasWord(prose, GENDER_DICT.proseMALE)) return { gender: 'male' };
-        // Nếu lời dẫn chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
-        if (hasWord(prose, GENDER_DICT.uncertain)) return { gender: 'male' };
+        var lastMaleIdx = findLastIndex(prose, GENDER_DICT.proseMALE);
+        var lastFemaleIdx = findLastIndex(prose, GENDER_DICT.proseFEMALE);
+
+        if (lastMaleIdx !== -1 || lastFemaleIdx !== -1) {
+            if (lastFemaleIdx > lastMaleIdx) return { gender: 'female' };
+            return { gender: 'male' };
+        }
     }
     
-    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét nội dung BÊN TRONG câu thoại
-    if (hasWord(text, GENDER_DICT.dialogFEMALE)) return { gender: 'female' };
-    if (hasWord(text, GENDER_DICT.dialogMALE)) return { gender: 'male' };
-    // Nếu lời thoại chứa các từ nhóm uncertain -> mặc định chốt Giọng Nam
-    if (hasWord(text, GENDER_DICT.uncertain)) return { gender: 'male' };
-    
-    // BƯỚC 3: Mặc định nếu không tìm thấy gì cả -> Giọng Nam
+    // ── TẦNG 3 (MẶC ĐỊNH): RỚT CẢ 2 TẦNG TRÊN -> BẮT TOÀN BỘ LÀ GIỌNG NAM MINH ──
+    // Gom chung mọi trường hợp mập mờ, không chắc chắn về đây
     return { gender: 'male' }; 
 }
 
