@@ -10,6 +10,26 @@
 </head>
 <body>
     <div class="container">
+        <!-- Nút Cài đặt (Góc phải) -->
+        <div class="settings-wrapper">
+            <button id="btnToggleSettings" class="btn-icon"><span class="material-icons">settings</span></button>
+            <div id="settingsPanel" class="settings-panel">
+                <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted)">CHẾ ĐỘ HIỂN THỊ</div>
+                <div class="theme-switch">
+                    <div class="theme-btn" id="btnThemeLight" onclick="setTheme('light')">Sáng</div>
+                    <div class="theme-btn active" id="btnThemeDark" onclick="setTheme('dark')">Tối</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted)">MÀU CHỦ ĐẠO</div>
+                <div class="color-picker">
+                    <div class="color-circle active" style="background:#10b981" onclick="setColor('green')"></div>
+                    <div class="color-circle" style="background:#3b82f6" onclick="setColor('blue')"></div>
+                    <div class="color-circle" style="background:#8b5cf6" onclick="setColor('purple')"></div>
+                    <div class="color-circle" style="background:#f97316" onclick="setColor('orange')"></div>
+                    <div class="color-circle" style="background:#ec4899" onclick="setColor('pink')"></div>
+                </div>
+            </div>
+        </div>
+
         <header class="page-header">
             <h1>AI Dựng Kịch Bản Phân Vai</h1>
             <p>Tự động biến tiểu thuyết thành kịch bản hội thoại đa nhân vật</p>
@@ -73,15 +93,22 @@
             </div>
             
             <div class="controls-row">
-                <label class="upload-btn" style="color: var(--primary); margin:0;">
+                <label class="upload-btn">
                     <span class="material-icons">file_upload</span> Tải Word gốc
                     <input type="file" id="wordFileInputScript" accept=".docx" style="display:none">
                 </label>
-                <span style="font-size: 13px; color: var(--text-muted);">Từ:</span>
-                <select id="chapFromScript" class="voice-dropdown" style="width:150px" disabled></select>
-                <span style="font-size: 13px; color: var(--text-muted);">Đến:</span>
-                <select id="chapToScript" class="voice-dropdown" style="width:150px" disabled></select>
-                <button id="btnAddScriptQueue" class="btn btn-green" disabled style="opacity: 0.5;">
+                
+                <!-- Khu vực chọn TỪ chương -->
+                <span style="font-size: 13px; color: var(--text-muted); margin-left: 10px;">Từ:</span>
+                <input type="number" id="inputChapFrom" class="chap-num-input" placeholder="Số" min="1" disabled>
+                <select id="chapFromScript" class="voice-dropdown" style="width:140px" disabled></select>
+                
+                <!-- Khu vực chọn ĐẾN chương -->
+                <span style="font-size: 13px; color: var(--text-muted); margin-left: 10px;">Đến:</span>
+                <input type="number" id="inputChapTo" class="chap-num-input" placeholder="Số" min="1" disabled>
+                <select id="chapToScript" class="voice-dropdown" style="width:140px" disabled></select>
+                
+                <button id="btnAddScriptQueue" class="btn" disabled style="opacity: 0.5; margin-left: auto;">
                     <span class="material-icons">add_task</span> Thêm vào mẻ chờ
                 </button>
             </div>
