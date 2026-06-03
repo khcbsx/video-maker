@@ -602,6 +602,83 @@ function bindUIEvents() {
   }
 }
 
+
+// ==============================================================================
+// GIAO DIỆN POPUP & LOGIC QUÉT TÊN TỰ ĐỘNG
+// ==============================================================================
+var modal = document.getElementById('nameFilterModal');
+var btnOpen = document.getElementById('btnOpenNameFilter');
+var btnClose = document.getElementById('btnCloseModal');
+var btnSave = document.getElementById('btnSaveTempNames');
+
+// Mở Popup
+if (btnOpen) {
+    btnOpen.addEventListener('click', function() {
+        modal.classList.add('active');
+    });
+}
+// Đóng Popup
+if (btnClose) {
+    btnClose.addEventListener('click', function() {
+        modal.classList.remove('active');
+    });
+}
+// Lưu tên (Tạm thời chỉ hiển thị Toast đóng, logic nhồi vào engine tính sau)
+if (btnSave) {
+    btnSave.addEventListener('click', function() {
+        modal.classList.remove('active');
+        showToast('success', 'Đã lưu tạm tên nhân vật vào bộ nhớ AI!');
+    });
+}
+
+// ── Hàm quét tên tự động ──
+function extractNamesFromText(rawText) {
+    var tagContainer = document.getElementById('scannedNamesTags');
+    if (!tagContainer) return;
+    
+    // Thuật toán Regex tìm cụm 2-4 chữ viết hoa liên tiếp (Tên Tiếng Việt/Trung)
+    var nameRegex = /(?:[A-ZÀ-Ỹ][a-zà-ỹ]*\s){1,3}[A-ZÀ-Ỹ][a-zà-ỹ]*/g;
+    var matches = rawText.match(nameRegex) || [];
+    
+    // Đếm tần suất xuất hiện để lọc rác (những từ vô tình viết hoa đầu câu)
+    var nameCounts = {};
+    matches.forEach(function(name) {
+        var cleanName = name.trim();
+        if (cleanName.length > 3) {
+            nameCounts[cleanName] = (nameCounts[cleanName] || 0) + 1;
+        }
+    });
+    
+    // Chỉ lấy những tên xuất hiện từ 2 lần trở lên, sắp xếp theo độ phổ biến
+    var validNames = Object.keys(nameCounts)
+        .filter(name => nameCounts[name] > 1)
+        .sort((a, b) => nameCounts[b] - nameCounts[a])
+        .slice(0, 40); // Lấy top 40 tên nhiều nhất
+        
+    tagContainer.innerHTML = ''; // Xóa cũ
+    if (validNames.length === 0) {
+        tagContainer.innerHTML = '<span style="color:var(--text-muted); font-size: 13px;">Không quét được tên nào rõ ràng.</span>';
+        return;
+    }
+
+    // Đổ thẻ tên (Tags) vào giao diện
+    validNames.forEach(function(name) {
+        var tag = document.createElement('span');
+        tag.className = 'name-tag';
+        tag.innerText = name + ' (' + nameCounts[name] + ')'; // Hiện số lần lặp
+        
+        // Sự kiện: Bấm vào tên để copy nhanh
+        tag.addEventListener('click', function() {
+            navigator.clipboard.writeText(name).then(() => {
+                showToast('info', 'Đã copy: ' + name);
+            });
+        });
+        
+        tagContainer.appendChild(tag);
+    });
+}
+
+
 // Hàm đọc file .docx và tách danh sách chương truyện (ĐÃ TỐI ƯU SIÊU TỐC)
 function handleWordUploadScript(event) {
   var file = event.target.files[0];
@@ -661,6 +738,7 @@ function handleWordUploadScript(event) {
         if (btnAdd) {
           btnAdd.disabled = false;
           btnAdd.style.opacity = '1';
+          extractNamesFromText(result.value); // Gọi hàm quét tên
         }
         showToast('success', 'Đã nạp thành công ' + chapters.length + ' chương từ file Word!');
       })
