@@ -106,6 +106,11 @@
                 <span style="font-size: 13px; color: var(--text-muted); margin-left: 10px;">Đến:</span>
                 <input type="number" id="inputChapTo" class="chap-num-input" placeholder="Số" min="1" disabled>
                 <select id="chapToScript" class="voice-dropdown" style="width:140px" disabled></select>
+
+                <!-- NÚT MỚI THÊM VÀO ĐÂY -->
+                <button id="btnOpenNameFilter" class="btn btn-purple" disabled style="opacity: 0.5; margin-left: auto; margin-right: 10px;">
+                    <span class="material-icons">manage_accounts</span> Lọc Tên
+                </button>
                 
                 <button id="btnAddScriptQueue" class="btn" disabled style="opacity: 0.5; margin-left: auto;">
                     <span class="material-icons">add_task</span> Thêm vào mẻ chờ
@@ -186,6 +191,42 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- POPUP BỘ LỌC TÊN NHÂN VẬT -->
+    <div id="nameFilterModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><span class="material-icons">manage_accounts</span> Phân loại Nhân vật (Lưu tạm thời)</h3>
+                <button class="close-modal" id="btnCloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="scanned-names-section">
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                        Tên AI vừa quét được (Click để sao chép nhanh)
+                    </div>
+                    <div id="scannedNamesTags" class="tags-container">
+                        <!-- Thẻ tên sẽ được JS tự động đổ vào đây -->
+                    </div>
+                </div>
+                <div class="grid-2" style="margin-top: 15px;">
+                    <div class="sort-box male-box">
+                        <label style="color: #3b82f6; font-weight: bold;">[ Giọng Nam ]</label>
+                        <textarea id="tempMaleNames" placeholder="Nhập tên nhân vật Nam vào đây, cách nhau bằng dấu phẩy (VD: Từ Phàm, Hàn Lập...)"></textarea>
+                    </div>
+                    <div class="sort-box female-box">
+                        <label style="color: #ec4899; font-weight: bold;">[ Giọng Nữ ]</label>
+                        <textarea id="tempFemaleNames" placeholder="Nhập tên nhân vật Nữ vào đây, cách nhau bằng dấu phẩy (VD: Trương Vi Vân, Nam Cung Uyển...)"></textarea>
+                    </div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px; font-style: italic;">
+                    * Lưu ý: Danh sách này chỉ lưu tạm thời trên RAM và sẽ mất khi bạn tải lại trang (F5) để tránh nhầm lẫn với truyện khác.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveTempNames" class="btn btn-green" style="width: 100%;">Xác nhận & Lưu vào Bộ nhớ</button>
+            </div>
+        </div>
     </div>
     
     <div id="toast" class="toast"></div>
