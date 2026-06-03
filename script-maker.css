@@ -123,3 +123,40 @@ textarea { width: 100%; height: 400px; background: var(--input-bg); color: var(-
     color: var(--text); 
 }
 
+/* ================= TOAST NOTIFICATION ================= */
+.toast {
+    visibility: hidden;
+    min-width: 280px;
+    background-color: var(--card-bg);
+    color: var(--text);
+    text-align: center;
+    border-radius: 8px;
+    padding: 14px 20px;
+    position: fixed;
+    z-index: 9999;
+    left: 50%;
+    bottom: 20px; /* Vị trí bắt đầu (thấp) */
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.4s, bottom 0.4s, visibility 0.4s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+    bottom: 50px; /* Trượt lên vị trí này */
+}
+
+/* Các trạng thái màu sắc */
+.toast.success { border-left: 4px solid #10b981; color: #10b981; }
+.toast.error { border-left: 4px solid #ef4444; color: #ef4444; }
+.toast.info { border-left: 4px solid #3b82f6; color: #3b82f6; }
+
