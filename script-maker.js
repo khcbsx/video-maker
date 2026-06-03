@@ -458,7 +458,7 @@ function handleWordUploadScript(event) {
         // Tách chương theo biểu thức chính quy chuẩn xác của bạn
         var chapters = result.value.split(/\n(?=Chương\s+\d+)/i).filter(function(c) { return c.trim().length > 100; });
         if (chapters.length === 0) {
-          alert('Không tìm thấy chương nào đúng định dạng "Chương [số]". Vui lòng kiểm tra lại file Word.');
+          showToast('error', 'Không tìm thấy chương nào đúng định dạng "Chương [số]". Vui lòng kiểm tra lại file Word.');
           return;
         }
         
@@ -502,10 +502,10 @@ function handleWordUploadScript(event) {
           btnAdd.disabled = false;
           btnAdd.style.opacity = '1';
         }
-        alert('Đã nạp thành công ' + chapters.length + ' chương từ file Word! Hãy thiết lập mẻ chờ.');
+        showToast('success', 'Đã nạp thành công ' + chapters.length + ' chương từ file Word!');
       })
       .catch(function(err) {
-        alert('Lỗi giải nén tài liệu Word: ' + err.message);
+        showToast('error', 'Lỗi giải nén tài liệu Word: ' + err.message);
       });
   };
   reader.readAsArrayBuffer(file);
@@ -601,7 +601,7 @@ async function buildScriptManual() {
   var inputArea = document.getElementById('rawStoryInput');
   var outputArea = document.getElementById('processedScriptOutput');
   if (!inputArea || !inputArea.value.trim()) {
-    alert('Vui lòng điền hoặc dán văn bản truyện vào ô Văn bản gốc trước!');
+    showToast('error', 'Vui lòng điền hoặc dán văn bản truyện vào ô Văn bản gốc trước!');
     return;
   }
 
@@ -615,9 +615,9 @@ async function buildScriptManual() {
     try {
       var processedText = await runScriptAutomation(inputArea.value, null);
       outputArea.value = processedText;
-      alert('AI đã quét từ điển nhân xưng và hoàn tất phân vai hội thoại cục bộ!');
+      showToast('success', 'Phân vai hoàn tất!');
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      showToast('error', 'Lỗi: ' + err.message);
     } finally {
       btn.disabled = false;
       btn.innerHTML = origHtml;
@@ -635,7 +635,7 @@ document.getElementById('btnAddScriptQueue').addEventListener('click', function(
     var toIdx = parseInt(document.getElementById('chapToScript').value);
     
     if (fromIdx > toIdx) {
-        alert("Lỗi: Chương bắt đầu phải nhỏ hơn hoặc bằng chương kết thúc!");
+        showToast('error', 'Chương bắt đầu phải nhỏ hoặc bằng chương kết thúc!');
         return;
     }
 
@@ -716,7 +716,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
     
     this.disabled = false;
     this.innerHTML = '<span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN';
-    alert("Tuyệt vời! Đã phân vai xong toàn bộ hàng đợi và tải file .txt về máy.");
+    showToast('success', 'Đã phân vai xong toàn bộ hàng đợi!');
 });
 
 // Hàm hỗ trợ tải file TXT
@@ -776,3 +776,28 @@ function syncChapSelect(inputId, selectId) {
 // Gọi hàm đồng bộ này trong window.onload
 syncChapSelect('inputChapFrom', 'chapFromScript');
 syncChapSelect('inputChapTo', 'chapToScript');
+
+// Hàm hiển thị Toast thông báo
+function showToast(type, message) {
+    var toast = document.getElementById("toast");
+    if (!toast) return;
+    
+    // Đặt class màu sắc (success, error, info)
+    toast.className = "toast " + type;
+    
+    // Chọn icon tương ứng
+    var icon = "info";
+    if (type === "success") icon = "check_circle";
+    if (type === "error") icon = "error";
+    
+    // Chèn nội dung
+    toast.innerHTML = `<span class="material-icons">${icon}</span> ${message}`;
+    
+    // Bật hiệu ứng hiển thị
+    toast.classList.add("show");
+    
+    // Tự động tắt sau 3 giây
+    setTimeout(function(){ 
+        toast.classList.remove("show"); 
+    }, 3000);
+}
