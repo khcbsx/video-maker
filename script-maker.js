@@ -672,7 +672,7 @@ function handleWordUploadScript(event) {
 }
 
 // ==============================================================================
-// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE) - NÂNG CẤP ĐO KHOẢNG CÁCH
+// BỘ MÁY DÒ TÌM GIỚI TÍNH CỤC BỘ (CORE ENGINE) - NÂNG CẤP ĐỘ ƯU TIÊN
 // ==============================================================================
 function detectGenderLocal(dialogText, proseContext) {
     var text = (dialogText || '').toLowerCase();
@@ -684,7 +684,6 @@ function detectGenderLocal(dialogText, proseContext) {
         var maxIdx = -1;
         for (var i = 0; i < wordList.length; i++) {
             var w = wordList[i].toLowerCase();
-            // Biểu thức regex tìm từ chính xác, không bắt nhầm từ dính liền
             var regex = new RegExp('(^|[\\s,\\.!?;:\\-"\'`\\[\\](){}])' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?=[\\s,\\.!?;:\\-"\'`\\[\\](){}]|$)', 'gi');
             var match;
             while ((match = regex.exec(src)) !== null) {
@@ -696,39 +695,37 @@ function detectGenderLocal(dialogText, proseContext) {
         return maxIdx;
     }
 
-    // BƯỚC 1: Quét ngữ cảnh LỜI DẪN TRUYỆN TRƯỚC (prose)
+    // BƯỚC 1: Quét ngữ cảnh LỜI DẪN TRUYỆN (prose)
     if (prose.length > 0) {
         var lastMaleIdx = findLastIndex(prose, GENDER_DICT.proseMALE);
         var lastFemaleIdx = findLastIndex(prose, GENDER_DICT.proseFEMALE);
-        var lastUncertainIdx = findLastIndex(prose, GENDER_DICT.uncertain);
 
-        // So sánh xem từ Nam, Nữ hay Không rõ ràng nằm gần câu thoại nhất
-        var maxIdx = Math.max(lastMaleIdx, lastFemaleIdx, lastUncertainIdx);
-
-        if (maxIdx !== -1) {
-            // Nếu từ Nữ nằm gần câu thoại nhất -> Giọng Nữ
-            if (maxIdx === lastFemaleIdx && lastFemaleIdx > lastMaleIdx) return { gender: 'female' };
-            // Nếu từ Nam nằm gần câu thoại nhất -> Giọng Nam
-            if (maxIdx === lastMaleIdx) return { gender: 'male' };
-            // Nếu từ Uncertain (không rõ) nằm sát nhất -> Chốt mặc định Giọng Nam
-            if (maxIdx === lastUncertainIdx) return { gender: 'male' }; 
+        // ƯU TIÊN 1: So sánh trực tiếp Nam/Nữ (Ai gần nhất thì thắng)
+        if (lastMaleIdx !== -1 || lastFemaleIdx !== -1) {
+            if (lastFemaleIdx > lastMaleIdx) return { gender: 'female' };
+            return { gender: 'male' };
         }
+        
+        // ƯU TIÊN 2: Nếu không thấy Nam/Nữ, mới xét đến nhóm Uncertain
+        var lastUncertainIdx = findLastIndex(prose, GENDER_DICT.uncertain);
+        if (lastUncertainIdx !== -1) return { gender: 'male' }; 
     }
     
-    // BƯỚC 2: Nếu lời dẫn không có manh mối, quét BÊN TRONG câu thoại
+    // BƯỚC 2: Quét BÊN TRONG CÂU THOẠI
     var lastMaleDlg = findLastIndex(text, GENDER_DICT.dialogMALE);
     var lastFemaleDlg = findLastIndex(text, GENDER_DICT.dialogFEMALE);
-    var lastUncertainDlg = findLastIndex(text, GENDER_DICT.uncertain);
-
-    var maxDlgIdx = Math.max(lastMaleDlg, lastFemaleDlg, lastUncertainDlg);
     
-    if (maxDlgIdx !== -1) {
-        if (maxDlgIdx === lastFemaleDlg && lastFemaleDlg > lastMaleDlg) return { gender: 'female' };
-        if (maxDlgIdx === lastMaleDlg) return { gender: 'male' };
-        if (maxDlgIdx === lastUncertainDlg) return { gender: 'male' };
+    // ƯU TIÊN 1: Có từ khóa Nam/Nữ rõ ràng trong thoại
+    if (lastMaleDlg !== -1 || lastFemaleDlg !== -1) {
+        if (lastFemaleDlg > lastMaleDlg) return { gender: 'female' };
+        return { gender: 'male' };
     }
     
-    // BƯỚC 3: Mặc định nếu không tìm thấy gì cả -> Giọng Nam (Nam Minh)
+    // ƯU TIÊN 2: Nếu trong thoại chỉ có nhóm Uncertain (Ví dụ: "Ta không biết")
+    var lastUncertainDlg = findLastIndex(text, GENDER_DICT.uncertain);
+    if (lastUncertainDlg !== -1) return { gender: 'male' };
+    
+    // BƯỚC 3: Mặc định nếu cộc lốc không có bất kỳ dấu hiệu nào -> Nam Minh
     return { gender: 'male' }; 
 }
 
