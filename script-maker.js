@@ -966,7 +966,6 @@ document.getElementById('btnAddScriptQueue').addEventListener('click', function(
     document.getElementById('btnStartScript').style.display = 'inline-flex'; // Hiện nút chạy
 });
 
-// Hiển thị danh sách hàng đợi ra bảng
 function renderScriptQueue() {
     var tbody = document.getElementById('scriptQueueBody');
     tbody.innerHTML = '';
@@ -977,19 +976,47 @@ function renderScriptQueue() {
         return;
     }
     
+    // Đảm bảo nút Chạy Kịch Bản hiện lên khi có mẻ
+    document.getElementById('btnStartScript').style.display = 'flex';
+    
     scriptQueue.forEach(function(b, index) {
         var tr = document.createElement('tr');
         tr.innerHTML = `
             <td>Mẻ ${index + 1}</td>
             <td>Chương ${b.from + 1} đến Chương ${b.to + 1}</td>
             <td id="status-script-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</td>
-            <td>--</td>
-            <td style="text-align:center;">
-                <span class="material-icons" style="color:#ef4444; cursor:pointer;" onclick="removeScriptBatch(${b.id})">delete</span>
+            <td id="download-script-${b.id}">--</td>
+            <td style="text-align:center; display:flex; justify-content:center; gap:15px; align-items:center;">
+                <span class="material-icons" style="color:#3b82f6; cursor:pointer; font-size: 22px;" onclick="filterScriptBatchNames(${b.id})" title="Quét tên nhân vật chỉ trong mẻ này">person_search</span>
+                
+                <span class="material-icons" style="color:#ef4444; cursor:pointer; font-size: 22px;" onclick="removeScriptBatch(${b.id})" title="Xóa mẻ này">delete</span>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Hàm mới: Quét và lọc tên riêng cho một mẻ cụ thể
+window.filterScriptBatchNames = function(id) {
+    // Tìm mẻ tương ứng bằng id
+    var batch = scriptQueue.find(function(b) { return b.id === id; });
+    if (!batch) return;
+    
+    // Lấy đúng văn bản từ chương bắt đầu đến kết thúc của mẻ đó
+    var batchChaptersText = globalScriptChapters.slice(batch.from, batch.to + 1).join('\n\n');
+    
+    // Đẩy vào hàm quét tên
+    if (typeof extractNamesFromText === 'function') {
+        extractNamesFromText(batchChaptersText);
+    }
+    
+    // Cập nhật tiêu đề Popup và mở lên
+    var modalHeader = document.querySelector('#nameFilterModal h3');
+    if (modalHeader) {
+        var mIndex = scriptQueue.findIndex(function(b) { return b.id === id; });
+        modalHeader.innerHTML = `<span class="material-icons">manage_accounts</span> Tên Mẻ ${mIndex + 1} (Chương ${batch.from + 1} - ${batch.to + 1})`;
+    }
+    document.getElementById('nameFilterModal').classList.add('active');
 }
 
 // Xóa một mẻ khỏi hàng đợi
