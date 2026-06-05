@@ -1304,3 +1304,62 @@ async function fetchAudioFromCloudflare(text, voiceName, pitchValue, rateValue) 
             </div>
         </div>
     </div>
+
+// ==============================================================================
+// LOGIC QUẢN LÝ NHẠC NỀN (BGM) VÀ ÂM LƯỢNG
+// ==============================================================================
+var bgmModal = document.getElementById('bgmConfigModal');
+var btnOpenBgm = document.getElementById('btnOpenBgmConfig');
+var btnCloseBgm = document.getElementById('btnCloseBgmModal');
+var btnSaveBgm = document.getElementById('btnSaveBgmConfig');
+
+// Khai báo biến toàn cục (RAM) lưu trữ file nhạc và mức âm lượng
+window.globalThemeFile = null;
+window.globalAmbientFiles = [];
+window.globalBgmVolume = 0.15; // Mặc định 15%
+
+// Mở & Đóng Popup
+if (btnOpenBgm) btnOpenBgm.addEventListener('click', () => bgmModal.classList.add('active'));
+if (btnCloseBgm) btnCloseBgm.addEventListener('click', () => bgmModal.classList.remove('active'));
+if (btnSaveBgm) {
+    btnSaveBgm.addEventListener('click', () => {
+        bgmModal.classList.remove('active');
+        showToast('success', 'Đã lưu cấu hình nhạc tạm thời vào trình duyệt!');
+    });
+}
+
+// Xử lý thanh trượt âm lượng
+var volumeSlider = document.getElementById('bgmVolumeSlider');
+var volumeDisplay = document.getElementById('bgmVolumeDisplay');
+if (volumeSlider && volumeDisplay) {
+    volumeSlider.addEventListener('input', function() {
+        volumeDisplay.innerText = this.value + '%';
+        window.globalBgmVolume = parseInt(this.value) / 100;
+    });
+}
+
+// Xử lý nạp Nhạc Dạo (Theme)
+var inputTheme = document.getElementById('inputFileTheme');
+var txtThemeName = document.getElementById('themeFileName');
+if (inputTheme) {
+    inputTheme.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            window.globalThemeFile = e.target.files[0];
+            txtThemeName.innerText = "✅ " + window.globalThemeFile.name;
+            txtThemeName.style.color = "#10b981";
+        }
+    });
+}
+
+// Xử lý nạp Nhạc Trung Tính (Ambient)
+var inputAmbient = document.getElementById('inputFileAmbient');
+var txtAmbientNames = document.getElementById('ambientFileNames');
+if (inputAmbient) {
+    inputAmbient.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            window.globalAmbientFiles = Array.from(e.target.files);
+            txtAmbientNames.innerText = "✅ Đã tải lên " + window.globalAmbientFiles.length + " bài nhạc.";
+            txtAmbientNames.style.color = "#10b981";
+        }
+    });
+}
