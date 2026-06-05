@@ -1215,3 +1215,46 @@ function showToast(type, message) {
         toast.classList.remove("show"); 
     }, 3000);
 }
+
+// ==============================================================================
+// GIAO TIẾP VỚI CLOUDFLARE WORKER (TẠO AUDIO MP3 TỪ EDGE TTS)
+// ==============================================================================
+
+// BẠN HÃY DÁN ĐƯỜNG LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY
+const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts'; 
+
+// Hàm lấy âm thanh 1 câu thoại từ Cloudflare (hỗ trợ chỉnh cao độ pitch/rate)
+async function fetchAudioFromCloudflare(text, voiceName, pitchValue, rateValue) {
+    if (!text || text.trim() === '') return null;
+    
+    // Map tên hiển thị trên giao diện sang mã giọng của Microsoft
+    var msVoice = 'vi-VN-NamMinhNeural'; // Mặc định
+    if (voiceName.includes('Hoài My')) msVoice = 'vi-VN-HoaiMyNeural';
+    if (voiceName.includes('Người Dẫn Truyện')) msVoice = 'vi-VN-HoaiMyNeural'; // Tùy bạn setup
+
+    // Gửi Request lên Cloudflare
+    try {
+        const response = await fetch(CLOUDFLARE_TTS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                voice: msVoice,
+                pitch: pitchValue + '%', // VD: "-20%", "+15%"
+                rate: rateValue + '%'    // VD: "-5%", "+10%"
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Lỗi từ Cloudflare: ' + response.statusText);
+        }
+
+        // Nhận file âm thanh nhị phân (ArrayBuffer) về trình duyệt
+        const arrayBuffer = await response.arrayBuffer();
+        return arrayBuffer;
+        
+    } catch (error) {
+        console.error("Lỗi khi tải Audio: ", error);
+        return null;
+    }
+}
