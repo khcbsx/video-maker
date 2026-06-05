@@ -1319,3 +1319,132 @@ if (inputAmbient) {
         }
     });
 }
+
+// ==============================================================================
+// LOGIC QUẢN LÝ HÀNG ĐỢI TẠO AUDIO TỰ ĐỘNG
+// ==============================================================================
+
+// Biến toàn cục lưu trữ danh sách file kịch bản đã nạp
+var globalAudioScripts = []; 
+var audioQueue = [];
+
+// Bắt sự kiện người dùng tải file Word kịch bản lên
+var fileInputAudio = document.getElementById('wordFileInputAudio');
+var chapSelectAudio = document.getElementById('chapFromAudio');
+var btnAddAudioQueue = document.getElementById('btnAddAudioQueue');
+
+if (fileInputAudio) {
+    fileInputAudio.addEventListener('change', async function(event) {
+        var files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        showToast('info', 'Đang đọc nội dung file Word...');
+
+        // Đọc từng file được chọn
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            try {
+                var arrayBuffer = await file.arrayBuffer();
+                var result = await window.mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                
+                // Lưu tên file và nội dung vào RAM
+                globalAudioScripts.push({
+                    fileName: file.name,
+                    content: result.value
+                });
+            } catch (err) {
+                console.error("Lỗi đọc file: " + file.name, err);
+                showToast('error', 'Lỗi khi đọc file: ' + file.name);
+            }
+        }
+
+        // Cập nhật Dropdown hiển thị danh sách file
+        updateAudioDropdown();
+        showToast('success', 'Đã nạp thành công ' + files.length + ' file kịch bản!');
+    });
+}
+
+// Cập nhật danh sách file vào thẻ <select>
+function updateAudioDropdown() {
+    if (!chapSelectAudio) return;
+    
+    chapSelectAudio.innerHTML = '';
+    
+    if (globalAudioScripts.length === 0) {
+        chapSelectAudio.disabled = true;
+        btnAddAudioQueue.disabled = true;
+        btnAddAudioQueue.style.opacity = '0.5';
+        return;
+    }
+
+    globalAudioScripts.forEach(function(script, index) {
+        var opt = document.createElement('option');
+        opt.value = index;
+        opt.textContent = script.fileName;
+        chapSelectAudio.appendChild(opt);
+    });
+
+    chapSelectAudio.disabled = false;
+    btnAddAudioQueue.disabled = false;
+    btnAddAudioQueue.style.opacity = '1';
+}
+
+// Bắt sự kiện bấm nút "Thêm vào mẻ chờ" (Audio)
+if (btnAddAudioQueue) {
+    btnAddAudioQueue.addEventListener('click', function() {
+        var selectedIdx = chapSelectAudio.value;
+        if (selectedIdx === "" || selectedIdx === null) return;
+        
+        var selectedScript = globalAudioScripts[selectedIdx];
+        
+        // Tạo một mẻ (batch) tạo Audio mới
+        var batch = {
+            id: Date.now(),
+            fileIndex: selectedIdx,
+            fileName: selectedScript.fileName,
+            status: 'Chờ xử lý'
+        };
+        
+        audioQueue.push(batch);
+        renderAudioQueue();
+        
+        // Hiện nút "CHẠY TẠO AUDIO" nếu có mẻ chờ
+        var btnStartAudio = document.getElementById('btnStartAudio');
+        if (btnStartAudio) btnStartAudio.style.display = 'inline-flex';
+    });
+}
+
+// Vẽ lại bảng Hàng đợi Audio
+function renderAudioQueue() {
+    var tbody = document.getElementById('audioQueueBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (audioQueue.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>';
+        var btnStartAudio = document.getElementById('btnStartAudio');
+        if (btnStartAudio) btnStartAudio.style.display = 'none';
+        return;
+    }
+    
+    audioQueue.forEach(function(b, index) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>Mẻ ${index + 1}</td>
+            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.fileName}">${b.fileName}</td>
+            <td id="status-audio-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</td>
+            <td id="download-audio-${b.id}">--</td>
+            <td style="text-align:center; display:flex; justify-content:center; gap:15px; align-items:center;">
+                <span class="material-icons" style="color:#ef4444; cursor:pointer; font-size: 22px;" onclick="removeAudioBatch(${b.id})" title="Xóa mẻ này">delete</span>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Xóa mẻ tạo Audio
+window.removeAudioBatch = function(id) {
+    audioQueue = audioQueue.filter(function(b) { return b.id !== id; });
+    renderAudioQueue();
+}
