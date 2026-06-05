@@ -138,9 +138,18 @@
                 <h3 class="card-title" style="color: var(--blue); margin:0;">
                     <span class="material-icons">headphones</span> Hàng đợi Tạo Audio Tự động
                 </h3>
-                <button id="btnStartAudio" class="btn btn-blue" style="display: none;">
-                    <span class="material-icons">play_circle</span> CHẠY TẠO AUDIO
-                </button>
+                
+                <div id="audioControlGroup" style="display: none; gap: 10px;">
+                    <button id="btnStartAudio" class="btn btn-blue">
+                        <span class="material-icons">play_circle</span> CHẠY TẠO AUDIO
+                    </button>
+                    <button id="btnPauseAudio" class="btn" style="background-color: #f59e0b; color: white; display: none;">
+                        <span class="material-icons">pause_circle</span> TẠM DỪNG
+                    </button>
+                    <button id="btnStopAudio" class="btn" style="background-color: #ef4444; color: white; display: none;">
+                        <span class="material-icons">stop_circle</span> DỪNG LẠI
+                    </button>
+                </div>
             </div>
             
             <div class="controls-row">
@@ -174,6 +183,13 @@
                     <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>
                 </tbody>
             </table>
+            
+            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <div style="font-size: 14px; font-weight: 600; color: #10b981; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                    <span class="material-icons" style="font-size: 18px;">visibility</span> Đang xử lý (Giám sát đọc thoại)
+                </div>
+                <textarea id="liveTextMonitor" readonly placeholder="Nội dung AI đang đọc sẽ cuộn trực tiếp ở đây..." style="width: 100%; height: 160px; background-color: var(--bg); color: var(--text); border: 1px dashed var(--border); border-radius: 8px; padding: 10px; font-size: 14px; resize: vertical; line-height: 1.6;"></textarea>
+            </div>
         </div>
 
         <div class="glass-card">
