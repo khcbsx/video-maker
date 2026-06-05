@@ -859,55 +859,73 @@ function resolveVoiceForDialog(contextText, dialogText, voiceMale, voiceFemale) 
   return voiceMale;
 }
 
-// Hàm cốt lõi vận hành luồng phân vai cục bộ bằng từ điển (Tra cứu không tốn token)
+// Hàm cốt lõi vận hành luồng phân vai + AUTO RẢI NHẠC NỀN
 async function runScriptAutomation(rawText, taskId) {
-  var vNarEl = document.getElementById('voiceNarrator');
-  var vMalEl = document.getElementById('voiceMale');
-  var vFemEl = document.getElementById('voiceFemale');
-  
-  var voiceNarrator = vNarEl ? vNarEl.value.trim() : 'Người Dẫn Truyện (Edge)';
-  var voiceMale     = vMalEl ? vMalEl.value.trim() : 'Nam Minh (Edge)';
-  var voiceFemale   = vFemEl ? vFemEl.value.trim() : 'Hoài My (Edge)';
-  
-  var lines = rawText.split('\n');
-  var taggedLines = [];
-  var contextWindow = ''; // Cửa sổ tích lũy ngữ cảnh 300 ký tự
+    var vNarEl = document.getElementById('voiceNarrator');
+    var vMalEl = document.getElementById('voiceMale');
+    var vFemEl = document.getElementById('voiceFemale');
+    
+    var voiceNarrator = vNarEl ? vNarEl.value.trim() : 'Người Dẫn Truyện (Edge)';
+    var voiceMale     = vMalEl ? vMalEl.value.trim() : 'Nam Minh (Edge)';
+    var voiceFemale   = vFemEl ? vFemEl.value.trim() : 'Hoài My (Edge)';
+    
+    var lines = rawText.split('\n');
+    var taggedLines = [];
+    var contextWindow = ''; 
+    
+    // Bộ đếm chữ để rải nhạc
+    var wordCount = 0; 
 
-  for (var i = 0; i < lines.length; i++) {
-    if (isStopRequested) throw new Error('⛔ Tiến trình đã bị dừng theo lệnh người dùng.');
-    var line = lines[i];
+    // AUTO BGM: Chèn nhạc dạo êm dịu ngay đầu mỗi chương
+    taggedLines.push('[BGM: Nhạc Dạo]');
+    taggedLines.push('');
 
-    if (line.trim() === '') {
-      taggedLines.push('');
-      continue;
-    }
+    for (var i = 0; i < lines.length; i++) {
+        if (isStopRequested) throw new Error('⛔ Tiến trình đã bị dừng theo lệnh người dùng.');
+        var line = lines[i].trim();
 
-    var parts = splitLineToParts(line);
-
-    for (var k = 0; k < parts.length; k++) {
-      var part = parts[k];
-
-      if (part.type === 'prose') {
-        taggedLines.push('[' + voiceNarrator + ']: ' + part.text);
-        // Lưu trữ ngữ cảnh động để phục vụ phân tích lời thoại tiếp theo
-        contextWindow = (contextWindow + ' ' + part.text).slice(-300);
-      } else {
-        // Gom toàn bộ văn xuôi liền kề trước và sau câu thoại để làm sạch dữ liệu đầu vào
-        var localContext = contextWindow;
-        for (var m = 0; m < k; m++) {
-          if (parts[m].type === 'prose') localContext += ' ' + parts[m].text;
-        }
-        for (var m = k + 1; m < parts.length; m++) {
-          if (parts[m].type === 'prose') localContext += ' ' + parts[m].text;
+        if (line === '') {
+            taggedLines.push('');
+            continue;
         }
 
-        var assignedVoice = resolveVoiceForDialog(localContext, part.text, voiceMale, voiceFemale);
-        taggedLines.push('[' + assignedVoice + ']: ' + part.text);
-      }
-    }
-  }
+        // Đếm số lượng chữ trong dòng hiện tại và cộng dồn
+        var currentLineWords = line.split(/\s+/).filter(w => w.length > 0).length;
+        wordCount += currentLineWords;
 
-  return taggedLines.join('\n');
+        var parts = splitLineToParts(line);
+
+        for (var k = 0; k < parts.length; k++) {
+            var part = parts[k];
+
+            if (part.type === 'prose') {
+                taggedLines.push('[' + voiceNarrator + ']: ' + part.text);
+                contextWindow = (contextWindow + ' ' + part.text).slice(-300);
+            } else {
+                var localContext = contextWindow;
+                for (var m = 0; m < k; m++) {
+                    if (parts[m].type === 'prose') localContext += ' ' + parts[m].text;
+                }
+                for (var m = k + 1; m < parts.length; m++) {
+                    if (parts[m].type === 'prose') localContext += ' ' + parts[m].text;
+                }
+
+                var assignedVoice = resolveVoiceForDialog(localContext, part.text, voiceMale, voiceFemale);
+                taggedLines.push('[' + assignedVoice + ']: ' + part.text);
+            }
+        }
+
+        // AUTO BGM: Nếu đã đọc được khoảng 1000 chữ (tương đương ~4-5 phút audio)
+        // Hệ thống sẽ chèn 1 thẻ nhạc trung tính vào giữa các đoạn văn
+        if (wordCount >= 1000) {
+            taggedLines.push(''); 
+            taggedLines.push('[BGM: Nhạc Trung Tính]');
+            taggedLines.push('');
+            wordCount = 0; // Reset bộ đếm về 0 để đếm vòng mới
+        }
+    }
+
+    return taggedLines.join('\n');
 }
 
 // Trình kích hoạt Phân vai thủ công từ giao diện hộp văn bản dưới cùng
@@ -1025,10 +1043,35 @@ window.removeScriptBatch = function(id) {
     renderScriptQueue();
 }
 
-// Nút "CHẠY DỰNG KỊCH BẢN" (Đã nâng cấp xuất file .docx)
+// Nút "CHẠY DỰNG KỊCH BẢN" (Tích hợp nạp tên nhân vật & xuất file .docx)
 document.getElementById('btnStartScript').addEventListener('click', async function() {
     this.disabled = true;
     this.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG XỬ LÝ...';
+    
+    // ==============================================================
+    // BƠM TÊN NHÂN VẬT TỪ GIAO DIỆN VÀO TỪ ĐIỂN AI (CHỈ LƯU TẠM TRÊN RAM)
+    // ==============================================================
+    if (!GENDER_DICT.proseMALE) GENDER_DICT.proseMALE = [];
+    if (!GENDER_DICT.proseFEMALE) GENDER_DICT.proseFEMALE = [];
+    
+    var maleTxt = document.getElementById('tempMaleNames');
+    if (maleTxt && maleTxt.value.trim() !== '') {
+        var mNames = maleTxt.value.split(',').map(n => n.trim()).filter(n => n.length > 0);
+        mNames.forEach(n => {
+            if(!GENDER_DICT.dialogMALE.includes(n)) GENDER_DICT.dialogMALE.push(n);
+            if(!GENDER_DICT.proseMALE.includes(n)) GENDER_DICT.proseMALE.push(n);
+        });
+    }
+    
+    var femaleTxt = document.getElementById('tempFemaleNames');
+    if (femaleTxt && femaleTxt.value.trim() !== '') {
+        var fNames = femaleTxt.value.split(',').map(n => n.trim()).filter(n => n.length > 0);
+        fNames.forEach(n => {
+            if(!GENDER_DICT.dialogFEMALE.includes(n)) GENDER_DICT.dialogFEMALE.push(n);
+            if(!GENDER_DICT.proseFEMALE.includes(n)) GENDER_DICT.proseFEMALE.push(n);
+        });
+    }
+    // ==============================================================
     
     for (var i = 0; i < scriptQueue.length; i++) {
         var batch = scriptQueue[i];
@@ -1043,7 +1086,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         for (var c = batch.from; c <= batch.to; c++) {
             var chapText = globalScriptChapters[c];
             var processedText = await runScriptAutomation(chapText, null);
-            combinedScript += processedText + '\n\n'; // Cách nhau 1 dòng giữa các chương
+            combinedScript += processedText + '\n\n'; 
         }
 
         // Tự động tải file dưới dạng .docx chuẩn
