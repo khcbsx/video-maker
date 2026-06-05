@@ -1648,12 +1648,19 @@ btnStartAudio.addEventListener('click', async function() {
                 if (seg.text.length > 0) {
                     var pitchVal = voiceSettings[seg.voice] || "+0";
                     var mp3Buffer = await fetchAudioFromCloudflare(seg.text, seg.voice, pitchVal, "+0");
-                    if (mp3Buffer) {
+                    
+                    // KIỂM TRA LỖI CLOUDFLARE TRẢ VỀ DỮ LIỆU RỖNG
+                    if (mp3Buffer && mp3Buffer.byteLength > 100) {
                         try {
-                            var decodedTts = await tempAudioCtx.decodeAudioData(mp3Buffer);
+                            var audioData = mp3Buffer.slice(0); // Tránh lỗi Detached ArrayBuffer
+                            var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
                             timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
                             currentTime += decodedTts.duration + 0.2; 
-                        } catch (e) { console.error("Lỗi giải mã Thoại AI", e); }
+                        } catch (e) { 
+                            console.error("Lỗi giải mã Thoại AI đoạn:", seg.text, e); 
+                        }
+                    } else {
+                        console.warn("Bỏ qua đoạn thoại do Cloudflare trả về lỗi hoặc file rỗng:", seg.text);
                     }
                 }
             }
@@ -1731,4 +1738,3 @@ btnStartAudio.addEventListener('click', async function() {
         if (liveMonitor) liveMonitor.value += '\n\n✅ HOÀN TẤT TẠO AUDIO!';
     }
 });
-
