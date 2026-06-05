@@ -1414,7 +1414,51 @@ if (btnAddAudioQueue) {
     });
 }
 
-// Vẽ lại bảng Hàng đợi Audio
+// ==============================================================================
+// NÚT BẤM KÍCH HOẠT HỆ THỐNG TẠO AUDIO (TÍCH HỢP PAUSE/STOP & LIVE TEXT)
+// ==============================================================================
+var isAudioPaused = false;
+var isAudioStopped = false;
+
+var btnStartAudio = document.getElementById('btnStartAudio');
+var btnPauseAudio = document.getElementById('btnPauseAudio');
+var btnStopAudio = document.getElementById('btnStopAudio');
+var liveMonitor = document.getElementById('liveTextMonitor');
+
+// Hàm Helper để hệ thống chờ đợi nếu bị bấm Tạm Dừng
+async function checkPauseState() {
+    while (isAudioPaused && !isAudioStopped) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+}
+
+// Xử lý sự kiện nút Tạm dừng / Tiếp tục
+if (btnPauseAudio) {
+    btnPauseAudio.addEventListener('click', function() {
+        isAudioPaused = !isAudioPaused;
+        if (isAudioPaused) {
+            this.innerHTML = '<span class="material-icons">play_circle</span> TIẾP TỤC';
+            this.style.backgroundColor = '#10b981'; // Đổi màu xanh lá
+            showToast('info', 'Đã tạm dừng tiến trình tạo Audio.');
+        } else {
+            this.innerHTML = '<span class="material-icons">pause_circle</span> TẠM DỪNG';
+            this.style.backgroundColor = '#f59e0b'; // Trả về màu cam
+            showToast('success', 'Tiếp tục tạo Audio...');
+        }
+    });
+}
+
+// Xử lý sự kiện nút Dừng Lại (Hủy bỏ hoàn toàn)
+if (btnStopAudio) {
+    btnStopAudio.addEventListener('click', function() {
+        if(confirm('Bạn có chắc chắn muốn HỦY BỎ tiến trình tạo Audio hiện tại? Dữ liệu đang chạy sẽ bị mất.')) {
+            isAudioStopped = true;
+            isAudioPaused = false;
+        }
+    });
+}
+
+// Cập nhật lại hàm renderAudioQueue để hiển thị đúng khung nút
 function renderAudioQueue() {
     var tbody = document.getElementById('audioQueueBody');
     if (!tbody) return;
@@ -1423,20 +1467,16 @@ function renderAudioQueue() {
     
     if (audioQueue.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>';
-        var btnStartAudio = document.getElementById('btnStartAudio');
-        if (btnStartAudio) btnStartAudio.style.display = 'none';
+        document.getElementById('audioControlGroup').style.display = 'none';
         return;
     }
     
-    var btnStartAudio = document.getElementById('btnStartAudio');
-    if (btnStartAudio) btnStartAudio.style.display = 'inline-flex';
+    document.getElementById('audioControlGroup').style.display = 'flex';
     
     audioQueue.forEach(function(b, index) {
         var tr = document.createElement('tr');
-        
-        // Giao diện hiển thị trạng thái và thanh Progress Bar
         var statusHtml = `<div id="status-audio-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</div>`;
-        if (b.status.includes('Đang thu âm')) {
+        if (b.status.includes('Đang thu âm') || b.status.includes('Đang trộn') || b.status.includes('Đang nén')) {
             statusHtml += `
                 <div style="width: 100%; height: 6px; background-color: var(--border); border-radius: 4px; margin-top: 5px; overflow: hidden;">
                     <div id="progress-bar-${b.id}" style="height: 100%; background-color: #3b82f6; width: ${b.progress || 0}%; transition: width 0.3s ease;"></div>
@@ -1523,17 +1563,24 @@ function parseScriptLine(line) {
     return { isBgm: false, voice: tag, text: text };
 }
 
-// ==============================================================================
-// NÚT BẤM KÍCH HOẠT HỆ THỐNG TẠO AUDIO
-// ==============================================================================
-document.getElementById('btnStartAudio').addEventListener('click', async function() {
+// ----------------------------------------------------
+// NÚT CHẠY AUDIO CHÍNH THỨC
+// ----------------------------------------------------
+btnStartAudio.addEventListener('click', async function() {
     if (audioQueue.length === 0) return;
     
-    this.disabled = true;
-    this.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG XỬ LÝ...';
+    isAudioStopped = false;
+    isAudioPaused = false;
 
-    // --- LẤY THÔNG SỐ TỪ GIAO DIỆN ---
-    // Chuyển đổi thanh trượt (VD: 0.82) thành chuẩn phần trăm của Microsoft SSML (VD: -18)
+    // Hiển thị giao diện 3 nút
+    btnStartAudio.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG TẠO AUDIO...';
+    btnStartAudio.disabled = true;
+    btnPauseAudio.style.display = 'inline-flex';
+    btnStopAudio.style.display = 'inline-flex';
+    
+    // Reset Ô giám sát
+    if (liveMonitor) liveMonitor.value = '';
+
     function toSSMLPercent(val) {
         if (!val) return "+0";
         var percent = Math.round((parseFloat(val) - 1.0) * 100);
@@ -1546,11 +1593,12 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
         'Hoài My (Edge)': toSSMLPercent(window.pitchRateFemale || 1.00)
     };
 
-    // Bộ giải mã âm thanh tạm thời
     var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     // VÒNG LẶP XỬ LÝ TỪNG MẺ CHỜ
     for (var i = 0; i < audioQueue.length; i++) {
+        if (isAudioStopped) break;
+
         var batch = audioQueue[i];
         if (batch.status === 'Đã xong ✅') continue;
 
@@ -1559,26 +1607,36 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
         var segments = lines.map(parseScriptLine).filter(s => s !== null);
         
         var totalSegments = segments.length;
-        var timeline = []; // Trục thời gian chứa các block âm thanh
+        var timeline = []; 
         var currentTime = 0;
 
-        // ============================================================
-        // GIAI ĐOẠN 1: KÉO ÂM THANH (FETCH) & GIẢI MÃ (DECODE)
-        // ============================================================
+        // GIAI ĐOẠN 1: KÉO ÂM THANH
         for (var k = 0; k < segments.length; k++) {
+            await checkPauseState(); // Cờ kiểm tra tạm dừng
+            if (isAudioStopped) break; // Cờ kiểm tra dừng hẳn
+
             var seg = segments[k];
             
-            // UI: Cập nhật Thanh Tiến Độ
+            // Cập nhật giao diện Progress
             batch.status = 'Đang thu âm...';
-            batch.progress = Math.round((k / totalSegments) * 60); // 60% thời gian dành cho khâu kéo data
-            batch.progressText = `Đang xử lý đoạn thoại: ${k+1} / ${totalSegments}`;
+            batch.progress = Math.round((k / totalSegments) * 60);
+            batch.progressText = `${k+1}/${totalSegments} đoạn (${batch.progress}%)`;
             renderAudioQueue();
 
+            // Cập nhật Ô giám sát văn bản
+            if (liveMonitor) {
+                if (seg.isBgm) {
+                    liveMonitor.value += `\n[BGM: ${seg.bgmType === 'theme' ? 'Nhạc Dạo' : 'Nhạc Trung Tính'}]`;
+                } else {
+                    liveMonitor.value += `\n[${seg.voice}]: ${seg.text}`;
+                }
+                // Tự động cuộn xuống dòng mới nhất
+                liveMonitor.scrollTop = liveMonitor.scrollHeight;
+            }
+
             if (seg.isBgm) {
-                // Nhặt file nhạc MP3 từ RAM (Cấu hình Nhạc bạn đã chọn)
                 var file = seg.bgmType === 'theme' ? window.globalThemeFile : 
                            (window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[Math.floor(Math.random() * window.globalAmbientFiles.length)] : null);
-                
                 if (file) {
                     try {
                         var ab = await readFileToArrayBuffer(file);
@@ -1589,14 +1647,11 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
             } else {
                 if (seg.text.length > 0) {
                     var pitchVal = voiceSettings[seg.voice] || "+0";
-                    // Gửi lệnh lên Cloudflare Worker lấy file MP3 về
                     var mp3Buffer = await fetchAudioFromCloudflare(seg.text, seg.voice, pitchVal, "+0");
                     if (mp3Buffer) {
                         try {
                             var decodedTts = await tempAudioCtx.decodeAudioData(mp3Buffer);
                             timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
-                            
-                            // Cộng dồn thời gian để đoạn thoại sau nối tiếp đoạn trước (Nghỉ 0.2s giữa các câu)
                             currentTime += decodedTts.duration + 0.2; 
                         } catch (e) { console.error("Lỗi giải mã Thoại AI", e); }
                     }
@@ -1604,16 +1659,20 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
             }
         }
 
-        var totalDuration = currentTime + 2; // Chừa 2 giây im lặng cuối chương cho đỡ hụt
+        if (isAudioStopped) {
+            batch.status = 'Đã hủy ⛔';
+            batch.progressText = 'Người dùng đã dừng tiến trình.';
+            renderAudioQueue();
+            continue; // Bỏ qua file này
+        }
 
-        // ============================================================
-        // GIAI ĐOẠN 2: GHÉP NHẠC & TRỘN ÂM THANH (RENDER)
-        // ============================================================
+        // GIAI ĐOẠN 2: GHÉP NHẠC
         batch.status = 'Đang trộn Audio...';
         batch.progress = 70;
-        batch.progressText = 'Khởi tạo bộ hòa âm (Mixer)...';
+        batch.progressText = 'Khởi tạo bộ hòa âm...';
         renderAudioQueue();
 
+        var totalDuration = currentTime + 2; 
         var sampleRate = 44100; 
         var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
 
@@ -1622,7 +1681,6 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
             source.buffer = item.buffer;
 
             if (item.isBgm) {
-                // Kích hoạt tính năng hãm âm lượng nhạc nền (Ducking)
                 var gainNode = offlineCtx.createGain();
                 gainNode.gain.value = window.globalBgmVolume || 0.15; 
                 source.connect(gainNode);
@@ -1630,24 +1688,18 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
             } else {
                 source.connect(offlineCtx.destination);
             }
-            
             source.start(item.startTime);
         });
 
-        batch.progressText = 'Đang ép thành 1 file sóng âm tổng...';
-        renderAudioQueue();
-        
         var renderedBuffer = await offlineCtx.startRendering();
 
-        // ============================================================
-        // GIAI ĐOẠN 3: NÉN MP3 VÀ TẢI VỀ TỰ ĐỘNG
-        // ============================================================
+        // GIAI ĐOẠN 3: NÉN MP3
+        if (isAudioStopped) break;
         batch.status = 'Đang nén MP3...';
         batch.progress = 90;
-        batch.progressText = 'Sử dụng Lame.js để xuất file (có thể hơi lag vài giây)...';
+        batch.progressText = 'Sử dụng Lame.js để xuất file...';
         renderAudioQueue();
-
-        // Nghỉ 1 nhịp để trình duyệt kịp hiển thị thanh Progress Bar
+        
         await new Promise(resolve => setTimeout(resolve, 100)); 
 
         var mp3Blob = encodeAudioBufferToMp3(renderedBuffer);
@@ -1657,7 +1709,7 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
         a.href = url;
         var cleanFileName = batch.fileName.replace('.docx', '');
         a.download = `AudioBook_${cleanFileName}.mp3`;
-        a.click(); // Tự động kích hoạt tải xuống
+        a.click(); 
 
         batch.status = 'Đã xong ✅';
         batch.progress = 100;
@@ -1665,7 +1717,18 @@ document.getElementById('btnStartAudio').addEventListener('click', async functio
         renderAudioQueue();
     }
 
-    this.disabled = false;
-    this.innerHTML = '<span class="material-icons">play_circle</span> CHẠY TẠO AUDIO';
-    showToast('success', 'Toàn bộ mẻ Audio đã xử lý và tải xuống hoàn tất!');
+    // RESET GIAO DIỆN SAU KHI XONG HOẶC BỊ HỦY
+    btnStartAudio.disabled = false;
+    btnStartAudio.innerHTML = '<span class="material-icons">play_circle</span> CHẠY TẠO AUDIO';
+    btnPauseAudio.style.display = 'none';
+    btnStopAudio.style.display = 'none';
+    
+    if (isAudioStopped) {
+        showToast('error', 'Đã hủy quá trình tạo Audio!');
+        if (liveMonitor) liveMonitor.value += '\n\n⛔ TIẾN TRÌNH ĐÃ BỊ HỦY!';
+    } else {
+        showToast('success', 'Toàn bộ mẻ Audio đã xử lý xong!');
+        if (liveMonitor) liveMonitor.value += '\n\n✅ HOÀN TẤT TẠO AUDIO!';
+    }
 });
+
