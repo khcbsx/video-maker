@@ -1428,12 +1428,29 @@ function renderAudioQueue() {
         return;
     }
     
+    var btnStartAudio = document.getElementById('btnStartAudio');
+    if (btnStartAudio) btnStartAudio.style.display = 'inline-flex';
+    
     audioQueue.forEach(function(b, index) {
         var tr = document.createElement('tr');
+        
+        // Giao diện hiển thị trạng thái và thanh Progress Bar
+        var statusHtml = `<div id="status-audio-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</div>`;
+        if (b.status.includes('Đang thu âm')) {
+            statusHtml += `
+                <div style="width: 100%; height: 6px; background-color: var(--border); border-radius: 4px; margin-top: 5px; overflow: hidden;">
+                    <div id="progress-bar-${b.id}" style="height: 100%; background-color: #3b82f6; width: ${b.progress || 0}%; transition: width 0.3s ease;"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;" id="progress-text-${b.id}">
+                    ${b.progressText || ''}
+                </div>
+            `;
+        }
+
         tr.innerHTML = `
             <td>Mẻ ${index + 1}</td>
             <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.fileName}">${b.fileName}</td>
-            <td id="status-audio-${b.id}" style="color: #eab308; font-weight: 600;">${b.status}</td>
+            <td style="min-width: 150px;">${statusHtml}</td>
             <td id="download-audio-${b.id}">--</td>
             <td style="text-align:center; display:flex; justify-content:center; gap:15px; align-items:center;">
                 <span class="material-icons" style="color:#ef4444; cursor:pointer; font-size: 22px;" onclick="removeAudioBatch(${b.id})" title="Xóa mẻ này">delete</span>
