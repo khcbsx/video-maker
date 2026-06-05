@@ -1224,24 +1224,18 @@ function showToast(type, message) {
 const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts'; 
 
 // Hàm lấy âm thanh 1 câu thoại từ Cloudflare (hỗ trợ chỉnh cao độ pitch/rate)
-async function fetchAudioFromCloudflare(text, voiceName, pitchValue, rateValue) {
+async function fetchAudioFromCloudflare(text, msVoiceCode, pitchValue, rateValue) {
     if (!text || text.trim() === '') return null;
     
-    // Map tên hiển thị trên giao diện sang mã giọng của Microsoft
-    var msVoice = 'vi-VN-NamMinhNeural'; // Mặc định
-    if (voiceName.includes('Hoài My')) msVoice = 'vi-VN-HoaiMyNeural';
-    if (voiceName.includes('Người Dẫn Truyện')) msVoice = 'vi-VN-HoaiMyNeural'; // Tùy bạn setup
-
-    // Gửi Request lên Cloudflare
     try {
         const response = await fetch(CLOUDFLARE_TTS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                voice: msVoice,
-                pitch: pitchValue + '%', // VD: "-20%", "+15%"
-                rate: rateValue + '%'    // VD: "-5%", "+10%"
+                voice: msVoiceCode, // Bắt mã chuẩn (VD: vi-VN-NamMinhNeural) truyền thẳng từ vòng lặp
+                pitch: pitchValue + '%', 
+                rate: rateValue + '%'    
             })
         });
 
@@ -1249,9 +1243,7 @@ async function fetchAudioFromCloudflare(text, voiceName, pitchValue, rateValue) 
             throw new Error('Lỗi từ Cloudflare: ' + response.statusText);
         }
 
-        // Nhận file âm thanh nhị phân (ArrayBuffer) về trình duyệt
-        const arrayBuffer = await response.arrayBuffer();
-        return arrayBuffer;
+        return await response.arrayBuffer();
         
     } catch (error) {
         console.error("Lỗi khi tải Audio: ", error);
@@ -1564,7 +1556,7 @@ function parseScriptLine(line) {
 }
 
 // ----------------------------------------------------
-// NÚT CHẠY AUDIO CHÍNH THỨC
+// NÚT CHẠY AUDIO CHÍNH THỨC (DYNAMIC MAPPING + LỌC RÁC)
 // ----------------------------------------------------
 btnStartAudio.addEventListener('click', async function() {
     if (audioQueue.length === 0) return;
@@ -1578,20 +1570,26 @@ btnStartAudio.addEventListener('click', async function() {
     btnPauseAudio.style.display = 'inline-flex';
     btnStopAudio.style.display = 'inline-flex';
     
-    // Reset Ô giám sát
     if (liveMonitor) liveMonitor.value = '';
 
+    // Hàm quy đổi từ số thập phân (1.00) sang phần trăm chuẩn SSML (+0)
     function toSSMLPercent(val) {
         if (!val) return "+0";
         var percent = Math.round((parseFloat(val) - 1.0) * 100);
         return percent >= 0 ? "+" + percent : "" + percent;
     }
 
-    var voiceSettings = {
-        'Người Dẫn Truyện (Edge)': toSSMLPercent(window.pitchRateNarrator || 0.82),
-        'Nam Minh (Edge)': toSSMLPercent(window.pitchRateMale || 1.00),
-        'Hoài My (Edge)': toSSMLPercent(window.pitchRateFemale || 1.00)
-    };
+    // Hàm lấy mã Microsoft chuẩn dựa theo tên đang chọn trên Dropdown
+    function getMsVoiceCode(displayName) {
+        if (!displayName) return 'vi-VN-NamMinhNeural';
+        if (displayName.includes('Hoài My')) return 'vi-VN-HoaiMyNeural';
+        return 'vi-VN-NamMinhNeural'; 
+    }
+
+    // ĐỌC THÔNG SỐ ĐANG CHỌN TRÊN 3 CỘT GIAO DIỆN
+    var uiNameNarrator = document.getElementById('voiceNarrator') ? document.getElementById('voiceNarrator').value.trim() : 'Người Dẫn Truyện (Edge)';
+    var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
+    var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
 
     var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1612,25 +1610,23 @@ btnStartAudio.addEventListener('click', async function() {
 
         // GIAI ĐOẠN 1: KÉO ÂM THANH
         for (var k = 0; k < segments.length; k++) {
-            await checkPauseState(); // Cờ kiểm tra tạm dừng
-            if (isAudioStopped) break; // Cờ kiểm tra dừng hẳn
+            await checkPauseState(); 
+            if (isAudioStopped) break; 
 
             var seg = segments[k];
             
-            // Cập nhật giao diện Progress
+            // Cập nhật UI Progress
             batch.status = 'Đang thu âm...';
             batch.progress = Math.round((k / totalSegments) * 60);
             batch.progressText = `${k+1}/${totalSegments} đoạn (${batch.progress}%)`;
             renderAudioQueue();
 
-            // Cập nhật Ô giám sát văn bản
             if (liveMonitor) {
                 if (seg.isBgm) {
                     liveMonitor.value += `\n[BGM: ${seg.bgmType === 'theme' ? 'Nhạc Dạo' : 'Nhạc Trung Tính'}]`;
                 } else {
                     liveMonitor.value += `\n[${seg.voice}]: ${seg.text}`;
                 }
-                // Tự động cuộn xuống dòng mới nhất
                 liveMonitor.scrollTop = liveMonitor.scrollHeight;
             }
 
@@ -1642,25 +1638,46 @@ btnStartAudio.addEventListener('click', async function() {
                         var ab = await readFileToArrayBuffer(file);
                         var decodedBgm = await tempAudioCtx.decodeAudioData(ab);
                         timeline.push({ buffer: decodedBgm, startTime: currentTime, isBgm: true });
-                    } catch (e) { console.error("Lỗi nạp Nhạc nền", e); }
+                    } catch (e) {} // Im lặng bỏ qua lỗi nhạc
                 }
             } else {
-                if (seg.text.length > 0) {
-                    var pitchVal = voiceSettings[seg.voice] || "+0";
-                    var mp3Buffer = await fetchAudioFromCloudflare(seg.text, seg.voice, pitchVal, "+0");
+                // LỌC CÂU THOẠI RÁC (Chặn trống, chặn dấu chấm)
+                var cleanText = seg.text.trim();
+                var hasContent = /[a-zA-Z0-9\u00C0-\u1EF9]/.test(cleanText);
+                
+                if (hasContent && cleanText.length >= 2) {
                     
-                    // KIỂM TRA LỖI CLOUDFLARE TRẢ VỀ DỮ LIỆU RỖNG
+                    // BỘ MÁY ÁNH XẠ (DYNAMIC MAPPING): Dò xem thẻ thoại thuộc cột nào trên UI
+                    var msVoiceTarget = 'vi-VN-NamMinhNeural';
+                    var pitchTarget = "+0";
+
+                    if (seg.voice === uiNameNarrator) {
+                        msVoiceTarget = getMsVoiceCode(uiNameNarrator);
+                        pitchTarget = toSSMLPercent(window.pitchRateNarrator);
+                    } else if (seg.voice === uiNameMale) {
+                        msVoiceTarget = getMsVoiceCode(uiNameMale);
+                        pitchTarget = toSSMLPercent(window.pitchRateMale);
+                    } else if (seg.voice === uiNameFemale) {
+                        msVoiceTarget = getMsVoiceCode(uiNameFemale);
+                        pitchTarget = toSSMLPercent(window.pitchRateFemale);
+                    } else {
+                        // Kế hoạch dự phòng nếu tag không khớp cột nào
+                        msVoiceTarget = getMsVoiceCode(seg.voice);
+                        pitchTarget = "+0";
+                    }
+
+                    // Gọi API với thông số đã được ánh xạ chuẩn xác
+                    var mp3Buffer = await fetchAudioFromCloudflare(cleanText, msVoiceTarget, pitchTarget, "+0");
+                    
                     if (mp3Buffer && mp3Buffer.byteLength > 100) {
                         try {
-                            var audioData = mp3Buffer.slice(0); // Tránh lỗi Detached ArrayBuffer
+                            var audioData = mp3Buffer.slice(0); 
                             var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
                             timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
                             currentTime += decodedTts.duration + 0.2; 
                         } catch (e) { 
-                            console.error("Lỗi giải mã Thoại AI đoạn:", seg.text, e); 
+                            // Lỗi giải mã âm thầm bỏ qua
                         }
-                    } else {
-                        console.warn("Bỏ qua đoạn thoại do Cloudflare trả về lỗi hoặc file rỗng:", seg.text);
                     }
                 }
             }
@@ -1670,7 +1687,7 @@ btnStartAudio.addEventListener('click', async function() {
             batch.status = 'Đã hủy ⛔';
             batch.progressText = 'Người dùng đã dừng tiến trình.';
             renderAudioQueue();
-            continue; // Bỏ qua file này
+            continue; 
         }
 
         // GIAI ĐOẠN 2: GHÉP NHẠC
@@ -1724,7 +1741,7 @@ btnStartAudio.addEventListener('click', async function() {
         renderAudioQueue();
     }
 
-    // RESET GIAO DIỆN SAU KHI XONG HOẶC BỊ HỦY
+    // RESET GIAO DIỆN
     btnStartAudio.disabled = false;
     btnStartAudio.innerHTML = '<span class="material-icons">play_circle</span> CHẠY TẠO AUDIO';
     btnPauseAudio.style.display = 'none';
