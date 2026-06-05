@@ -915,9 +915,9 @@ async function runScriptAutomation(rawText, taskId) {
             }
         }
 
-        // AUTO BGM: Nếu đã đọc được khoảng 1000 chữ (tương đương ~4-5 phút audio)
+        // AUTO BGM: Nếu đã đọc được khoảng 800 chữ (tương đương ~4-5 phút audio)
         // Hệ thống sẽ chèn 1 thẻ nhạc trung tính vào giữa các đoạn văn
-        if (wordCount >= 1000) {
+        if (wordCount >= 800) {
             taggedLines.push(''); 
             taggedLines.push('[BGM: Nhạc Trung Tính]');
             taggedLines.push('');
