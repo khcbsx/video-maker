@@ -1258,3 +1258,49 @@ async function fetchAudioFromCloudflare(text, voiceName, pitchValue, rateValue) 
         return null;
     }
 }
+
+<div id="bgmConfigModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><span class="material-icons">tune</span> Cấu hình Nhạc Nền (BGM)</h3>
+                <button class="close-modal" id="btnCloseBgmModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="sort-box" style="margin-bottom: 20px;">
+                    <label style="color: #10b981; font-weight: bold; display: flex; justify-content: space-between;">
+                        <span>[ Âm lượng Nhạc ]</span>
+                        <span id="bgmVolumeDisplay">15%</span>
+                    </label>
+                    <input type="range" id="bgmVolumeSlider" min="0" max="100" value="15" style="width: 100%; margin-top: 10px; cursor: pointer;">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">* Khuyên dùng: 10% - 20% để nhạc không lấn át giọng đọc.</div>
+                </div>
+
+                <div class="sort-box" style="margin-bottom: 20px;">
+                    <label style="color: #3b82f6; font-weight: bold;">[ Nhạc Dạo Đầu Chương ]</label>
+                    <div style="margin-top: 10px;">
+                        <label class="upload-btn" style="color: #3b82f6; border-color: #3b82f6; display: flex; justify-content: center; width: 100%;">
+                            <span class="material-icons">audio_file</span> Chọn 1 File MP3 Nhạc Dạo
+                            <input type="file" id="inputFileTheme" accept=".mp3" style="display:none">
+                        </label>
+                        <div id="themeFileName" style="font-size: 13px; color: var(--text); margin-top: 8px; text-align: center; font-style: italic;">Chưa chọn file nào</div>
+                    </div>
+                </div>
+
+                <div class="sort-box">
+                    <label style="color: #ec4899; font-weight: bold;">[ Nhạc Trung Tính (Xen kẽ) ]</label>
+                    <div style="margin-top: 10px;">
+                        <label class="upload-btn" style="color: #ec4899; border-color: #ec4899; display: flex; justify-content: center; width: 100%;">
+                            <span class="material-icons">queue_music</span> Bôi đen chọn nhiều File MP3
+                            <input type="file" id="inputFileAmbient" accept=".mp3" multiple style="display:none">
+                        </label>
+                        <div id="ambientFileNames" style="font-size: 13px; color: var(--text); margin-top: 8px; text-align: center; max-height: 70px; overflow-y: auto; font-style: italic;">Chưa chọn file nào</div>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveBgmConfig" class="btn btn-blue" style="width: 100%;">Lưu Cấu Hình (Tạm trên RAM)</button>
+            </div>
+        </div>
+    </div>
