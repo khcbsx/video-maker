@@ -1465,3 +1465,207 @@ window.removeAudioBatch = function(id) {
     audioQueue = audioQueue.filter(function(b) { return b.id !== id; });
     renderAudioQueue();
 }
+
+// ==============================================================================
+// BỘ MÁY XỬ LÝ ÂM THANH (WEB AUDIO API & LAME.JS)
+// ==============================================================================
+
+// Hàm tiện ích: Đọc file gốc (.mp3) thành dữ liệu nhị phân
+function readFileToArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        var reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Hàm ép Sóng âm (AudioBuffer) thành file MP3 tải về
+function encodeAudioBufferToMp3(audioBuffer) {
+    var channels = 1; // Nén Mono để file nhẹ và ghép nhanh
+    var sampleRate = audioBuffer.sampleRate;
+    var kbps = 128; // Chất lượng âm thanh chuẩn
+    var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
+    var mp3Data = [];
+
+    var rawData = audioBuffer.getChannelData(0); 
+    var sampleBlockSize = 1152;
+    var int16Array = new Int16Array(rawData.length);
+    
+    // Chuyển hệ sóng Float32 sang Int16 cho Lame.js hiểu
+    for (var i = 0; i < rawData.length; i++) {
+        var s = Math.max(-1, Math.min(1, rawData[i]));
+        int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    // Băm nhỏ dữ liệu và tiến hành nén
+    for (var i = 0; i < int16Array.length; i += sampleBlockSize) {
+        var sampleChunk = int16Array.subarray(i, i + sampleBlockSize);
+        var mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    }
+    var mp3buf = mp3encoder.flush();
+    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+    return new Blob(mp3Data, { type: 'audio/mp3' });
+}
+
+// Hàm bóc tách kịch bản để phân biệt Đâu là Thoại, Đâu là Nhạc Nền
+function parseScriptLine(line) {
+    var match = line.match(/^\[(.*?)\]:?\s*(.*)$/);
+    if (!match) return null;
+    var tag = match[1].trim();
+    var text = match[2] ? match[2].trim() : '';
+
+    if (tag.startsWith('BGM:')) {
+        return { isBgm: true, bgmType: tag.includes('Nhạc Dạo') ? 'theme' : 'ambient' };
+    }
+    return { isBgm: false, voice: tag, text: text };
+}
+
+// ==============================================================================
+// NÚT BẤM KÍCH HOẠT HỆ THỐNG TẠO AUDIO
+// ==============================================================================
+document.getElementById('btnStartAudio').addEventListener('click', async function() {
+    if (audioQueue.length === 0) return;
+    
+    this.disabled = true;
+    this.innerHTML = '<span class="material-icons">hourglass_top</span> ĐANG XỬ LÝ...';
+
+    // --- LẤY THÔNG SỐ TỪ GIAO DIỆN ---
+    // Chuyển đổi thanh trượt (VD: 0.82) thành chuẩn phần trăm của Microsoft SSML (VD: -18)
+    function toSSMLPercent(val) {
+        if (!val) return "+0";
+        var percent = Math.round((parseFloat(val) - 1.0) * 100);
+        return percent >= 0 ? "+" + percent : "" + percent;
+    }
+
+    var voiceSettings = {
+        'Người Dẫn Truyện (Edge)': toSSMLPercent(window.pitchRateNarrator || 0.82),
+        'Nam Minh (Edge)': toSSMLPercent(window.pitchRateMale || 1.00),
+        'Hoài My (Edge)': toSSMLPercent(window.pitchRateFemale || 1.00)
+    };
+
+    // Bộ giải mã âm thanh tạm thời
+    var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // VÒNG LẶP XỬ LÝ TỪNG MẺ CHỜ
+    for (var i = 0; i < audioQueue.length; i++) {
+        var batch = audioQueue[i];
+        if (batch.status === 'Đã xong ✅') continue;
+
+        var scriptText = globalAudioScripts[batch.fileIndex].content;
+        var lines = scriptText.split('\n').filter(l => l.trim() !== '');
+        var segments = lines.map(parseScriptLine).filter(s => s !== null);
+        
+        var totalSegments = segments.length;
+        var timeline = []; // Trục thời gian chứa các block âm thanh
+        var currentTime = 0;
+
+        // ============================================================
+        // GIAI ĐOẠN 1: KÉO ÂM THANH (FETCH) & GIẢI MÃ (DECODE)
+        // ============================================================
+        for (var k = 0; k < segments.length; k++) {
+            var seg = segments[k];
+            
+            // UI: Cập nhật Thanh Tiến Độ
+            batch.status = 'Đang thu âm...';
+            batch.progress = Math.round((k / totalSegments) * 60); // 60% thời gian dành cho khâu kéo data
+            batch.progressText = `Đang xử lý đoạn thoại: ${k+1} / ${totalSegments}`;
+            renderAudioQueue();
+
+            if (seg.isBgm) {
+                // Nhặt file nhạc MP3 từ RAM (Cấu hình Nhạc bạn đã chọn)
+                var file = seg.bgmType === 'theme' ? window.globalThemeFile : 
+                           (window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[Math.floor(Math.random() * window.globalAmbientFiles.length)] : null);
+                
+                if (file) {
+                    try {
+                        var ab = await readFileToArrayBuffer(file);
+                        var decodedBgm = await tempAudioCtx.decodeAudioData(ab);
+                        timeline.push({ buffer: decodedBgm, startTime: currentTime, isBgm: true });
+                    } catch (e) { console.error("Lỗi nạp Nhạc nền", e); }
+                }
+            } else {
+                if (seg.text.length > 0) {
+                    var pitchVal = voiceSettings[seg.voice] || "+0";
+                    // Gửi lệnh lên Cloudflare Worker lấy file MP3 về
+                    var mp3Buffer = await fetchAudioFromCloudflare(seg.text, seg.voice, pitchVal, "+0");
+                    if (mp3Buffer) {
+                        try {
+                            var decodedTts = await tempAudioCtx.decodeAudioData(mp3Buffer);
+                            timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
+                            
+                            // Cộng dồn thời gian để đoạn thoại sau nối tiếp đoạn trước (Nghỉ 0.2s giữa các câu)
+                            currentTime += decodedTts.duration + 0.2; 
+                        } catch (e) { console.error("Lỗi giải mã Thoại AI", e); }
+                    }
+                }
+            }
+        }
+
+        var totalDuration = currentTime + 2; // Chừa 2 giây im lặng cuối chương cho đỡ hụt
+
+        // ============================================================
+        // GIAI ĐOẠN 2: GHÉP NHẠC & TRỘN ÂM THANH (RENDER)
+        // ============================================================
+        batch.status = 'Đang trộn Audio...';
+        batch.progress = 70;
+        batch.progressText = 'Khởi tạo bộ hòa âm (Mixer)...';
+        renderAudioQueue();
+
+        var sampleRate = 44100; 
+        var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
+
+        timeline.forEach(item => {
+            var source = offlineCtx.createBufferSource();
+            source.buffer = item.buffer;
+
+            if (item.isBgm) {
+                // Kích hoạt tính năng hãm âm lượng nhạc nền (Ducking)
+                var gainNode = offlineCtx.createGain();
+                gainNode.gain.value = window.globalBgmVolume || 0.15; 
+                source.connect(gainNode);
+                gainNode.connect(offlineCtx.destination);
+            } else {
+                source.connect(offlineCtx.destination);
+            }
+            
+            source.start(item.startTime);
+        });
+
+        batch.progressText = 'Đang ép thành 1 file sóng âm tổng...';
+        renderAudioQueue();
+        
+        var renderedBuffer = await offlineCtx.startRendering();
+
+        // ============================================================
+        // GIAI ĐOẠN 3: NÉN MP3 VÀ TẢI VỀ TỰ ĐỘNG
+        // ============================================================
+        batch.status = 'Đang nén MP3...';
+        batch.progress = 90;
+        batch.progressText = 'Sử dụng Lame.js để xuất file (có thể hơi lag vài giây)...';
+        renderAudioQueue();
+
+        // Nghỉ 1 nhịp để trình duyệt kịp hiển thị thanh Progress Bar
+        await new Promise(resolve => setTimeout(resolve, 100)); 
+
+        var mp3Blob = encodeAudioBufferToMp3(renderedBuffer);
+        var url = URL.createObjectURL(mp3Blob);
+
+        var a = document.createElement('a');
+        a.href = url;
+        var cleanFileName = batch.fileName.replace('.docx', '');
+        a.download = `AudioBook_${cleanFileName}.mp3`;
+        a.click(); // Tự động kích hoạt tải xuống
+
+        batch.status = 'Đã xong ✅';
+        batch.progress = 100;
+        batch.progressText = 'Hoàn tất! File đã được lưu vào máy tính.';
+        renderAudioQueue();
+    }
+
+    this.disabled = false;
+    this.innerHTML = '<span class="material-icons">play_circle</span> CHẠY TẠO AUDIO';
+    showToast('success', 'Toàn bộ mẻ Audio đã xử lý và tải xuống hoàn tất!');
+});
