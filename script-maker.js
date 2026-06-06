@@ -8,7 +8,11 @@
 const SCRIPT_TAB_VOICES = [
   { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true, edgeName: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
   { n: 'Nam Minh (Edge)',          g: 'male',   isEdge: true, edgeName: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
-  { n: 'Hoài My (Edge)',           g: 'female', isEdge: true, edgeName: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 }
+  { n: 'Hoài My (Edge)',           g: 'female', isEdge: true, edgeName: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
+
+  // --- NHÓM GIỌNG TIKTOK ---
+  { n: 'Nữ Review (TikTok)',      g: 'female', isEdge: false, apiCode: 'vn_020_female',       defaultRate: 1.00 },
+  { n: 'Nam Kể Chuyện (TikTok)',  g: 'male',   isEdge: false, apiCode: 'vn_024_male',         defaultRate: 1.00 }
 ];
 
 // Biến quản lý trạng thái hệ thống kịch bản
@@ -1219,25 +1223,36 @@ function showToast(type, message) {
 
 // BẠN HÃY DÁN ĐƯỜNG LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY
 const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts'; 
+const CLOUDFLARE_TIKTOK_URL = 'https://tiktok-tts-proxy.khcbsx.workers.dev/';
 
-// Hàm lấy âm thanh 1 câu thoại từ Cloudflare (hỗ trợ chỉnh cao độ pitch/rate)
-async function fetchAudioFromCloudflare(text, msVoiceCode, pitchValue, rateValue) {
+// Hàm lấy âm thanh (Hỗ trợ định tuyến thông minh: Edge hoặc TikTok)
+async function fetchAudioFromCloudflare(text, voiceConfig, pitchValue, rateValue) {
     if (!text || text.trim() === '') return null;
     
+    // Tự động chọn đúng đường link dựa vào cấu hình giọng
+    var targetUrl = voiceConfig.isEdge ? CLOUDFLARE_TTS_URL : CLOUDFLARE_TIKTOK_URL;
+    
+    // Đóng gói dữ liệu gửi đi (TikTok thường không nhận SSML pitch/rate như Edge)
+    var payload = {
+        text: text,
+        voice: voiceConfig.apiCode
+    };
+    
+    // Nếu là Edge thì nhét thêm thông số cao độ vào
+    if (voiceConfig.isEdge) {
+        payload.pitch = pitchValue + '%';
+        payload.rate = rateValue + '%';
+    }
+
     try {
-        const response = await fetch(CLOUDFLARE_TTS_URL, {
+        const response = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: text,
-                voice: msVoiceCode, // Bắt mã chuẩn (VD: vi-VN-NamMinhNeural) truyền thẳng từ vòng lặp
-                pitch: pitchValue + '%', 
-                rate: rateValue + '%'    
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            throw new Error('Lỗi từ Cloudflare: ' + response.statusText);
+            throw new Error('Lỗi từ API Cloudflare: ' + response.statusText);
         }
 
         return await response.arrayBuffer();
@@ -1581,27 +1596,20 @@ btnStartAudio.addEventListener('click', async function() {
     var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
     var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
 
-    // BỘ ĐỊNH TUYẾN: Dò xem thẻ thoại thuộc cột nào để gán đúng Voice và Pitch
+    // BỘ ĐỊNH TUYẾN THÔNG MINH (Hỗ trợ đa nguồn Edge/TikTok)
     function getDynamicVoiceTarget(voiceTag) {
-        // 1. Nếu kịch bản dùng Thẻ Cố Định (Chuẩn mới)
-        if (voiceTag === 'Dẫn Truyện') return { msVoice: getMsVoiceCode(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
-        if (voiceTag === 'Giọng Nam') return { msVoice: getMsVoiceCode(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
-        if (voiceTag === 'Giọng Nữ') return { msVoice: getMsVoiceCode(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+        function findVoiceConfig(displayName) {
+            var found = SCRIPT_TAB_VOICES.find(v => v.n === displayName);
+            return found ? found : { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+        }
 
-        // 2. Nếu kịch bản cũ in chết tên (Chuẩn cũ)
-        if (voiceTag === uiNameNarrator) return { msVoice: getMsVoiceCode(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
-        if (voiceTag === uiNameMale) return { msVoice: getMsVoiceCode(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
-        if (voiceTag === uiNameFemale) return { msVoice: getMsVoiceCode(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+        // 1. Ánh xạ Thẻ Vai Trò (Chuẩn mới)
+        if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
+        if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
+        if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
 
-        // Fallback mặc định
-        return { msVoice: getMsVoiceCode(voiceTag), pitch: "+0" };
-    }
-
-    // Hàm lấy mã Microsoft chuẩn dựa theo tên đang chọn trên Dropdown
-    function getMsVoiceCode(displayName) {
-        if (!displayName) return 'vi-VN-NamMinhNeural';
-        if (displayName.includes('Hoài My')) return 'vi-VN-HoaiMyNeural';
-        return 'vi-VN-NamMinhNeural'; 
+        // 2. Kế hoạch dự phòng (Chuẩn cũ)
+        return { config: findVoiceConfig(voiceTag), pitch: "+0" };
     }
 
     var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1674,7 +1682,7 @@ btnStartAudio.addEventListener('click', async function() {
                         // Ánh xạ linh hoạt bằng hàm Bộ định tuyến vừa tạo
                         var targetProps = getDynamicVoiceTarget(seg.voice);
                         
-                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.msVoice, targetProps.pitch, "+0");
+                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, targetProps.pitch, "+0");
                         
                         if (mp3Buffer && mp3Buffer.byteLength > 100) {
                             try {
