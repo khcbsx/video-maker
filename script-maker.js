@@ -612,6 +612,13 @@ var btnOpen = document.getElementById('btnOpenNameFilter');
 var btnClose = document.getElementById('btnCloseModal');
 var btnSave = document.getElementById('btnSaveTempNames');
 
+// Mở Popup (Chế độ Lọc Toàn Bộ)
+if (btnOpen) {
+    btnOpen.addEventListener('click', function() {
+        window.filterAllScriptBatches();
+    });
+}
+
 // Đóng Popup
 if (btnClose) {
     btnClose.addEventListener('click', function() {
