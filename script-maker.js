@@ -6,13 +6,26 @@
 
 // ── CẤU HÌNH GIỌNG ĐỌC MẶC ĐỊNH CHO TAB KỊCH BẢN ──────────────────────────────
 const SCRIPT_TAB_VOICES = [
-  { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true, edgeName: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
-  { n: 'Nam Minh (Edge)',          g: 'male',   isEdge: true, edgeName: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
-  { n: 'Hoài My (Edge)',           g: 'female', isEdge: true, edgeName: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
-
-  // --- NHÓM GIỌNG TIKTOK ---
+  { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
+  { n: 'Nam Minh (Edge)',         g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
+  { n: 'Hoài My (Edge)',          g: 'female', isEdge: true,  apiCode: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
+  
+  // --- NHÓM GIỌNG TIKTOK (TIẾNG VIỆT) ---
   { n: 'Nữ Review (TikTok)',      g: 'female', isEdge: false, apiCode: 'vn_020_female',       defaultRate: 1.00 },
-  { n: 'Nam Kể Chuyện (TikTok)',  g: 'male',   isEdge: false, apiCode: 'vn_024_male',         defaultRate: 1.00 }
+  { n: 'Nam Kể Chuyện (TikTok)',  g: 'male',   isEdge: false, apiCode: 'vn_024_male',         defaultRate: 1.00 },
+
+  // --- NHÓM GIỌNG TIKTOK (TIẾNG ANH CHUẨN) ---
+  { n: 'Nữ Mỹ Chuẩn 1 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_001',           defaultRate: 1.00 },
+  { n: 'Nữ Mỹ Chuẩn 2 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_002',           defaultRate: 1.00 },
+  { n: 'Nam Mỹ Chuẩn (TikTok)',   g: 'male',   isEdge: false, apiCode: 'en_us_006',           defaultRate: 1.00 },
+  { n: 'Nam Narration (TikTok)',  g: 'male',   isEdge: false, apiCode: 'en_male_narration',   defaultRate: 1.00 },
+  { n: 'Nữ Bestie (TikTok)',      g: 'female', isEdge: false, apiCode: 'en_female_richgirl',  defaultRate: 1.00 },
+
+  // --- NHÓM GIỌNG TIKTOK (HÀI HƯỚC & NHÂN VẬT) ---
+  { n: 'Giọng Siêu Hài (TikTok)', g: 'male',   isEdge: false, apiCode: 'en_male_funny',       defaultRate: 1.00 },
+  { n: 'Sát thủ Ghostface',       g: 'male',   isEdge: false, apiCode: 'en_us_ghostface',     defaultRate: 1.00 },
+  { n: 'Chewbacca (Star Wars)',   g: 'male',   isEdge: false, apiCode: 'en_us_chewbacca',     defaultRate: 1.00 },
+  { n: 'Robot C3PO (Star Wars)',  g: 'male',   isEdge: false, apiCode: 'en_us_c3po',          defaultRate: 1.00 }
 ];
 
 // Biến quản lý trạng thái hệ thống kịch bản
@@ -1260,6 +1273,69 @@ async function fetchAudioFromCloudflare(text, voiceConfig, pitchValue, rateValue
     } catch (error) {
         console.error("Lỗi khi tải Audio: ", error);
         return null;
+    }
+}
+
+// ============================================================================
+// TÍNH NĂNG NGHE THỬ GIỌNG ĐỌC (PREVIEW VOICE)
+// ============================================================================
+
+// Khởi tạo AudioContext dùng chung cho việc nghe thử
+const previewAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let currentPreviewSource = null; // Biến lưu trữ nguồn âm thanh đang phát để có thể stop
+
+async function playPreviewVoice(selectId, buttonElement) {
+    // 1. Dừng âm thanh đang phát trước đó (nếu có)
+    if (currentPreviewSource) {
+        currentPreviewSource.stop();
+        currentPreviewSource.disconnect();
+        currentPreviewSource = null;
+    }
+
+    // Lấy tên giọng đang được chọn trên giao diện
+    const selectEl = document.getElementById(selectId);
+    if (!selectEl) return;
+    const displayName = selectEl.value.trim();
+
+    // Lục tìm cấu hình giọng trong từ điển SCRIPT_TAB_VOICES
+    const voiceConfig = SCRIPT_TAB_VOICES.find(v => v.n === displayName) 
+                        || { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' }; // Fallback an toàn
+
+    // Đổi trạng thái UI để báo hiệu đang tải (chống spam click)
+    const originalBtnHTML = buttonElement.innerHTML;
+    buttonElement.innerHTML = '<span class="material-icons" style="animation: spin 1s linear infinite;">sync</span>';
+    buttonElement.disabled = true;
+
+    try {
+        // Chuẩn bị câu thoại mẫu (Nếu là tiếng Anh thì đọc câu tiếng Anh)
+        let sampleText = "Chào bạn, tôi là giọng đọc thử. Chúc bạn một ngày tốt lành.";
+        if (voiceConfig.apiCode.includes('en_')) {
+            sampleText = "Hello there! I am your test voice. Have a wonderful day.";
+        }
+
+        // 2. Tái sử dụng hàm gọi Cloudflare cực xịn của bạn
+        // Pitch và Rate để mặc định là +0
+        const mp3Buffer = await fetchAudioFromCloudflare(sampleText, voiceConfig, "+0", "+0");
+
+        if (mp3Buffer && mp3Buffer.byteLength > 100) {
+            // 3. Giải mã và phát âm thanh
+            const audioData = mp3Buffer.slice(0);
+            const decodedData = await previewAudioCtx.decodeAudioData(audioData);
+
+            currentPreviewSource = previewAudioCtx.createBufferSource();
+            currentPreviewSource.buffer = decodedData;
+            currentPreviewSource.connect(previewAudioCtx.destination);
+            currentPreviewSource.start(0);
+        } else {
+            console.log("Lỗi: Không nhận được dữ liệu âm thanh hợp lệ từ API.");
+        }
+    } catch (error) {
+        console.error("Lỗi khi nghe thử: ", error);
+        alert("Lỗi mạng hoặc API đang bận, vui lòng thử lại sau!");
+    } finally {
+        // Trả lại trạng thái UI bình thường
+        buttonElement.innerHTML = originalBtnHTML;
+        buttonElement.disabled = false;
     }
 }
 
