@@ -1699,7 +1699,7 @@ btnStartAudio.addEventListener('click', async function() {
                 renderAudioQueue();
 
                 var totalDuration = currentTime + 1; // Cộng dư 1 giây tránh cắt đuôi
-                var sampleRate = 24000; 
+                var sampleRate = 44100; 
                 var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
 
                 timeline.forEach(item => {
