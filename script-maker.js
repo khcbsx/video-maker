@@ -1556,7 +1556,7 @@ function parseScriptLine(line) {
 }
 
 // ----------------------------------------------------
-// NÚT CHẠY AUDIO CHÍNH THỨC (DYNAMIC MAPPING + LỌC RÁC)
+// NÚT CHẠY AUDIO CHÍNH THỨC (CƠ CHẾ "CUỐN CHIẾU" CHỐNG TRÀN RAM)
 // ----------------------------------------------------
 btnStartAudio.addEventListener('click', async function() {
     if (audioQueue.length === 0) return;
@@ -1579,17 +1579,33 @@ btnStartAudio.addEventListener('click', async function() {
         return percent >= 0 ? "+" + percent : "" + percent;
     }
 
+    // ĐỌC THÔNG SỐ ĐANG CHỌN TRÊN 3 CỘT GIAO DIỆN
+    var uiNameNarrator = document.getElementById('voiceNarrator') ? document.getElementById('voiceNarrator').value.trim() : 'Người Dẫn Truyện (Edge)';
+    var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
+    var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
+
+    // BỘ ĐỊNH TUYẾN: Dò xem thẻ thoại thuộc cột nào để gán đúng Voice và Pitch
+    function getDynamicVoiceTarget(voiceTag) {
+        // 1. Nếu kịch bản dùng Thẻ Cố Định (Chuẩn mới)
+        if (voiceTag === 'Dẫn Truyện') return { msVoice: getMsVoiceCode(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
+        if (voiceTag === 'Giọng Nam') return { msVoice: getMsVoiceCode(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
+        if (voiceTag === 'Giọng Nữ') return { msVoice: getMsVoiceCode(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+
+        // 2. Nếu kịch bản cũ in chết tên (Chuẩn cũ)
+        if (voiceTag === uiNameNarrator) return { msVoice: getMsVoiceCode(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
+        if (voiceTag === uiNameMale) return { msVoice: getMsVoiceCode(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
+        if (voiceTag === uiNameFemale) return { msVoice: getMsVoiceCode(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+
+        // Fallback mặc định
+        return { msVoice: getMsVoiceCode(voiceTag), pitch: "+0" };
+    }
+
     // Hàm lấy mã Microsoft chuẩn dựa theo tên đang chọn trên Dropdown
     function getMsVoiceCode(displayName) {
         if (!displayName) return 'vi-VN-NamMinhNeural';
         if (displayName.includes('Hoài My')) return 'vi-VN-HoaiMyNeural';
         return 'vi-VN-NamMinhNeural'; 
     }
-
-    // ĐỌC THÔNG SỐ ĐANG CHỌN TRÊN 3 CỘT GIAO DIỆN
-    var uiNameNarrator = document.getElementById('voiceNarrator') ? document.getElementById('voiceNarrator').value.trim() : 'Người Dẫn Truyện (Edge)';
-    var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
-    var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
 
     var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1605,84 +1621,119 @@ btnStartAudio.addEventListener('click', async function() {
         var segments = lines.map(parseScriptLine).filter(s => s !== null);
         
         var totalSegments = segments.length;
-        var timeline = []; 
-        var currentTime = 0;
+        
+        // ⚙️ THIẾT LẬP KÍCH THƯỚC KHÚC (CHUNK) CHỐNG TRÀN RAM
+        var CHUNK_SIZE = 40; // Xử lý 40 câu thoại một mẻ nhỏ (~ 3 đến 4 phút audio)
+        var finalMp3Blobs = []; // Mảng cái túi chứa các cục MP3 đã nén
+        
+        // ========================================================
+        // BẮT ĐẦU CHIẾN THUẬT "CUỐN CHIẾU" (CHIA ĐỂ TRỊ)
+        // ========================================================
+        for (var chunkStart = 0; chunkStart < totalSegments; chunkStart += CHUNK_SIZE) {
+            if (isAudioStopped) break;
 
-        // GIAI ĐOẠN 1: KÉO ÂM THANH
-        for (var k = 0; k < segments.length; k++) {
-            await checkPauseState(); 
-            if (isAudioStopped) break; 
+            var chunkSegments = segments.slice(chunkStart, chunkStart + CHUNK_SIZE);
+            var timeline = []; 
+            var currentTime = 0;
 
-            var seg = segments[k];
-            
-            // Cập nhật UI Progress
-            batch.status = 'Đang thu âm...';
-            batch.progress = Math.round((k / totalSegments) * 60);
-            batch.progressText = `${k+1}/${totalSegments} đoạn (${batch.progress}%)`;
-            renderAudioQueue();
+            var currentChunkIndex = Math.floor(chunkStart / CHUNK_SIZE) + 1;
+            var totalChunks = Math.ceil(totalSegments / CHUNK_SIZE);
 
-            if (liveMonitor) {
-                if (seg.isBgm) {
-                    liveMonitor.value += `\n[BGM: ${seg.bgmType === 'theme' ? 'Nhạc Dạo' : 'Nhạc Trung Tính'}]`;
-                } else {
-                    liveMonitor.value += `\n[${seg.voice}]: ${seg.text}`;
-                }
-                liveMonitor.scrollTop = liveMonitor.scrollHeight;
-            }
+            // --- BƯỚC 1: KÉO ÂM THANH CHO RIÊNG KHÚC NÀY ---
+            for (var k = 0; k < chunkSegments.length; k++) {
+                await checkPauseState(); 
+                if (isAudioStopped) break; 
 
-            if (seg.isBgm) {
-                var file = seg.bgmType === 'theme' ? window.globalThemeFile : 
-                           (window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[Math.floor(Math.random() * window.globalAmbientFiles.length)] : null);
-                if (file) {
-                    try {
-                        var ab = await readFileToArrayBuffer(file);
-                        var decodedBgm = await tempAudioCtx.decodeAudioData(ab);
-                        timeline.push({ buffer: decodedBgm, startTime: currentTime, isBgm: true });
-                    } catch (e) {} // Im lặng bỏ qua lỗi nhạc
-                }
-            } else {
-                // LỌC CÂU THOẠI RÁC (Chặn trống, chặn dấu chấm)
-                var cleanText = seg.text.trim();
-                var hasContent = /[a-zA-Z0-9\u00C0-\u1EF9]/.test(cleanText);
+                var seg = chunkSegments[k];
+                var actualIndex = chunkStart + k;
                 
-                if (hasContent && cleanText.length >= 2) {
-                    
-                    // BỘ MÁY ÁNH XẠ (DYNAMIC MAPPING): Dò xem thẻ thoại thuộc cột nào trên UI
-                    var msVoiceTarget = 'vi-VN-NamMinhNeural';
-                    var pitchTarget = "+0";
+                // Cập nhật UI Progress
+                batch.status = `Đang xử lý Khúc ${currentChunkIndex}/${totalChunks}`;
+                batch.progress = Math.round(((actualIndex) / totalSegments) * 100);
+                batch.progressText = `Kéo dữ liệu: ${actualIndex + 1}/${totalSegments} đoạn`;
+                renderAudioQueue();
 
-                    if (seg.voice === uiNameNarrator) {
-                        msVoiceTarget = getMsVoiceCode(uiNameNarrator);
-                        pitchTarget = toSSMLPercent(window.pitchRateNarrator);
-                    } else if (seg.voice === uiNameMale) {
-                        msVoiceTarget = getMsVoiceCode(uiNameMale);
-                        pitchTarget = toSSMLPercent(window.pitchRateMale);
-                    } else if (seg.voice === uiNameFemale) {
-                        msVoiceTarget = getMsVoiceCode(uiNameFemale);
-                        pitchTarget = toSSMLPercent(window.pitchRateFemale);
-                    } else {
-                        // Kế hoạch dự phòng nếu tag không khớp cột nào
-                        msVoiceTarget = getMsVoiceCode(seg.voice);
-                        pitchTarget = "+0";
-                    }
+                if (liveMonitor) {
+                    if (seg.isBgm) liveMonitor.value += `\n[BGM: ${seg.bgmType === 'theme' ? 'Nhạc Dạo' : 'Nhạc Trung Tính'}]`;
+                    else liveMonitor.value += `\n[${seg.voice}]: ${seg.text}`;
+                    liveMonitor.scrollTop = liveMonitor.scrollHeight;
+                }
 
-                    // Gọi API với thông số đã được ánh xạ chuẩn xác
-                    var mp3Buffer = await fetchAudioFromCloudflare(cleanText, msVoiceTarget, pitchTarget, "+0");
-                    
-                    if (mp3Buffer && mp3Buffer.byteLength > 100) {
+                if (seg.isBgm) {
+                    var file = seg.bgmType === 'theme' ? window.globalThemeFile : 
+                               (window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[Math.floor(Math.random() * window.globalAmbientFiles.length)] : null);
+                    if (file) {
                         try {
-                            var audioData = mp3Buffer.slice(0); 
-                            var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
-                            timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
-                            currentTime += decodedTts.duration + 0.2; 
-                        } catch (e) { 
-                            // Lỗi giải mã âm thầm bỏ qua
+                            var ab = await readFileToArrayBuffer(file);
+                            var decodedBgm = await tempAudioCtx.decodeAudioData(ab);
+                            timeline.push({ buffer: decodedBgm, startTime: currentTime, isBgm: true });
+                        } catch (e) {} 
+                    }
+                } else {
+                    var cleanText = seg.text.trim();
+                    var hasContent = /[a-zA-Z0-9\u00C0-\u1EF9]/.test(cleanText);
+                    
+                    if (hasContent && cleanText.length >= 2) {
+                        // Ánh xạ linh hoạt bằng hàm Bộ định tuyến vừa tạo
+                        var targetProps = getDynamicVoiceTarget(seg.voice);
+                        
+                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.msVoice, targetProps.pitch, "+0");
+                        
+                        if (mp3Buffer && mp3Buffer.byteLength > 100) {
+                            try {
+                                var audioData = mp3Buffer.slice(0); 
+                                var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
+                                timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
+                                currentTime += decodedTts.duration + 0.2; 
+                            } catch (e) {}
                         }
                     }
                 }
-            }
-        }
+            } // Hết vòng lặp kéo âm thanh của 1 khúc
 
+            if (isAudioStopped) break;
+
+            // --- BƯỚC 2: TRỘN VÀ NÉN GỌN GÀNG KHÚC NÀY ---
+            if (timeline.length > 0 && currentTime > 0) {
+                batch.progressText = `Trộn & Nén MP3 Khúc ${currentChunkIndex}... (Chống tràn RAM)`;
+                renderAudioQueue();
+
+                var totalDuration = currentTime + 1; // Cộng dư 1 giây tránh cắt đuôi
+                var sampleRate = 24000; 
+                var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
+
+                timeline.forEach(item => {
+                    var source = offlineCtx.createBufferSource();
+                    source.buffer = item.buffer;
+
+                    if (item.isBgm) {
+                        var gainNode = offlineCtx.createGain();
+                        gainNode.gain.value = window.globalBgmVolume || 0.15; 
+                        source.connect(gainNode);
+                        gainNode.connect(offlineCtx.destination);
+                    } else {
+                        source.connect(offlineCtx.destination);
+                    }
+                    source.start(item.startTime);
+                });
+
+                var renderedBuffer = await offlineCtx.startRendering();
+                
+                // Nhả luồng 1 chút cho UI thở
+                await new Promise(resolve => setTimeout(resolve, 100)); 
+
+                // Nén bằng Lame.js cho khúc này và ném vào Túi dự trữ
+                var mp3ChunkBlob = encodeAudioBufferToMp3(renderedBuffer);
+                finalMp3Blobs.push(mp3ChunkBlob);
+
+                // THAO TÁC CỨU SINH: Dọn sạch rác RAM ngay lập tức!
+                timeline = null;
+                renderedBuffer = null;
+                offlineCtx = null;
+            }
+        } // Hết vòng lặp cuốn chiếu (Tất cả các khúc đã được nén)
+
+        // ========================================================
         if (isAudioStopped) {
             batch.status = 'Đã hủy ⛔';
             batch.progressText = 'Người dùng đã dừng tiến trình.';
@@ -1690,44 +1741,15 @@ btnStartAudio.addEventListener('click', async function() {
             continue; 
         }
 
-        // GIAI ĐOẠN 2: GHÉP NHẠC
-        batch.status = 'Đang trộn Audio...';
-        batch.progress = 70;
-        batch.progressText = 'Khởi tạo bộ hòa âm...';
+        // --- BƯỚC 3: TUNG TUYỆT CHIÊU "NỐI BLOB" VÀ TẢI VỀ ---
+        batch.status = 'Đang đóng gói...';
+        batch.progress = 100;
+        batch.progressText = 'Gộp các khúc thành file Audio siêu tốc...';
         renderAudioQueue();
 
-        var totalDuration = currentTime + 2; 
-        var sampleRate = 24000; 
-        var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
-
-        timeline.forEach(item => {
-            var source = offlineCtx.createBufferSource();
-            source.buffer = item.buffer;
-
-            if (item.isBgm) {
-                var gainNode = offlineCtx.createGain();
-                gainNode.gain.value = window.globalBgmVolume || 0.15; 
-                source.connect(gainNode);
-                gainNode.connect(offlineCtx.destination);
-            } else {
-                source.connect(offlineCtx.destination);
-            }
-            source.start(item.startTime);
-        });
-
-        var renderedBuffer = await offlineCtx.startRendering();
-
-        // GIAI ĐOẠN 3: NÉN MP3
-        if (isAudioStopped) break;
-        batch.status = 'Đang nén MP3...';
-        batch.progress = 90;
-        batch.progressText = 'Sử dụng Lame.js để xuất file...';
-        renderAudioQueue();
-        
-        await new Promise(resolve => setTimeout(resolve, 100)); 
-
-        var mp3Blob = encodeAudioBufferToMp3(renderedBuffer);
-        var url = URL.createObjectURL(mp3Blob);
+        // Gộp tất cả các cục MP3 nhỏ thành 1 file khổng lồ mà không tốn RAM giải mã
+        var masterBlob = new Blob(finalMp3Blobs, { type: 'audio/mp3' });
+        var url = URL.createObjectURL(masterBlob);
 
         var a = document.createElement('a');
         a.href = url;
@@ -1735,8 +1757,10 @@ btnStartAudio.addEventListener('click', async function() {
         a.download = `AudioBook_${cleanFileName}.mp3`;
         a.click(); 
 
+        // Xóa đường dẫn tạm để giải phóng bộ nhớ
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
         batch.status = 'Đã xong ✅';
-        batch.progress = 100;
         batch.progressText = 'Hoàn tất! File đã được lưu vào máy tính.';
         renderAudioQueue();
     }
