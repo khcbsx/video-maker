@@ -642,8 +642,18 @@ function extractNamesFromText(rawText) {
     var maleTxt = document.getElementById('tempMaleNames') ? document.getElementById('tempMaleNames').value : '';
     var femaleTxt = document.getElementById('tempFemaleNames') ? document.getElementById('tempFemaleNames').value : '';
     
-    var knownMales = [...GENDER_DICT.dialogMALE, ...GENDER_DICT.proseMALE, ...maleTxt.split(',').map(n=>n.trim())];
-    var knownFemales = [...GENDER_DICT.dialogFEMALE, ...GENDER_DICT.proseFEMALE, ...femaleTxt.split(',').map(n=>n.trim())];
+    // Đã thêm || [] để chống lỗi khi mảng chưa được khởi tạo
+    var knownMales = [
+        ...(GENDER_DICT.dialogMALE || []), 
+        ...(GENDER_DICT.proseMALE || []), 
+        ...maleTxt.split(',').map(n => n.trim())
+    ];
+    
+    var knownFemales = [
+        ...(GENDER_DICT.dialogFEMALE || []), 
+        ...(GENDER_DICT.proseFEMALE || []), 
+        ...femaleTxt.split(',').map(n => n.trim())
+    ];
     
     // Gộp tất cả tên đã biết vào một cái rổ (Set) để kiểm tra siêu tốc
     var allKnownNames = new Set([...knownMales, ...knownFemales].filter(n => n.length > 0));
