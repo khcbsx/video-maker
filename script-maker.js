@@ -859,15 +859,12 @@ function resolveVoiceForDialog(contextText, dialogText, voiceMale, voiceFemale) 
   return voiceMale;
 }
 
-// Hàm cốt lõi vận hành luồng phân vai + AUTO RẢI NHẠC NỀN
+// Hàm cốt lõi vận hành luồng phân vai + AUTO RẢI NHẠC NỀN (CHUẨN THẺ VAI TRÒ)
 async function runScriptAutomation(rawText, taskId) {
-    var vNarEl = document.getElementById('voiceNarrator');
-    var vMalEl = document.getElementById('voiceMale');
-    var vFemEl = document.getElementById('voiceFemale');
-    
-    var voiceNarrator = vNarEl ? vNarEl.value.trim() : 'Người Dẫn Truyện (Edge)';
-    var voiceMale     = vMalEl ? vMalEl.value.trim() : 'Nam Minh (Edge)';
-    var voiceFemale   = vFemEl ? vFemEl.value.trim() : 'Hoài My (Edge)';
+    // THAY ĐỔI LỚN NHẤT Ở ĐÂY: Gán chết 3 Thẻ Vai Trò thay vì lấy từ Giao diện
+    var voiceNarrator = 'Dẫn Truyện';
+    var voiceMale     = 'Giọng Nam';
+    var voiceFemale   = 'Giọng Nữ';
     
     var lines = rawText.split('\n');
     var taggedLines = [];
