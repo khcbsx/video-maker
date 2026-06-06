@@ -1030,7 +1030,7 @@ function renderScriptQueue() {
     });
 }
 
- CHẾ ĐỘ QUÉT TÊN (CỤC BỘ & TOÀN BỘ MẺ)
+// CHẾ ĐỘ QUÉT TÊN (CỤC BỘ & TOÀN BỘ MẺ)
 // Chế độ 1: Quét và lọc tên riêng cho một mẻ cụ thể (Nút Hình Người)
 window.filterScriptBatchNames = function(id) {
     var batch = scriptQueue.find(function(b) { return b.id === id; });
