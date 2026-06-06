@@ -12,6 +12,7 @@ const SCRIPT_TAB_VOICES = [
 ];
 
 // Biến quản lý trạng thái hệ thống kịch bản
+
 var scriptQueue = [];
 var isProcessingScript = false;
 var isStopRequested = false;
@@ -636,7 +637,17 @@ function extractNamesFromText(rawText) {
     var tagContainer = document.getElementById('scannedNamesTags');
     if (!tagContainer) return;
     
-    // Thuật toán Regex chỉ bắt chữ viết hoa
+    // 1. LẤY TRÍ NHỚ HIỆN TẠI TỪ TỪ ĐIỂN VÀ TEXTBOX GIAO DIỆN
+    var maleTxt = document.getElementById('tempMaleNames') ? document.getElementById('tempMaleNames').value : '';
+    var femaleTxt = document.getElementById('tempFemaleNames') ? document.getElementById('tempFemaleNames').value : '';
+    
+    var knownMales = [...GENDER_DICT.dialogMALE, ...GENDER_DICT.proseMALE, ...maleTxt.split(',').map(n=>n.trim())];
+    var knownFemales = [...GENDER_DICT.dialogFEMALE, ...GENDER_DICT.proseFEMALE, ...femaleTxt.split(',').map(n=>n.trim())];
+    
+    // Gộp tất cả tên đã biết vào một cái rổ (Set) để kiểm tra siêu tốc
+    var allKnownNames = new Set([...knownMales, ...knownFemales].filter(n => n.length > 0));
+
+    // 2. THUẬT TOÁN REGEX QUÉT TÊN
     var nameRegex = /(?:[A-Z\p{Lu}][a-z\p{Ll}]*\s+){1,3}[A-Z\p{Lu}][a-z\p{Ll}]*/gu;
     var matches = rawText.match(nameRegex) || [];
     
@@ -645,7 +656,8 @@ function extractNamesFromText(rawText) {
     
     matches.forEach(function(name) {
         var cleanName = name.trim();
-        if (cleanName.length > 3 && !stopWords.includes(cleanName)) {
+        // LOGIC LÕI: Chỉ nhặt những tên CHƯA CÓ TRONG TRÍ NHỚ (allKnownNames)
+        if (cleanName.length > 3 && !stopWords.includes(cleanName) && !allKnownNames.has(cleanName)) {
             nameCounts[cleanName] = (nameCounts[cleanName] || 0) + 1;
         }
     });
@@ -657,17 +669,16 @@ function extractNamesFromText(rawText) {
         
     tagContainer.innerHTML = ''; 
     if (validNames.length === 0) {
-        tagContainer.innerHTML = '<span style="color:var(--text-muted); font-size: 13px;">Không quét được tên nào rõ ràng.</span>';
+        tagContainer.innerHTML = '<span style="color:var(--text-muted); font-size: 13px;">Không có tên mới nào cần lọc (hoặc máy đã nhớ hết).</span>';
         return;
     }
 
-    // Đổ thẻ tên vào giao diện
+    // 3. ĐỔ THẺ TÊN RA GIAO DIỆN
     validNames.forEach(function(name) {
         var tag = document.createElement('span');
         tag.className = 'name-tag';
         tag.innerText = name + ' (' + nameCounts[name] + ')';
         
-        // SỰ KIỆN: Kiểm tra xem user đang chọn chế độ nào để xử lý
         tag.addEventListener('click', function() {
             var mode = document.querySelector('input[name="clickMode"]:checked').value;
             
@@ -678,13 +689,17 @@ function extractNamesFromText(rawText) {
                 var txtMale = document.getElementById('tempMaleNames');
                 if (txtMale.value.trim() === '') txtMale.value = name;
                 else txtMale.value += ', ' + name;
-                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
+                
+                tag.style.display = 'none'; // Ẩn thẻ tên
+                allKnownNames.add(name);    // Dạy cho trí nhớ ngầm học luôn lập tức
             } 
             else if (mode === 'female') {
                 var txtFemale = document.getElementById('tempFemaleNames');
                 if (txtFemale.value.trim() === '') txtFemale.value = name;
                 else txtFemale.value += ', ' + name;
-                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
+                
+                tag.style.display = 'none'; // Ẩn thẻ tên
+                allKnownNames.add(name);    // Dạy cho trí nhớ ngầm học luôn lập tức
             }
         });
         
@@ -1014,25 +1029,50 @@ function renderScriptQueue() {
     });
 }
 
-// Hàm mới: Quét và lọc tên riêng cho một mẻ cụ thể
+ CHẾ ĐỘ QUÉT TÊN (CỤC BỘ & TOÀN BỘ MẺ)
+// Chế độ 1: Quét và lọc tên riêng cho một mẻ cụ thể (Nút Hình Người)
 window.filterScriptBatchNames = function(id) {
-    // Tìm mẻ tương ứng bằng id
     var batch = scriptQueue.find(function(b) { return b.id === id; });
     if (!batch) return;
     
-    // Lấy đúng văn bản từ chương bắt đầu đến kết thúc của mẻ đó
+    // Rút trích văn bản riêng mẻ đó
     var batchChaptersText = globalScriptChapters.slice(batch.from, batch.to + 1).join('\n\n');
     
-    // Đẩy vào hàm quét tên
     if (typeof extractNamesFromText === 'function') {
         extractNamesFromText(batchChaptersText);
     }
     
-    // Cập nhật tiêu đề Popup và mở lên
     var modalHeader = document.querySelector('#nameFilterModal h3');
     if (modalHeader) {
         var mIndex = scriptQueue.findIndex(function(b) { return b.id === id; });
-        modalHeader.innerHTML = `<span class="material-icons">manage_accounts</span> Tên Mẻ ${mIndex + 1} (Chương ${batch.from + 1} - ${batch.to + 1})`;
+        modalHeader.innerHTML = `<span class="material-icons">manage_accounts</span> Lọc Tên: Mẻ ${mIndex + 1} (Chương ${batch.from + 1} - ${batch.to + 1})`;
+    }
+    document.getElementById('nameFilterModal').classList.add('active');
+}
+
+// Chế độ 2: Quét toàn bộ các mẻ đang chờ (Nút Toàn Cục)
+window.filterAllScriptBatches = function() {
+    if (scriptQueue.length === 0) {
+        showToast('error', 'Chưa có mẻ nào trong hàng đợi để quét!');
+        return;
+    }
+
+    var combinedText = "";
+    
+    // Vòng lặp gom tất cả văn bản của các mẻ lại thành một cục lớn
+    scriptQueue.forEach(function(batch) {
+        var batchChaptersText = globalScriptChapters.slice(batch.from, batch.to + 1).join('\n\n');
+        combinedText += batchChaptersText + '\n\n';
+    });
+
+    // Đẩy cục text khổng lồ vào bộ máy quét
+    if (typeof extractNamesFromText === 'function') {
+        extractNamesFromText(combinedText);
+    }
+
+    var modalHeader = document.querySelector('#nameFilterModal h3');
+    if (modalHeader) {
+        modalHeader.innerHTML = `<span class="material-icons">manage_accounts</span> Lọc Tên: Toàn bộ mẻ trong hàng đợi`;
     }
     document.getElementById('nameFilterModal').classList.add('active');
 }
