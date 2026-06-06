@@ -1697,7 +1697,7 @@ btnStartAudio.addEventListener('click', async function() {
         renderAudioQueue();
 
         var totalDuration = currentTime + 2; 
-        var sampleRate = 44100; 
+        var sampleRate = 24000; 
         var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
 
         timeline.forEach(item => {
