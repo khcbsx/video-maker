@@ -612,12 +612,6 @@ var btnOpen = document.getElementById('btnOpenNameFilter');
 var btnClose = document.getElementById('btnCloseModal');
 var btnSave = document.getElementById('btnSaveTempNames');
 
-// Mở Popup
-if (btnOpen) {
-    btnOpen.addEventListener('click', function() {
-        modal.classList.add('active');
-    });
-}
 // Đóng Popup
 if (btnClose) {
     btnClose.addEventListener('click', function() {
