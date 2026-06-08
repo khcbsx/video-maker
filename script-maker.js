@@ -972,6 +972,112 @@ async function buildScriptManual() {
 }
 
 // ==============================================================================
+// TẠO AUDIO THỦ CÔNG TỪ KỊCH BẢN AI (MỚI THÊM VÀO)
+// ==============================================================================
+var manualAudioBtn = document.getElementById('manualAudioBtn');
+if (manualAudioBtn) {
+    manualAudioBtn.addEventListener('click', async function() {
+        // Lấy kịch bản từ ô Textarea
+        const scriptText = document.getElementById('processedScriptOutput').value;
+        const resultDiv = document.getElementById('manual-audio-result');
+        const audioPlayer = document.getElementById('manual-audio-player');
+        const downloadBtn = document.getElementById('manual-audio-download');
+
+        if (!scriptText || !scriptText.trim()) {
+            showToast("error", "Kịch bản trống! Vui lòng Phân vai AI hoặc dán kịch bản vào trước.");
+            return;
+        }
+
+        const originalText = this.innerHTML;
+        this.innerHTML = "⏳ Đang kết nối API...";
+        this.disabled = true;
+        resultDiv.style.display = "none"; // Ẩn trình phát nhạc cũ
+
+        // Hàm nội bộ: Đọc cấu hình giọng từ 3 Dropdown trên giao diện
+        function getVoiceConfig(roleTag) {
+            var selectId = 'voiceNarrator';
+            var pitchVal = window.pitchRateNarrator || 0.82;
+
+            if (roleTag === 'Giọng Nam') { selectId = 'voiceMale'; pitchVal = window.pitchRateMale || 1.0; }
+            if (roleTag === 'Giọng Nữ') { selectId = 'voiceFemale'; pitchVal = window.pitchRateFemale || 1.0; }
+
+            var dropdown = document.getElementById(selectId);
+            var displayName = dropdown ? dropdown.value.trim() : '';
+
+            var found = SCRIPT_TAB_VOICES.find(v => v.n === displayName) || { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+
+            // Ép kiểu pitch sang số SSML (VD: +0, -18)
+            var percent = Math.round((parseFloat(pitchVal) - 1.0) * 100);
+            var pitchStr = percent >= 0 ? "+" + percent : "" + percent;
+
+            return { config: found, pitch: pitchStr };
+        }
+
+        try {
+            const lines = scriptText.split('\n');
+            let audioBlobs = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                // Bỏ qua dòng trống và nhạc nền (Thủ công chỉ cần test giọng đọc)
+                if (!line || line.startsWith('[BGM:')) continue; 
+
+                // Tận dụng hàm parseScriptLine đã có sẵn trong code của bạn
+                let parsed = parseScriptLine(line);
+                
+                if (parsed && !parsed.isBgm && parsed.text.trim() !== '') {
+                    this.innerHTML = `⏳ Đang đọc dòng ${i + 1}/${lines.length}...`;
+
+                    // Lấy cấu hình giọng tương ứng với Tag (Dẫn Truyện, Giọng Nam, Giọng Nữ)
+                    let voiceInfo = getVoiceConfig(parsed.voice); 
+                    
+                    // Gọi trạm Cloudflare (Dùng hàm fetchAudioFromCloudflare cũ của bạn)
+                    let arrayBuffer = await fetchAudioFromCloudflare(parsed.text, voiceInfo.config, voiceInfo.pitch, "+0");
+
+                    // Nếu lấy được file MP3, nhét vào mảng chờ
+                    if (arrayBuffer) {
+                        audioBlobs.push(new Blob([arrayBuffer]));
+                    }
+                }
+            }
+
+            if (audioBlobs.length === 0) {
+                showToast("error", "Không tạo được dữ liệu âm thanh nào! Kiểm tra lại định dạng thẻ.");
+                this.innerHTML = originalText;
+                this.disabled = false;
+                return;
+            }
+
+            this.innerHTML = "⏳ Đang gộp file...";
+
+            // Nối trực tiếp các cục MP3 lại với nhau thành 1 file MP3 dài duy nhất
+            const finalMergedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
+            const finalAudioUrl = URL.createObjectURL(finalMergedBlob);
+
+            // Bơm nhạc vào Trình phát và Nút Tải
+            audioPlayer.src = finalAudioUrl;
+            downloadBtn.href = finalAudioUrl;
+
+            // Tạo tên file có ngày giờ để không bị lưu đè
+            const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            downloadBtn.download = `Audio_ThuCong_${dateStr}.mp3`;
+
+            // Bật sáng khu vực kết quả lên
+            resultDiv.style.display = "block";
+            showToast("success", "Tạo audio thủ công hoàn tất! Bấm nút Play để nghe thử.");
+
+        } catch (error) {
+            console.error(error);
+            showToast("error", "Lỗi tạo audio: " + error.message);
+        } finally {
+            this.innerHTML = originalText;
+            this.disabled = false;
+        }
+    });
+}
+
+// ==============================================================================
 // HỆ THỐNG HÀNG ĐỢI KỊCH BẢN (SCRIPT QUEUE) - PHỤC VỤ TEST TÁCH CHƯƠNG
 // ==============================================================================
 
