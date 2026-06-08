@@ -10,6 +10,9 @@ const SCRIPT_TAB_VOICES = [
   { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
   { n: 'Nam Minh (Edge)',         g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
   { n: 'Hoài My (Edge)',          g: 'female', isEdge: true,  apiCode: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
+  { n: 'Quốc Xuân (Edge)',        g: 'male',   isEdge: true,  apiCode: 'vi-VN-QuocXuanNeural',defaultRate: 1.00 },
+  { n: 'Mai (Edge)',              g: 'female', isEdge: true,  apiCode: 'vi-VN-MaiNeural',     defaultRate: 1.00 },
+  
    
   // --- NHÓM GIỌNG GOOGLE (TIẾNG VIỆT MIỄN PHÍ 100%) ---
   { n: 'Chị Google (Free)',       g: 'female', isEdge: false, apiCode: 'google_vi',           defaultRate: 1.00 },
@@ -1356,7 +1359,7 @@ function showToast(type, message) {
 // ==============================================================================
 
 // BẠN HÃY DÁN ĐƯỜNG LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY
-const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts'; 
+const CLOUDFLARE_TTS_URL = 'https://mrzero123-edge-tts-api-free.hf.space/tts'; 
 const CLOUDFLARE_TIKTOK_URL = 'https://tiktok-tts-proxy.khcbsx.workers.dev/';
 
 // Hàm lấy âm thanh (Hỗ trợ định tuyến thông minh: Edge hoặc TikTok)
