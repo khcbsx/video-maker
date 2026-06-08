@@ -1359,7 +1359,7 @@ function showToast(type, message) {
 // ==============================================================================
 
 // BẠN HÃY DÁN ĐƯỜNG LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY
-const CLOUDFLARE_TTS_URL = 'https://mrzero123-edge-tts-api-free.hf.space/tts'; 
+const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts'; 
 const CLOUDFLARE_TIKTOK_URL = 'https://tiktok-tts-proxy.khcbsx.workers.dev/';
 
 // Hàm lấy âm thanh (Hỗ trợ định tuyến thông minh: Edge hoặc TikTok)
