@@ -10,6 +10,8 @@ const SCRIPT_TAB_VOICES = [
   { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
   { n: 'Nam Minh (Edge)',         g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
   { n: 'Hoài My (Edge)',          g: 'female', isEdge: true,  apiCode: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
+  { n: 'Quốc Xuân (Edge)',        g: 'male',   isEdge: true,  apiCode: 'vi-VN-QuocXuanNeural',  defaultRate: 1.00 },
+  { n: 'Mai (Edge)',              g: 'female', isEdge: true,  apiCode: 'vi-VN-MaiNeural',
   
   // --- NHÓM GIỌNG GOOGLE (TIẾNG VIỆT MIỄN PHÍ 100%) ---
   { n: 'Chị Google (Free)',       g: 'female', isEdge: false, apiCode: 'google_vi',           defaultRate: 1.00 },
