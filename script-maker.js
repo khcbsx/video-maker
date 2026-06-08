@@ -1276,71 +1276,6 @@ async function fetchAudioFromCloudflare(text, voiceConfig, pitchValue, rateValue
     }
 }
 
-// ============================================================================
-// TÍNH NĂNG NGHE THỬ GIỌNG ĐỌC (PREVIEW VOICE)
-// ============================================================================
-
-// Khởi tạo AudioContext dùng chung cho việc nghe thử
-const previewAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let currentPreviewSource = null; // Biến lưu trữ nguồn âm thanh đang phát để có thể stop
-
-async function playPreviewVoice(selectId, buttonElement) {
-    // 1. Dừng âm thanh đang phát trước đó (nếu có)
-    if (currentPreviewSource) {
-        currentPreviewSource.stop();
-        currentPreviewSource.disconnect();
-        currentPreviewSource = null;
-    }
-
-    // Lấy tên giọng đang được chọn trên giao diện
-    const selectEl = document.getElementById(selectId);
-    if (!selectEl) return;
-    const displayName = selectEl.value.trim();
-
-    // Lục tìm cấu hình giọng trong từ điển SCRIPT_TAB_VOICES
-    const voiceConfig = SCRIPT_TAB_VOICES.find(v => v.n === displayName) 
-                        || { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' }; // Fallback an toàn
-
-    // Đổi trạng thái UI để báo hiệu đang tải (chống spam click)
-    const originalBtnHTML = buttonElement.innerHTML;
-    buttonElement.innerHTML = '<span class="material-icons" style="animation: spin 1s linear infinite;">sync</span>';
-    buttonElement.disabled = true;
-
-    try {
-        // Chuẩn bị câu thoại mẫu (Nếu là tiếng Anh thì đọc câu tiếng Anh)
-        let sampleText = "Chào bạn, tôi là giọng đọc thử. Chúc bạn một ngày tốt lành.";
-        if (voiceConfig.apiCode.includes('en_')) {
-            sampleText = "Hello there! I am your test voice. Have a wonderful day.";
-        }
-
-        // 2. Tái sử dụng hàm gọi Cloudflare cực xịn của bạn
-        // Pitch và Rate để mặc định là +0
-        const mp3Buffer = await fetchAudioFromCloudflare(sampleText, voiceConfig, "+0", "+0");
-
-        if (mp3Buffer && mp3Buffer.byteLength > 100) {
-            // 3. Giải mã và phát âm thanh
-            const audioData = mp3Buffer.slice(0);
-            const decodedData = await previewAudioCtx.decodeAudioData(audioData);
-
-            currentPreviewSource = previewAudioCtx.createBufferSource();
-            currentPreviewSource.buffer = decodedData;
-            currentPreviewSource.connect(previewAudioCtx.destination);
-            currentPreviewSource.start(0);
-        } else {
-            console.log("Lỗi: Không nhận được dữ liệu âm thanh hợp lệ từ API.");
-        }
-    } catch (error) {
-        console.error("Lỗi khi nghe thử: ", error);
-        alert("Lỗi mạng hoặc API đang bận, vui lòng thử lại sau!");
-    } finally {
-        // Trả lại trạng thái UI bình thường
-        buttonElement.innerHTML = originalBtnHTML;
-        buttonElement.disabled = false;
-    }
-}
-
-
-
 // ==============================================================================
 // LOGIC QUẢN LÝ NHẠC NỀN (BGM) VÀ ÂM LƯỢNG
 // ==============================================================================
@@ -1906,47 +1841,39 @@ btnStartAudio.addEventListener('click', async function() {
 
 
 // ============================================================================
-// TÍNH NĂNG NGHE THỬ GIỌNG ĐỌC (CHỐNG NGỐN RAM)
+// TÍNH NĂNG NGHE THỬ GIỌNG ĐỌC (CHỐNG NGỐN RAM & LỖI TRÙNG LẶP)
 // ============================================================================
 let previewAudioCtx = null;
 let currentPreviewSource = null;
 
 async function playPreviewVoice(selectId, buttonElement) {
-    // 💡 Khởi tạo "lười biếng": Chỉ khi nào bấm nghe thử mới bật bộ xử lý Audio
-    // Điều này giúp trình duyệt không ngốn RAM lúc mới mở App!
     if (!previewAudioCtx) {
         previewAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Dừng ngay giọng đang đọc dở (nếu bấm liên tục)
     if (currentPreviewSource) {
         currentPreviewSource.stop();
         currentPreviewSource.disconnect();
         currentPreviewSource = null;
     }
 
-    // Lấy tên giọng đang chọn
     const selectEl = document.getElementById(selectId);
     if (!selectEl) return;
     const displayName = selectEl.value.trim();
 
-    // Đối chiếu với kho giọng
     const voiceConfig = SCRIPT_TAB_VOICES.find(v => v.n === displayName) 
                         || { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
 
-    // Đổi nút thành biểu tượng Loading (chống bấm spam)
     const originalBtnHTML = buttonElement.innerHTML;
     buttonElement.innerHTML = '<span class="material-icons" style="animation: spin 1s linear infinite;">sync</span>';
     buttonElement.disabled = true;
 
     try {
-        // Tự động phân biệt tiếng Anh/Việt để đọc câu mẫu
         let sampleText = "Chào bạn, đây là giọng đọc thử. Chúc bạn một ngày tốt lành.";
         if (voiceConfig.apiCode.includes('en_')) {
             sampleText = "Hello! I am your test voice. Have a wonderful day.";
         }
 
-        // Tận dụng trạm trung chuyển Cloudflare cực xịn của bạn
         const mp3Buffer = await fetchAudioFromCloudflare(sampleText, voiceConfig, "+0", "+0");
 
         if (mp3Buffer && mp3Buffer.byteLength > 100) {
@@ -1962,7 +1889,6 @@ async function playPreviewVoice(selectId, buttonElement) {
         console.error("Lỗi nghe thử:", error);
         alert("API đang bận, vui lòng chờ vài giây rồi thử lại!");
     } finally {
-        // Trả lại trạng thái bình thường cho nút bấm
         buttonElement.innerHTML = originalBtnHTML;
         buttonElement.disabled = false;
     }
