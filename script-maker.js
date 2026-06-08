@@ -1002,9 +1002,15 @@ if (manualAudioBtn) {
             if (roleTag === 'Giọng Nữ') { selectId = 'voiceFemale'; pitchVal = window.pitchRateFemale || 1.0; }
 
             var dropdown = document.getElementById(selectId);
-            var displayName = dropdown ? dropdown.value.trim() : '';
+            var selectedValue = dropdown ? dropdown.value.trim() : '';
 
-            var found = SCRIPT_TAB_VOICES.find(v => v.n === displayName) || { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+            // SỬA Ở ĐÂY: Tìm chính xác theo Name (n) hoặc API Code
+            var found = SCRIPT_TAB_VOICES.find(v => v.n === selectedValue || v.apiCode === selectedValue);
+            
+            // Nếu không tìm thấy, mặc định là Nam Minh
+            if (!found) {
+                found = { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+            }
 
             // Ép kiểu pitch sang số SSML (VD: +0, -18)
             var percent = Math.round((parseFloat(pitchVal) - 1.0) * 100);
