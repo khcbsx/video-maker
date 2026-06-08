@@ -1704,9 +1704,13 @@ btnStartAudio.addEventListener('click', async function() {
         var totalSegments = segments.length;
         
         // ⚙️ THIẾT LẬP KÍCH THƯỚC KHÚC (CHUNK) CHỐNG TRÀN RAM
-        var CHUNK_SIZE = 40; // Xử lý 40 câu thoại một mẻ nhỏ (~ 3 đến 4 phút audio)
-        var finalMp3Blobs = []; // Mảng cái túi chứa các cục MP3 đã nén
+        var CHUNK_SIZE = 40; 
+        var finalMp3Blobs = []; 
         
+        // 🛡️ LÍNH GÁC BẢO VỆ NHẠC NỀN
+        var lastBgmIndex = -999; // Nhớ vị trí câu thoại chèn nhạc cuối cùng để chống dính
+        if (typeof window.lastAmbientIndex === 'undefined') window.lastAmbientIndex = -1; // Nhớ bài hát cuối cùng để chống lặp
+                        
         // ========================================================
         // BẮT ĐẦU CHIẾN THUẬT "CUỐN CHIẾU" (CHIA ĐỂ TRỊ)
         // ========================================================
@@ -1741,8 +1745,47 @@ btnStartAudio.addEventListener('click', async function() {
                 }
 
                 if (seg.isBgm) {
-                    var file = seg.bgmType === 'theme' ? window.globalThemeFile : 
-                               (window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[Math.floor(Math.random() * window.globalAmbientFiles.length)] : null);
+                    // --- LUẬT 1: NHƯỜNG ĐƯỜNG CHO NHẠC DẠO ---
+                    // Nhìn trước tương lai: Nếu định phát Nhạc Nền, mà thấy 3 câu tới có thẻ Nhạc Dạo -> Bắt buộc tự hủy.
+                    if (seg.bgmType !== 'theme') {
+                        var clashAhead = false;
+                        for (var lookAhead = 1; lookAhead <= 3; lookAhead++) {
+                            if (actualIndex + lookAhead < totalSegments) {
+                                var futureSeg = segments[actualIndex + lookAhead];
+                                if (futureSeg.isBgm && futureSeg.bgmType === 'theme') {
+                                    clashAhead = true; break;
+                                }
+                            }
+                        }
+                        if (clashAhead) continue; // Tự hủy, không kéo Nhạc Nền nữa
+                    }
+
+                    // --- LUẬT 2: CÁCH LY AN TOÀN ---
+                    // Bất kỳ 2 thẻ nhạc nào (dù do kịch bản in lỗi dính sát nhau) cũng phải cách nhau tối thiểu 3 câu thoại.
+                    if (actualIndex - lastBgmIndex < 3) {
+                        continue; // Bỏ qua thẻ này
+                    }
+                    lastBgmIndex = actualIndex;
+
+                    // --- LUẬT 3: RANDOM KHÔNG LẶP LẠI BÀI VỪA HÁT ---
+                    var file = null;
+                    if (seg.bgmType === 'theme') {
+                        file = window.globalThemeFile; // Nhạc dạo thì luôn là bài cố định
+                    } else {
+                        if (window.globalAmbientFiles.length > 0) {
+                            var nextIndex = Math.floor(Math.random() * window.globalAmbientFiles.length);
+                            // Nếu kho nhạc có nhiều hơn 1 bài, bắt vòng lặp chạy đến khi bốc được bài MỚI thì thôi
+                            if (window.globalAmbientFiles.length > 1) {
+                                while (nextIndex === window.lastAmbientIndex) {
+                                    nextIndex = Math.floor(Math.random() * window.globalAmbientFiles.length);
+                                }
+                            }
+                            window.lastAmbientIndex = nextIndex;
+                            file = window.globalAmbientFiles[nextIndex];
+                        }
+                    }
+
+                    // Kéo Audio và đưa lên Timeline
                     if (file) {
                         try {
                             var ab = await readFileToArrayBuffer(file);
