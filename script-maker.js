@@ -1084,6 +1084,9 @@ if (manualAudioBtn) {
             this.innerHTML = originalText;
             this.disabled = false;
         }
+    });
+} 
+
 
 // ==============================================================================
 // HỆ THỐNG HÀNG ĐỢI KỊCH BẢN (SCRIPT QUEUE) - PHỤC VỤ TEST TÁCH CHƯƠNG
