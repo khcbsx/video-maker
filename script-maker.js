@@ -9,11 +9,7 @@ const SCRIPT_TAB_VOICES = [
   { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
   { n: 'Nam Minh (Edge)',         g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
   { n: 'Hoài My (Edge)',          g: 'female', isEdge: true,  apiCode: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
-  
-  // --- NHÓM GIỌNG TIKTOK (TIẾNG VIỆT) ---
-  // (Đã xóa giọng Nam do TikTok không hỗ trợ, chỉ dùng Nữ Review để tránh lỗi 400)
-  { n: 'Nữ Review (TikTok)',      g: 'female', isEdge: false, apiCode: 'vn_020_female',       defaultRate: 1.00 },
-
+    
   // --- NHÓM GIỌNG TIKTOK (TIẾNG ANH CHUẨN) ---
   { n: 'Nữ Mỹ Chuẩn 1 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_001',           defaultRate: 1.00 },
   { n: 'Nữ Mỹ Chuẩn 2 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_002',           defaultRate: 1.00 },
