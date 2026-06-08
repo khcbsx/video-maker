@@ -43,7 +43,12 @@
             <div class="grid-3">
                 <div class="voice-group">
                     <label>Giọng Dẫn truyện:</label>
-                    <select id="voiceNarrator" class="voice-dropdown"></select>
+                    <div style="display: flex; gap: 8px;">
+    <select id="voiceNarrator" class="voice-dropdown" style="flex: 1;"></select>
+    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="playPreviewVoice('voiceNarrator', this)" title="Nghe thử">
+        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
+    </button>
+</div>
                     <div class="pitch-slider-wrap" id="pitch-wrap-voiceNarrator">
                         <div class="pitch-slider-label" id="pitch-label-voiceNarrator">▶ Giọng gốc (1.00)</div>
                         <div class="pitch-slider-row">
@@ -56,7 +61,12 @@
                 </div>
                 <div class="voice-group">
                     <label>Giọng Nam:</label>
-                    <select id="voiceMale" class="voice-dropdown"></select>
+                    <div style="display: flex; gap: 8px;">
+    <select id="voiceMale" class="voice-dropdown" style="flex: 1;"></select>
+    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #3b82f6; color: #3b82f6;" onclick="playPreviewVoice('voiceMale', this)" title="Nghe thử">
+        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
+    </button>
+</div>
                     <div class="pitch-slider-wrap" id="pitch-wrap-voiceMale">
                         <div class="pitch-slider-label" id="pitch-label-voiceMale">▶ Giọng gốc (1.00)</div>
                         <div class="pitch-slider-row">
@@ -69,7 +79,12 @@
                 </div>
                 <div class="voice-group">
                     <label>Giọng Nữ:</label>
-                    <select id="voiceFemale" class="voice-dropdown"></select>
+                    <div style="display: flex; gap: 8px;">
+    <select id="voiceFemale" class="voice-dropdown" style="flex: 1;"></select>
+    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #ec4899; color: #ec4899;" onclick="playPreviewVoice('voiceFemale', this)" title="Nghe thử">
+        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
+    </button>
+</div>
                     <div class="pitch-slider-wrap" id="pitch-wrap-voiceFemale">
                         <div class="pitch-slider-label" id="pitch-label-voiceFemale">▶ Giọng gốc (1.00)</div>
                         <div class="pitch-slider-row">
