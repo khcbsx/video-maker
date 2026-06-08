@@ -6,10 +6,14 @@
 
 // ── CẤU HÌNH GIỌNG ĐỌC MẶC ĐỊNH CHO TAB KỊCH BẢN ──────────────────────────────
 const SCRIPT_TAB_VOICES = [
+  // --- NHÓM GIỌNG EDGE TTS (TIẾNG VIỆT CHUẨN - XỊN NHẤT) ---
   { n: 'Người Dẫn Truyện (Edge)', g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 0.82 },
   { n: 'Nam Minh (Edge)',         g: 'male',   isEdge: true,  apiCode: 'vi-VN-NamMinhNeural', defaultRate: 1.00 },
   { n: 'Hoài My (Edge)',          g: 'female', isEdge: true,  apiCode: 'vi-VN-HoaiMyNeural',  defaultRate: 1.00 },
-    
+  
+  // --- NHÓM GIỌNG GOOGLE (TIẾNG VIỆT MIỄN PHÍ 100%) ---
+  { n: 'Chị Google (Free)',       g: 'female', isEdge: false, apiCode: 'google_vi',           defaultRate: 1.00 },
+
   // --- NHÓM GIỌNG TIKTOK (TIẾNG ANH CHUẨN) ---
   { n: 'Nữ Mỹ Chuẩn 1 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_001',           defaultRate: 1.00 },
   { n: 'Nữ Mỹ Chuẩn 2 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_002',           defaultRate: 1.00 },
