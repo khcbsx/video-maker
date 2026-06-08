@@ -1018,17 +1018,15 @@ if (manualAudioBtn) {
             let audioBlobs = [];
 
             // 1. Kiểm tra nhanh xem toàn bộ kịch bản có phải là văn bản thuần không
-            // Nếu không có bất kỳ dấu '[' nào trong toàn bộ văn bản
             const isPlainText = !scriptText.includes('[');
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 
-                // Bỏ qua dòng trống và nhạc nền
+                // Bỏ qua dòng trống và nhạc nền (Thủ công chỉ cần test giọng đọc)
                 if (!line || line.startsWith('[BGM:')) continue; 
 
                 // 2. TỰ ĐỘNG GẮN THẺ NẾU LÀ VĂN BẢN THUẦN HOẶC DÒNG THIẾU THẺ
-                // Nếu toàn bộ văn bản không có thẻ, hoặc dòng hiện tại không bắt đầu bằng '['
                 if (isPlainText || !line.startsWith('[')) {
                     line = `[Người Dẫn Truyện]: ${line}`;
                 }
@@ -1042,7 +1040,7 @@ if (manualAudioBtn) {
                     // Lấy cấu hình giọng tương ứng với Tag (Dẫn Truyện, Giọng Nam, Giọng Nữ)
                     let voiceInfo = getVoiceConfig(parsed.voice); 
                     
-                    // Gọi trạm Cloudflare
+                    // Gọi trạm Cloudflare (Dùng hàm fetchAudioFromCloudflare cũ của bạn)
                     let arrayBuffer = await fetchAudioFromCloudflare(parsed.text, voiceInfo.config, voiceInfo.pitch, "+0");
 
                     // Nếu lấy được file MP3, nhét vào mảng chờ
@@ -1053,7 +1051,7 @@ if (manualAudioBtn) {
             }
 
             if (audioBlobs.length === 0) {
-                showToast("error", "Không tạo được dữ liệu âm thanh nào! Thử tải lại trang.");
+                showToast("error", "Không tạo được dữ liệu âm thanh nào! Kiểm tra lại định dạng thẻ.");
                 this.innerHTML = originalText;
                 this.disabled = false;
                 return;
@@ -1061,7 +1059,7 @@ if (manualAudioBtn) {
 
             this.innerHTML = "⏳ Đang gộp file...";
 
-            // Nối trực tiếp các cục MP3
+            // Nối trực tiếp các cục MP3 lại với nhau thành 1 file MP3 dài duy nhất
             const finalMergedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
             const finalAudioUrl = URL.createObjectURL(finalMergedBlob);
 
@@ -1069,13 +1067,13 @@ if (manualAudioBtn) {
             audioPlayer.src = finalAudioUrl;
             downloadBtn.href = finalAudioUrl;
 
-            // Tạo tên file
+            // Tạo tên file có ngày giờ để không bị lưu đè
             const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
             downloadBtn.download = `Audio_ThuCong_${dateStr}.mp3`;
 
             // Bật sáng khu vực kết quả lên
             resultDiv.style.display = "block";
-            showToast("success", "Tạo audio hoàn tất!");
+            showToast("success", "Tạo audio thủ công hoàn tất! Bấm nút Play để nghe thử.");
 
         } catch (error) {
             console.error(error);
@@ -1085,7 +1083,7 @@ if (manualAudioBtn) {
             this.disabled = false;
         }
     });
-} 
+}
 
 
 // ==============================================================================
