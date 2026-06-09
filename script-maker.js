@@ -2456,6 +2456,16 @@ async function exportTimestampTxtFiles(timestampLog, runningTime, taskId) {
 
     // ── HEADER GENSPARK (FULL) ──
     var headerGenspark = [
+      '-------------------------------------------------------',
+        'Read this TXT file carefully. For each [IMAGE PROMPT] ',
+        'belonging to [Dẫn Truyện], generate an image ',
+        'using GPT Image 2, then immediately save it to AI Drive ',
+        'with the EXACT filename from the [FILE:] tag below it.',
+        'Do NOT use Export button — save directly to Drive.',
+        '',
+        'Process all scenes one by one in order.',
+        'Confirm each save before moving to next scene.',
+        '-------------------------------------------------------',
         SEP80,
         'NHIỆM VỤ: Viết IMAGE PROMPT tiếng Anh cho từng cảnh [Dẫn Truyện] trong file TXT',
         'DÀNH CHO: Genspark AI Agent — model [MODEL:gpt-image-1]',
