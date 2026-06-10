@@ -869,13 +869,13 @@ async function checkPauseCancel() {
    ===================================================================== */
 
 // 1. HÀM PHÂN TÍCH KỊCH BẢN AUTO (Trích xuất Prompt tạo ảnh)
+// 1. HÀM PHÂN TÍCH KỊCH BẢN AUTO (Phiên bản cực kỳ thông minh)
 function parseAutoScenes(txt) {
   var scenes = [];
   var lines = txt.split('\n');
   
   var currentStartTime = null;
   var currentDuration = null;
-  var currentPrompt = null;
   
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
@@ -894,41 +894,37 @@ function parseAutoScenes(txt) {
       if (oldDurationMatch) currentDuration = parseFloat(oldDurationMatch[1]);
     }
 
-    // B. Bắt Prompt Ảnh (Dọn dẹp sạch thẻ ngoặc vuông)
+    // B. Bắt Prompt Ảnh và Xử lý NGAY LẬP TỨC
     if (line.includes('[IMAGE PROMPT:')) {
+      // Dọn dẹp thẻ mở và đóng
       var p = line.replace('[IMAGE PROMPT:', '').trim();
       if (p.endsWith(']')) p = p.slice(0, -1);
-      // Xóa các thẻ [MODEL:flux] hay [MODEL:flux-realism] để URL sạch
-      p = p.replace(/\[MODEL:[^\]]+\]/g, '').trim();
-      currentPrompt = p;
-    }
-
-    // C. Bắt tên file và đóng gói
-    var fileMatch = line.match(/\[FILE:\s*(scene_[\d.]+s\.(?:jpg|jpeg|png|webp))\s*\]/i);
-    if (fileMatch) {
-      var fileName = fileMatch[1];
       
-      if (currentStartTime === null) {
-        var fnTimeMatch = fileName.match(/scene_([\d.]+)s\./i);
-        if (fnTimeMatch) currentStartTime = parseFloat(fnTimeMatch[1]);
-      }
+      // Xóa thẻ [MODEL:...] để không làm API Pollinations bị lỗi
+      p = p.replace(/\[MODEL:[^\]]+\]/g, '').trim();
+      
+      if (currentStartTime !== null && p !== 'CHƯA TẠO') {
+        
+        // TỰ ĐỘNG CHẾ TẠO TÊN FILE ẢO TỪ START TIME
+        var timeParts = currentStartTime.toFixed(3).split('.');
+        var secPadded = timeParts[0].padStart(5, '0');
+        var virtualFileName = 'scene_' + secPadded + '.' + (timeParts[1] || '000') + 's.jpg';
 
-      if (currentStartTime !== null && currentPrompt) {
         scenes.push({
-          fileName: fileName,
+          fileName: virtualFileName,
           startTime: currentStartTime,
           duration: currentDuration,
-          prompt: currentPrompt
+          prompt: p
         });
+        
+        // Reset biến để chờ cảnh tiếp theo
+        currentStartTime = null;
+        currentDuration = null;
       }
-      
-      // Reset biến chờ khối tiếp theo
-      currentStartTime = null;
-      currentDuration = null;
-      currentPrompt = null;
     }
   }
 
+  // Sắp xếp và bù trừ thời lượng
   scenes.sort(function (a, b) { return a.startTime - b.startTime; });
   for (var k = 0; k < scenes.length; k++) {
     if (scenes[k].duration === null || scenes[k].duration <= 0) {
