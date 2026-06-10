@@ -943,8 +943,9 @@ async function fetchPollinationImage(promptText) {
   // Sinh số ngẫu nhiên để Pollinations không trả về ảnh cũ (cache)
   var seed = Math.floor(Math.random() * 1000000);
   
-  // Nối link API chuẩn
-  var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&nologo=true&seed=" + seed;
+  // ĐÃ SỬA: Bỏ tham số nologo=true để tránh lỗi 402 Payment Required
+  // Thêm model=flux để đảm bảo AI dùng đúng engine xịn nhất
+  var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&model=flux&seed=" + seed;
   
   try {
     var response = await fetch(url);
