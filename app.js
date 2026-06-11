@@ -999,27 +999,30 @@ function parseAutoScenes(txt) {
 async function fetchPollinationImage(prompt, model) {
   model = model || 'flux-schnell'; // Đổi theo Web UI
   
+  // ĐÃ SỬA: Xóa bỏ &enhance=true&nologo=true
   var url = 'https://image.pollinations.ai/prompt/' +
     encodeURIComponent(prompt) +
-    '?width=1920&height=1080&enhance=true&nologo=true&model=' + encodeURIComponent(model) +
+    '?width=1920&height=1080&model=' + encodeURIComponent(model) +
     '&seed=' + Math.floor(Math.random() * 999999);
 
-  // Giữ nguyên vòng lặp retry 3 lần y hệt code cũ của bạn
+  // Vòng lặp retry 3 lần
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
       var ctrl = new AbortController();
-      var timer = setTimeout(function(){ ctrl.abort(); }, 90000);
+      var timer = setTimeout(function(){ ctrl.abort(); }, 90000); // Chờ tối đa 90s
+      
       var resp = await fetch(url, { signal: ctrl.signal });
       clearTimeout(timer);
+      
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var blob = await resp.blob();
       
-      // Dùng hàm imgFileToJpeg có sẵn của bạn để ép thành Uint8Array cho FFmpeg
+      // Dùng hàm imgFileToJpeg có sẵn để ép thành Uint8Array cho FFmpeg
       return await imgFileToJpeg(blob); 
     } catch(e) {
       if (attempt === 2) throw e;
-      console.warn("Thử lại lần " + (attempt + 1) + " do lỗi mạng...");
-      await sleep(3000);
+      console.warn("Thử lại lần " + (attempt + 1) + " do lỗi mạng hoặc máy chủ bận...");
+      await sleep(3000); // Nghỉ 3 giây trước khi thử lại
     }
   }
 }
