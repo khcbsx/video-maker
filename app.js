@@ -865,7 +865,7 @@ async function checkPauseCancel() {
 }
 
 /* ==============================================================================
-   TAB AUTO AI: TỰ ĐỘNG LẤY ẢNH POLLINATIONS VÀ RENDER MP4 (BẢN VƯỢT RÀO 402/404)
+   TAB AUTO AI (SỬ DỤNG LẠI LOGIC CŨ KẾT HỢP FLUX SCHNELL)
    ============================================================================== */
 
 async function startAuto() {
@@ -874,7 +874,6 @@ async function startAuto() {
     showProgress('Đang khởi tạo Tab Auto AI...');
     APP.segments = [];
 
-    // 1. Đọc kịch bản
     var txtContent = await APP.autoTxt.text();
     var scenes = parseAutoScenes(txtContent);
     if (scenes.length === 0) throw new Error('Không tìm thấy [IMAGE PROMPT] hợp lệ trong TXT!');
@@ -885,7 +884,6 @@ async function startAuto() {
     var audioDuration = await getAudioDuration(APP.autoMp3);
     APP.audioDuration = audioDuration;
 
-    // 2. Kéo ảnh từ Pollinations (Có Sleep 3s chống Spam)
     var imgMap = {};
     for (var i = 0; i < scenes.length; i++) {
       var sc = scenes[i];
@@ -893,31 +891,29 @@ async function startAuto() {
       setProgressPct(10 + (i / scenes.length) * 60);
       
       try {
+        // GỌI HÀM API THEO PHONG CÁCH APP.JS CŨ
         var data = await fetchPollinationImage(sc.prompt, sc.model);
-        if (!data) throw new Error('Máy chủ chặn hoặc rớt mạng');
+        if (!data) throw new Error('Không thể tải ảnh sau 3 lần thử');
         
         imgMap[sc.fileName] = data;
         addLog('  ✅ Cảnh ' + (i+1) + ' xong', 'log-ok');
       } catch(e) {
         addLog('  ⚠ Cảnh ' + (i+1) + ' lỗi: ' + e.message, 'log-warn');
       }
-      
-      // Nghỉ 3 giây để tránh lỗi 429 Too Many Requests
-      await sleep(3000); 
+      // Dù thành công hay thất bại cũng nên nghỉ 1 nhịp ngắn
+      await sleep(1500); 
     }
 
     setProgressPct(70);
     addLog('⚙ Load FFmpeg...', '');
     var ff = await getFF();
 
-    // 3. Xây dựng Timeline
     var timeline = buildFullTimeline(scenes.filter(function(s){ return imgMap[s.fileName]; }), audioDuration);
     var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
     APP.segments = segs.map(function(s,idx){ return Object.assign({},s,{idx:idx,blobUrl:null,size:0,status:'pending'}); });
     renderSegmentCards();
     document.getElementById('segments-area').style.display = 'block';
 
-    // 4. Render từng đoạn
     for (var si = 0; si < APP.segments.length; si++) {
       var seg = APP.segments[si];
       var segTimeline = filterTimelineForSeg(timeline, seg.start, seg.end, imgMap);
@@ -948,11 +944,10 @@ async function startAuto() {
   }
 }
 
-/* ============ PARSE AUTO SCENES (Đã nâng cấp) ============ */
+/* ============ PARSE AUTO SCENES (Giữ nguyên thuật toán quét Dẫn Truyện) ============ */
 function parseAutoScenes(txt) {
   var scenes = [];
   var lines = txt.split('\n');
-  
   var currentStartTime = null;
   var currentDuration = null;
   
@@ -960,44 +955,32 @@ function parseAutoScenes(txt) {
     var line = lines[i].trim();
     if (!line) continue;
 
-    // A. Bắt thời gian
     var timeMatch = line.match(/duration:\s*([\d.]+)s[\s\S]*startTime:\s*([\d.]+)s/i);
     var oldStartTimeMatch = line.match(/startTime:\s*([\d.]+)s/i);
     var oldDurationMatch = line.match(/→\s*([\d.]+)s\s*→/i);
 
     if (timeMatch) {
-      currentDuration = parseFloat(timeMatch[1]);
-      currentStartTime = parseFloat(timeMatch[2]);
+      currentDuration = parseFloat(timeMatch[1]); currentStartTime = parseFloat(timeMatch[2]);
     } else {
       if (oldStartTimeMatch) currentStartTime = parseFloat(oldStartTimeMatch[1]);
       if (oldDurationMatch) currentDuration = parseFloat(oldDurationMatch[1]);
     }
 
-    // B. Bắt Image Prompt (Dùng substring cắt chữ chính xác tuyệt đối)
     var promptIdx = line.indexOf('[IMAGE PROMPT:');
     if (promptIdx !== -1) {
       var prompt = line.substring(promptIdx + 14).trim();
-      
-      // Xóa dấu ] ở cuối câu nếu có
       if (prompt.endsWith(']')) prompt = prompt.slice(0, -1).trim();
-      
-      // Cạo sạch sẽ mọi thể loại thẻ [MODEL:...]
       prompt = prompt.replace(/\[MODEL:[^\]]+\]/gi, '').trim();
-      
-      // Đề phòng dính chữ [Dẫn Truyện]
       prompt = prompt.replace(/\[Người Dẫn Truyện\]:?\s*/gi, '').replace(/\[Dẫn Truyện\]:?\s*/gi, '').trim();
 
-      // Cắt ngắn nếu Prompt quá dài (chống lỗi 404 URL Too Long)
-      if (prompt.length > 1500) prompt = prompt.substring(0, 1500);
-
-      // Đóng gói nếu hợp lệ
       if (currentStartTime !== null && prompt !== 'CHƯA TẠO' && prompt.length > 5) {
         var timeParts = currentStartTime.toFixed(3).split('.');
         var secPadded = timeParts[0].padStart(5, '0');
         var virtualFileName = 'scene_' + secPadded + '.' + (timeParts[1] || '000') + 's.jpg';
-
-        scenes.push({ prompt: prompt, startTime: currentStartTime, duration: currentDuration, fileName: virtualFileName });
-        currentStartTime = null; currentDuration = null; // Reset
+        
+        // Cố định dùng model flux-schnell theo phát hiện của bạn
+        scenes.push({ prompt: prompt, model: 'flux-schnell', startTime: currentStartTime, duration: currentDuration, fileName: virtualFileName });
+        currentStartTime = null; currentDuration = null;
       }
     }
   }
@@ -1012,86 +995,31 @@ function parseAutoScenes(txt) {
   return scenes;
 }
 
-/* ============ 2. GỌI API BẰNG IFRAME SANDBOX (TUYỆT CHIÊU CUỐI CÙNG) ============ */
-async function fetchPollinationImage(promptText) {
-  return new Promise((resolve) => {
-    // 1. Chuẩn bị Prompt
-    var cleanPrompt = promptText;
-    if (cleanPrompt.length > 1500) cleanPrompt = cleanPrompt.substring(0, 1500);
-    var encodedPrompt = encodeURIComponent(cleanPrompt);
-    var seed = Math.floor(Math.random() * 999999);
-    
-    // Tạo URL chuẩn
-    var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&seed=" + seed;
+/* ============ GỌI API (Y HỆT BẢN APP.JS CŨ CỦA BẠN, ĐỔI FLUX-SCHNELL) ============ */
+async function fetchPollinationImage(prompt, model) {
+  model = model || 'flux-schnell'; // Đổi theo Web UI
+  
+  var url = 'https://image.pollinations.ai/prompt/' +
+    encodeURIComponent(prompt) +
+    '?width=1920&height=1080&enhance=true&nologo=true&model=' + encodeURIComponent(model) +
+    '&seed=' + Math.floor(Math.random() * 999999);
 
-    // 2. Tạo một Iframe ẩn (như một tab trình duyệt thu nhỏ)
-    var iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    
-    // 3. Chuẩn bị một bức thư HTML để nhét vào Iframe
-    // Bức thư này chứa một thẻ <img> và sẽ tự động báo cáo lên App khi ảnh tải xong
-    var htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Image Loader</title>
-      </head>
-      <body>
-        <img id="myImg" crossorigin="anonymous" src="${url}">
-        <script>
-          var img = document.getElementById('myImg');
-          img.onload = function() {
-            var canvas = document.createElement('canvas');
-            canvas.width = 1920;
-            canvas.height = 1080;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            // Ép ảnh thành chuỗi Base64
-            var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            
-            // Gửi chuỗi Base64 ra ngoài cho App
-            window.parent.postMessage({ type: 'img_loaded', dataUrl: dataUrl }, '*');
-          };
-          img.onerror = function() {
-            window.parent.postMessage({ type: 'img_error' }, '*');
-          };
-        </script>
-      </body>
-      </html>
-    `;
-
-    // 4. Lắng nghe tin báo từ Iframe
-    var messageHandler = function(event) {
-      if (event.source !== iframe.contentWindow) return; // Chỉ nghe tin từ Iframe của mình
+  // Giữ nguyên vòng lặp retry 3 lần y hệt code cũ của bạn
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, 90000);
+      var resp = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var blob = await resp.blob();
       
-      window.removeEventListener('message', messageHandler); // Hủy lắng nghe
-      document.body.removeChild(iframe); // Dọn dẹp Iframe
-      
-      if (event.data.type === 'img_loaded') {
-        // Biến chuỗi Base64 thành dữ liệu nhị phân (Uint8Array) cho FFmpeg
-        var base64 = event.data.dataUrl.split(',')[1];
-        var binary = atob(base64);
-        var bytes = new Uint8Array(binary.length);
-        for (var b = 0; b < binary.length; b++) {
-          bytes[b] = binary.charCodeAt(b);
-        }
-        resolve(bytes);
-      } else {
-        console.error("Iframe báo lỗi không tải được ảnh.");
-        resolve(null);
-      }
-    };
-
-    window.addEventListener('message', messageHandler);
-
-    // 5. Bơm bức thư HTML vào Iframe và gắn Iframe vào App
-    document.body.appendChild(iframe);
-    iframe.contentWindow.document.open();
-    iframe.contentWindow.document.write(htmlContent);
-    iframe.contentWindow.document.close();
-  });
+      // Dùng hàm imgFileToJpeg có sẵn của bạn để ép thành Uint8Array cho FFmpeg
+      return await imgFileToJpeg(blob); 
+    } catch(e) {
+      if (attempt === 2) throw e;
+      console.warn("Thử lại lần " + (attempt + 1) + " do lỗi mạng...");
+      await sleep(3000);
+    }
+  }
 }
