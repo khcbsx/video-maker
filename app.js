@@ -864,12 +864,91 @@ async function checkPauseCancel() {
   while (APP.isPaused) { await new Promise(function(r) { setTimeout(r, 500); }); if (APP.isCancelled) throw new Error("USER_CANCELLED"); }
 }
 
-/* =====================================================================
-   ĐỘNG CƠ AUTO AI (TỰ ĐỘNG KÉO ẢNH POLLINATIONS & RENDER VIDEO)
-   ===================================================================== */
+/* ==============================================================================
+   TAB AUTO AI: TỰ ĐỘNG LẤY ẢNH POLLINATIONS VÀ RENDER MP4 (BẢN VƯỢT RÀO 402/404)
+   ============================================================================== */
 
-// 1. HÀM PHÂN TÍCH KỊCH BẢN AUTO (Trích xuất Prompt tạo ảnh)
-// 1. HÀM PHÂN TÍCH KỊCH BẢN AUTO (Phiên bản cực kỳ thông minh)
+async function startAuto() {
+  try {
+    document.getElementById('btn-auto').disabled = true;
+    showProgress('Đang khởi tạo Tab Auto AI...');
+    APP.segments = [];
+
+    // 1. Đọc kịch bản
+    var txtContent = await APP.autoTxt.text();
+    var scenes = parseAutoScenes(txtContent);
+    if (scenes.length === 0) throw new Error('Không tìm thấy [IMAGE PROMPT] hợp lệ trong TXT!');
+
+    addLog('✅ ' + scenes.length + ' cảnh · Bắt đầu tạo ảnh AI...', 'log-ok');
+    APP.scenes = scenes;
+
+    var audioDuration = await getAudioDuration(APP.autoMp3);
+    APP.audioDuration = audioDuration;
+
+    // 2. Kéo ảnh từ Pollinations (Có Sleep 3s chống Spam)
+    var imgMap = {};
+    for (var i = 0; i < scenes.length; i++) {
+      var sc = scenes[i];
+      addLog('🎨 Tạo ảnh ' + (i+1) + '/' + scenes.length + '...', '');
+      setProgressPct(10 + (i / scenes.length) * 60);
+      
+      try {
+        var data = await fetchPollinationImage(sc.prompt, sc.model);
+        if (!data) throw new Error('Máy chủ chặn hoặc rớt mạng');
+        
+        imgMap[sc.fileName] = data;
+        addLog('  ✅ Cảnh ' + (i+1) + ' xong', 'log-ok');
+      } catch(e) {
+        addLog('  ⚠ Cảnh ' + (i+1) + ' lỗi: ' + e.message, 'log-warn');
+      }
+      
+      // Nghỉ 3 giây để tránh lỗi 429 Too Many Requests
+      await sleep(3000); 
+    }
+
+    setProgressPct(70);
+    addLog('⚙ Load FFmpeg...', '');
+    var ff = await getFF();
+
+    // 3. Xây dựng Timeline
+    var timeline = buildFullTimeline(scenes.filter(function(s){ return imgMap[s.fileName]; }), audioDuration);
+    var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
+    APP.segments = segs.map(function(s,idx){ return Object.assign({},s,{idx:idx,blobUrl:null,size:0,status:'pending'}); });
+    renderSegmentCards();
+    document.getElementById('segments-area').style.display = 'block';
+
+    // 4. Render từng đoạn
+    for (var si = 0; si < APP.segments.length; si++) {
+      var seg = APP.segments[si];
+      var segTimeline = filterTimelineForSeg(timeline, seg.start, seg.end, imgMap);
+      setProgressPct(70 + (si / APP.segments.length) * 28);
+      
+      try {
+        var outData = await renderSegMP4(ff, segTimeline, imgMap, APP.autoMp3, seg.start, seg.end, 'a_' + si);
+        var blob = new Blob([outData], { type: 'video/mp4' });
+        APP.segments[si].blobUrl = URL.createObjectURL(blob);
+        APP.segments[si].size = outData.length;
+        APP.segments[si].status = 'ok';
+        addLog('✅ Đoạn ' + (si+1) + ' xong', 'log-ok');
+      } catch(e) {
+        APP.segments[si].status = 'error';
+        addLog('❌ Đoạn ' + (si+1) + ' lỗi: ' + e.message, 'log-err');
+      }
+      renderSegmentCards();
+    }
+
+    setProgressPct(100);
+    addLog('🎉 Hoàn tất Tab Auto!', 'log-ok');
+
+  } catch(err) {
+    addLog('❌ ' + err.message, 'log-err');
+    console.error(err);
+  } finally {
+    document.getElementById('btn-auto').disabled = false;
+  }
+}
+
+/* ============ PARSE AUTO SCENES (Đã nâng cấp) ============ */
 function parseAutoScenes(txt) {
   var scenes = [];
   var lines = txt.split('\n');
@@ -881,7 +960,7 @@ function parseAutoScenes(txt) {
     var line = lines[i].trim();
     if (!line) continue;
 
-    // A. Bắt thời gian
+    // A. Bắt thời gian từ định dạng mới (hoặc cũ)
     var timeMatch = line.match(/duration:\s*([\d.]+)s[\s\S]*startTime:\s*([\d.]+)s/i);
     var oldStartTimeMatch = line.match(/startTime:\s*([\d.]+)s/i);
     var oldDurationMatch = line.match(/→\s*([\d.]+)s\s*→/i);
@@ -894,70 +973,65 @@ function parseAutoScenes(txt) {
       if (oldDurationMatch) currentDuration = parseFloat(oldDurationMatch[1]);
     }
 
-    // B. Bắt Prompt Ảnh và Xử lý NGAY LẬP TỨC
-    if (line.includes('[IMAGE PROMPT:')) {
-      // Dọn dẹp thẻ mở và đóng
-      var p = line.replace('[IMAGE PROMPT:', '').trim();
-      if (p.endsWith(']')) p = p.slice(0, -1);
+    // B. Bắt Image Prompt
+    var imgMatch = line.match(/\[IMAGE PROMPT:\s*([\s\S]*?)\]/);
+    if (imgMatch) {
+      var prompt = imgMatch[1].trim();
+      var model = 'flux';
       
-      // Xóa thẻ [MODEL:...] để không làm API Pollinations bị lỗi
-      p = p.replace(/\[MODEL:[^\]]+\]/g, '').trim();
-      
-      if (currentStartTime !== null && p !== 'CHƯA TẠO') {
+      // Xóa tag Model khỏi prompt để URL sạch sẽ
+      var modelMatch = prompt.match(/\[MODEL:([\w-]+)\]/i);
+      if (modelMatch) {
+        model = modelMatch[1];
+        prompt = prompt.replace(/\[MODEL:[\w-]+\]/i, '').trim();
+      }
+
+      // Xóa chữ [Dẫn Truyện] hoặc [Người Dẫn Truyện] nếu bị dính vào
+      prompt = prompt.replace(/\[Người Dẫn Truyện\]:?\s*/i, '').replace(/\[Dẫn Truyện\]:?\s*/i, '').trim();
+
+      // Cắt bớt nếu prompt quá dài (Lỗi 404 URL Too Long)
+      if (prompt.length > 1500) prompt = prompt.substring(0, 1500);
+
+      if (currentStartTime !== null && prompt !== 'CHƯA TẠO') {
         
-        // TỰ ĐỘNG CHẾ TẠO TÊN FILE ẢO TỪ START TIME
+        // Tự chế tên file theo mốc thời gian
         var timeParts = currentStartTime.toFixed(3).split('.');
         var secPadded = timeParts[0].padStart(5, '0');
         var virtualFileName = 'scene_' + secPadded + '.' + (timeParts[1] || '000') + 's.jpg';
 
-        scenes.push({
-          fileName: virtualFileName,
-          startTime: currentStartTime,
-          duration: currentDuration,
-          prompt: p
-        });
+        scenes.push({ prompt: prompt, model: model, startTime: currentStartTime, duration: currentDuration, fileName: virtualFileName });
         
-        // Reset biến để chờ cảnh tiếp theo
-        currentStartTime = null;
-        currentDuration = null;
+        currentStartTime = null; currentDuration = null;
       }
     }
   }
-
-  // Sắp xếp và bù trừ thời lượng
-  scenes.sort(function (a, b) { return a.startTime - b.startTime; });
+  
+  scenes.sort(function(a,b){ return a.startTime - b.startTime; });
   for (var k = 0; k < scenes.length; k++) {
     if (scenes[k].duration === null || scenes[k].duration <= 0) {
       if (k + 1 < scenes.length) scenes[k].duration = scenes[k + 1].startTime - scenes[k].startTime;
       else scenes[k].duration = null;
     }
   }
-  
   return scenes;
 }
 
-// 2. HÀM GỌI API POLLINATIONS (Lấy file ảnh JPG nhị phân về RAM)
-async function fetchPollinationImage(promptText) {
+/* ============ GỌI API BẰNG THẺ ẢO TÀNG HÌNH (VƯỢT 402) ============ */
+async function fetchPollinationImage(prompt, model) {
   return new Promise((resolve) => {
-    // 1. Dọn dẹp an toàn: Cắt bớt phần mô tả nếu nó quá dài (để chống lỗi 404 URL Too Long)
-    // Ưu tiên giữ lại các Keyword quan trọng ở đầu và cuối (như NO text, NO watermark)
-    var cleanPrompt = promptText;
-    if (cleanPrompt.length > 1500) {
-        cleanPrompt = cleanPrompt.substring(0, 1500);
-    }
-    
-    var encodedPrompt = encodeURIComponent(cleanPrompt);
-    var seed = Math.floor(Math.random() * 1000000);
-    
-    // 2. Xóa bỏ chữ model=flux để dùng mặc định (Chống lỗi 402)
-    var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&seed=" + seed;
-    
+    model = model || 'flux';
+    // ĐÃ BỎ nologo=true và enhance=true
+    var url = 'https://image.pollinations.ai/prompt/' +
+              encodeURIComponent(prompt) +
+              '?width=1920&height=1080&model=' + encodeURIComponent(model) +
+              '&seed=' + Math.floor(Math.random() * 999999);
+
     var img = new Image();
-    img.crossOrigin = "Anonymous"; 
+    img.crossOrigin = "Anonymous";
     
-    // 🌟 BÍ KÍP VƯỢT RÀO: Xóa sạch danh tính App, giả vờ là người dùng mở tab
+    // Xóa định danh App để lách luật
     img.referrerPolicy = "no-referrer"; 
-    
+
     img.onload = function() {
       var canvas = document.createElement('canvas');
       canvas.width = 1920; canvas.height = 1080;
@@ -967,155 +1041,14 @@ async function fetchPollinationImage(promptText) {
       canvas.toBlob(function(blob) {
         if (!blob) { resolve(null); return; }
         blob.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)));
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.92);
     };
-    
+
     img.onerror = function() {
-      console.error("Vẫn bị chặn hoặc rớt mạng! Lỗi khi tải ảnh ảo từ URL.");
-      resolve(null); // Trả về rỗng để App tự động dùng ảnh cũ đắp vào, không làm sập FFmpeg
+      console.error("Lỗi khi tải ảnh ảo từ Pollinations");
+      resolve(null);
     };
-    
+
     img.src = url;
   });
-}
-// 3. NÚT CHẠY AUTO (Tổng huy động)
-async function startAuto() {
-  try {
-    document.getElementById('btn-auto').disabled = true;
-    
-    if (!APP.autoMp3 || !APP.autoTxt) {
-      alert('Bạn chưa nạp đủ MP3 và TXT Kịch bản cho Tab Auto!');
-      checkAutoReady(); return;
-    }
-
-    var mode = await askRenderMode();
-    if (mode === null) { checkAutoReady(); return; }
-    APP.useKenBurns = mode;
-
-    APP.isCancelled = false;
-    APP.isPaused = false;
-    document.querySelectorAll('.btn-pause-render, .btn-cancel-render').forEach(function(b){ b.disabled = false; }); 
-    
-    var inputMin = parseFloat(document.getElementById('cfg-manual-duration') ? document.getElementById('cfg-manual-duration').value : 10) || 10;
-    APP.segmentDuration = inputMin * 60;
-
-    showProgress('Đang phân tích Kịch bản và Gọi API vẽ ảnh...');
-    addLog('\n========== BẮT ĐẦU AUTO AI ==========', 'log-warn');
-
-    // Reset RAM
-    APP.segments = [];
-    APP.activeSegIdx = -1;
-    document.getElementById('segments-area').style.display = 'none';
-    document.getElementById('segments-grid').innerHTML = '';
-
-    // A. Bóc tách Kịch Bản
-    var txtContent = await APP.autoTxt.text();
-    var scenes = parseAutoScenes(txtContent);
-    if (scenes.length === 0) throw new Error('File TXT không chứa [IMAGE PROMPT] hợp lệ nào!');
-    APP.scenes = scenes;
-
-    // B. Đo MP3
-    var audioDuration = await getAudioDuration(APP.autoMp3);
-    APP.audioDuration = audioDuration;
-
-    // C. VÒNG LẶP GỌI POLLINATIONS TẠO ẢNH
-    var imgMap = {};
-    addLog(`Đang gửi lệnh vẽ ${scenes.length} bức ảnh lên Pollinations...`, 'log-warn');
-    
-    for (var i = 0; i < scenes.length; i++) {
-      await checkPauseCancel(); // Dừng nếu user bấm Hủy
-      var sc = scenes[i];
-      
-      setProgressPct((i / scenes.length) * 30); // 30% tiến trình là vẽ ảnh
-      addLog(`Đang vẽ ảnh [${i+1}/${scenes.length}]: ${sc.fileName}`, '');
-      
-      var imgData = await fetchPollinationImage(sc.prompt);
-      if (!imgData) {
-        throw new Error(`Đường truyền đứt. Không vẽ được ảnh: ${sc.fileName}`);
-      }
-      
-      imgMap[sc.fileName] = imgData; // Nhét thẳng ảnh mới vẽ vào RAM
-      addLog(`✅ Vẽ xong: ${sc.fileName}`, 'log-ok');
-    }
-
-    // D. Dựng Timeline và Nạp FFmpeg
-    var timeline = buildFullTimeline(scenes, audioDuration);
-
-    try { if (APP.ff) APP.ff.exit(); } catch(ex){}
-    APP.ff = null; APP.ffLoaded = false;
-    var ff = await getFF(); 
-
-    // E. Cắt đoạn và chuẩn bị Giao diện Khối
-    var segs = buildSegments(timeline, audioDuration, APP.segmentDuration);
-    APP.segments = segs.map(function(s, idx){
-      var segTimeline = filterTimelineForSeg(timeline, s.start, s.end, imgMap);
-      var thumbUrl = null;
-      if (segTimeline && segTimeline.length > 0) {
-        var firstScene = segTimeline[0];
-        var imgD = imgMap[firstScene.fileName];
-        if (imgD) { var blob = new Blob([imgD], { type: 'image/jpeg' }); thumbUrl = URL.createObjectURL(blob); }
-      }
-      return Object.assign({}, s, { idx: idx, blobUrl: null, size: 0, status: 'pending', thumbUrl: thumbUrl });
-    });
-    renderSegmentCards();
-    document.getElementById('segments-area').style.display = 'block';
-
-    // F. VÒNG LẶP RENDER VIDEO TỪNG ĐOẠN
-    for (var si = 0; si < APP.segments.length; si++) {
-      var seg = APP.segments[si];
-      var segLabel = 'Đoạn ' + (si + 1) + '/' + APP.segments.length;
-      addLog('🎬 Render Video ' + segLabel + '...', '');
-      setProgressPct(30 + (si / APP.segments.length) * 65);
-
-      var segTimeline = filterTimelineForSeg(timeline, seg.start, seg.end, imgMap);
-      var fallbackData = getFallbackImgData(imgMap, scenes, seg.start);
-      segTimeline = segTimeline.map(function(sc){
-        if (!imgMap[sc.fileName] && fallbackData) return Object.assign({}, sc, {fileName: '__fb_' + si});
-        return sc;
-      });
-      if (fallbackData) imgMap['__fb_' + si] = fallbackData;
-
-      try {
-        var outData = await renderSegMP4(ff, segTimeline, imgMap, APP.autoMp3, seg.start, seg.end, 'auto_' + si);
-        var blob = new Blob([outData], { type: 'video/mp4' });
-        if (APP.segments[si]) {
-          APP.segments[si].blobUrl = URL.createObjectURL(blob);
-          APP.segments[si].size = outData.length;
-          APP.segments[si].status = 'ok';
-          addLog('✅ ' + segLabel + ' xong', 'log-ok');
-          renderSegmentCards();
-        }
-      } catch (e) {
-        if (APP.segments[si]) {
-          APP.segments[si].status = 'error';
-          addLog('❌ ' + segLabel + ' LỖI: ' + e.message, 'log-err');
-          renderSegmentCards();
-        }
-        throw e; // Bắn lỗi ra để Hủy cả tiến trình
-      }
-
-      // Xóa FFmpeg sau mỗi đoạn cho nhẹ RAM
-      try { ff.exit(); } catch(ex) {}
-      APP.ff = null; APP.ffLoaded = false;
-      ff = await getFF(); 
-    }
-
-    // G. AUTO DOWNLOAD TẤT CẢ CÁC ĐOẠN
-    setProgressPct(100);
-    addLog(`🎬 Video đã ghép xong! Hệ thống đang tự động tải xuống...`, 'log-warn');
-    downloadFinal("Auto_Pollinations");
-
-    document.getElementById('progress-title').textContent = '✅ Đã hoàn thành Auto AI!';
-    setTimeout(function(){ hideProgress(); }, 5000);
-    
-  } catch (err) {
-    if (err.message === "USER_CANCELLED") {
-      addLog('🛑 Đã Hủy tiến trình!', 'log-err');
-      document.getElementById('progress-title').textContent = 'Đã hủy!';
-    } else {
-      addLog('❌ Lỗi: ' + err.message, 'log-err');
-    }
-  } finally {
-    checkAutoReady();
-  }
 }
