@@ -960,7 +960,7 @@ function parseAutoScenes(txt) {
     var line = lines[i].trim();
     if (!line) continue;
 
-    // A. Bắt thời gian từ định dạng mới (hoặc cũ)
+    // A. Bắt thời gian
     var timeMatch = line.match(/duration:\s*([\d.]+)s[\s\S]*startTime:\s*([\d.]+)s/i);
     var oldStartTimeMatch = line.match(/startTime:\s*([\d.]+)s/i);
     var oldDurationMatch = line.match(/→\s*([\d.]+)s\s*→/i);
@@ -973,35 +973,31 @@ function parseAutoScenes(txt) {
       if (oldDurationMatch) currentDuration = parseFloat(oldDurationMatch[1]);
     }
 
-    // B. Bắt Image Prompt
-    var imgMatch = line.match(/\[IMAGE PROMPT:\s*([\s\S]*?)\]/);
-    if (imgMatch) {
-      var prompt = imgMatch[1].trim();
-      var model = 'flux';
+    // B. Bắt Image Prompt (Dùng substring cắt chữ chính xác tuyệt đối)
+    var promptIdx = line.indexOf('[IMAGE PROMPT:');
+    if (promptIdx !== -1) {
+      var prompt = line.substring(promptIdx + 14).trim();
       
-      // Xóa tag Model khỏi prompt để URL sạch sẽ
-      var modelMatch = prompt.match(/\[MODEL:([\w-]+)\]/i);
-      if (modelMatch) {
-        model = modelMatch[1];
-        prompt = prompt.replace(/\[MODEL:[\w-]+\]/i, '').trim();
-      }
+      // Xóa dấu ] ở cuối câu nếu có
+      if (prompt.endsWith(']')) prompt = prompt.slice(0, -1).trim();
+      
+      // Cạo sạch sẽ mọi thể loại thẻ [MODEL:...]
+      prompt = prompt.replace(/\[MODEL:[^\]]+\]/gi, '').trim();
+      
+      // Đề phòng dính chữ [Dẫn Truyện]
+      prompt = prompt.replace(/\[Người Dẫn Truyện\]:?\s*/gi, '').replace(/\[Dẫn Truyện\]:?\s*/gi, '').trim();
 
-      // Xóa chữ [Dẫn Truyện] hoặc [Người Dẫn Truyện] nếu bị dính vào
-      prompt = prompt.replace(/\[Người Dẫn Truyện\]:?\s*/i, '').replace(/\[Dẫn Truyện\]:?\s*/i, '').trim();
-
-      // Cắt bớt nếu prompt quá dài (Lỗi 404 URL Too Long)
+      // Cắt ngắn nếu Prompt quá dài (chống lỗi 404 URL Too Long)
       if (prompt.length > 1500) prompt = prompt.substring(0, 1500);
 
-      if (currentStartTime !== null && prompt !== 'CHƯA TẠO') {
-        
-        // Tự chế tên file theo mốc thời gian
+      // Đóng gói nếu hợp lệ
+      if (currentStartTime !== null && prompt !== 'CHƯA TẠO' && prompt.length > 5) {
         var timeParts = currentStartTime.toFixed(3).split('.');
         var secPadded = timeParts[0].padStart(5, '0');
         var virtualFileName = 'scene_' + secPadded + '.' + (timeParts[1] || '000') + 's.jpg';
 
-        scenes.push({ prompt: prompt, model: model, startTime: currentStartTime, duration: currentDuration, fileName: virtualFileName });
-        
-        currentStartTime = null; currentDuration = null;
+        scenes.push({ prompt: prompt, startTime: currentStartTime, duration: currentDuration, fileName: virtualFileName });
+        currentStartTime = null; currentDuration = null; // Reset
       }
     }
   }
@@ -1017,38 +1013,30 @@ function parseAutoScenes(txt) {
 }
 
 /* ============ GỌI API BẰNG THẺ ẢO TÀNG HÌNH (VƯỢT 402) ============ */
-async function fetchPollinationImage(prompt, model) {
-  return new Promise((resolve) => {
-    model = model || 'flux';
-    // ĐÃ BỎ nologo=true và enhance=true
-    var url = 'https://image.pollinations.ai/prompt/' +
-              encodeURIComponent(prompt) +
-              '?width=1920&height=1080&model=' + encodeURIComponent(model) +
-              '&seed=' + Math.floor(Math.random() * 999999);
+async function fetchPollinationImage(promptText) {
+  // Sinh URL gốc của Pollinations
+  var encodedPrompt = encodeURIComponent(promptText);
+  var seed = Math.floor(Math.random() * 999999);
+  var originalUrl = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&seed=" + seed;
+  
+  // Danh sách các "Đường hầm Proxy" miễn phí (Dự phòng cho nhau)
+  var proxies = [
+    "https://corsproxy.io/?" + encodeURIComponent(originalUrl),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(originalUrl)
+  ];
 
-    var img = new Image();
-    img.crossOrigin = "Anonymous";
-    
-    // Xóa định danh App để lách luật
-    img.referrerPolicy = "no-referrer"; 
-
-    img.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width = 1920; canvas.height = 1080;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      canvas.toBlob(function(blob) {
-        if (!blob) { resolve(null); return; }
-        blob.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)));
-      }, 'image/jpeg', 0.92);
-    };
-
-    img.onerror = function() {
-      console.error("Lỗi khi tải ảnh ảo từ Pollinations");
-      resolve(null);
-    };
-
-    img.src = url;
-  });
+  // Thử chui qua từng đường hầm, đường nào thông thì lấy ảnh
+  for (var i = 0; i < proxies.length; i++) {
+    try {
+      var response = await fetch(proxies[i]);
+      if (response.ok) {
+        var arrayBuffer = await response.arrayBuffer();
+        return new Uint8Array(arrayBuffer); // Ném dữ liệu nhị phân về cho FFmpeg
+      }
+    } catch (e) {
+      console.warn("Proxy hầm " + (i+1) + " thất bại, đang thử hầm tiếp theo...");
+    }
+  }
+  
+  throw new Error("Bị máy chủ chặn. Vui lòng thử lại sau!");
 }
