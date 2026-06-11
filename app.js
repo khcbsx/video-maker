@@ -1012,31 +1012,86 @@ function parseAutoScenes(txt) {
   return scenes;
 }
 
-/* ============ GỌI API BẰNG THẺ ẢO TÀNG HÌNH (VƯỢT 402) ============ */
+/* ============ 2. GỌI API BẰNG IFRAME SANDBOX (TUYỆT CHIÊU CUỐI CÙNG) ============ */
 async function fetchPollinationImage(promptText) {
-  // Sinh URL gốc của Pollinations
-  var encodedPrompt = encodeURIComponent(promptText);
-  var seed = Math.floor(Math.random() * 999999);
-  var originalUrl = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&seed=" + seed;
-  
-  // Danh sách các "Đường hầm Proxy" miễn phí (Dự phòng cho nhau)
-  var proxies = [
-    "https://corsproxy.io/?" + encodeURIComponent(originalUrl),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(originalUrl)
-  ];
+  return new Promise((resolve) => {
+    // 1. Chuẩn bị Prompt
+    var cleanPrompt = promptText;
+    if (cleanPrompt.length > 1500) cleanPrompt = cleanPrompt.substring(0, 1500);
+    var encodedPrompt = encodeURIComponent(cleanPrompt);
+    var seed = Math.floor(Math.random() * 999999);
+    
+    // Tạo URL chuẩn
+    var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&seed=" + seed;
 
-  // Thử chui qua từng đường hầm, đường nào thông thì lấy ảnh
-  for (var i = 0; i < proxies.length; i++) {
-    try {
-      var response = await fetch(proxies[i]);
-      if (response.ok) {
-        var arrayBuffer = await response.arrayBuffer();
-        return new Uint8Array(arrayBuffer); // Ném dữ liệu nhị phân về cho FFmpeg
+    // 2. Tạo một Iframe ẩn (như một tab trình duyệt thu nhỏ)
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    
+    // 3. Chuẩn bị một bức thư HTML để nhét vào Iframe
+    // Bức thư này chứa một thẻ <img> và sẽ tự động báo cáo lên App khi ảnh tải xong
+    var htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Image Loader</title>
+      </head>
+      <body>
+        <img id="myImg" crossorigin="anonymous" src="${url}">
+        <script>
+          var img = document.getElementById('myImg');
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            canvas.width = 1920;
+            canvas.height = 1080;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Ép ảnh thành chuỗi Base64
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Gửi chuỗi Base64 ra ngoài cho App
+            window.parent.postMessage({ type: 'img_loaded', dataUrl: dataUrl }, '*');
+          };
+          img.onerror = function() {
+            window.parent.postMessage({ type: 'img_error' }, '*');
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    // 4. Lắng nghe tin báo từ Iframe
+    var messageHandler = function(event) {
+      if (event.source !== iframe.contentWindow) return; // Chỉ nghe tin từ Iframe của mình
+      
+      window.removeEventListener('message', messageHandler); // Hủy lắng nghe
+      document.body.removeChild(iframe); // Dọn dẹp Iframe
+      
+      if (event.data.type === 'img_loaded') {
+        // Biến chuỗi Base64 thành dữ liệu nhị phân (Uint8Array) cho FFmpeg
+        var base64 = event.data.dataUrl.split(',')[1];
+        var binary = atob(base64);
+        var bytes = new Uint8Array(binary.length);
+        for (var b = 0; b < binary.length; b++) {
+          bytes[b] = binary.charCodeAt(b);
+        }
+        resolve(bytes);
+      } else {
+        console.error("Iframe báo lỗi không tải được ảnh.");
+        resolve(null);
       }
-    } catch (e) {
-      console.warn("Proxy hầm " + (i+1) + " thất bại, đang thử hầm tiếp theo...");
-    }
-  }
-  
-  throw new Error("Bị máy chủ chặn. Vui lòng thử lại sau!");
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    // 5. Bơm bức thư HTML vào Iframe và gắn Iframe vào App
+    document.body.appendChild(iframe);
+    iframe.contentWindow.document.open();
+    iframe.contentWindow.document.write(htmlContent);
+    iframe.contentWindow.document.close();
+  });
 }
