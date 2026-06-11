@@ -938,27 +938,49 @@ function parseAutoScenes(txt) {
 
 // 2. HÀM GỌI API POLLINATIONS (Lấy file ảnh JPG nhị phân về RAM)
 async function fetchPollinationImage(promptText) {
-  // Đổi dấu cách thành %20 và mã hóa an toàn
-  var encodedPrompt = encodeURIComponent(promptText);
-  // Sinh số ngẫu nhiên để Pollinations không trả về ảnh cũ (cache)
-  var seed = Math.floor(Math.random() * 1000000);
-  
-  // ĐÃ SỬA: Bỏ tham số nologo=true để tránh lỗi 402 Payment Required
-  // Thêm model=flux để đảm bảo AI dùng đúng engine xịn nhất
-  var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&model=flux&seed=" + seed;
-  
-  try {
-    var response = await fetch(url);
-    if (!response.ok) throw new Error("Lỗi mạng API: " + response.status);
+  return new Promise((resolve) => {
+    // Mã hóa text an toàn
+    var encodedPrompt = encodeURIComponent(promptText);
+    var seed = Math.floor(Math.random() * 1000000);
     
-    var arrayBuffer = await response.arrayBuffer();
-    return new Uint8Array(arrayBuffer); // Trả về dạng Buffer để đưa cho FFmpeg
-  } catch (e) {
-    console.error("Lỗi khi kéo ảnh từ Pollinations: ", e);
-    return null;
-  }
+    // Link chuẩn, không dùng nologo để tránh bị đòi tiền
+    var url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=1920&height=1080&model=flux&seed=" + seed;
+    
+    // Tạo một thẻ Ảo (Tàng hình) trên trình duyệt
+    var img = new Image();
+    img.crossOrigin = "Anonymous"; // Xin phép tải ảnh khác tên miền
+    
+    // Khi ảnh ảo được tải xong
+    img.onload = function() {
+      // Đổ ảnh vào một tờ giấy vẽ (Canvas)
+      var canvas = document.createElement('canvas');
+      canvas.width = 1920;
+      canvas.height = 1080;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      // Chuyển bức tranh thành dữ liệu nhị phân đưa cho FFmpeg
+      canvas.toBlob(function(blob) {
+        if (!blob) {
+            resolve(null);
+            return;
+        }
+        blob.arrayBuffer().then(buffer => {
+          resolve(new Uint8Array(buffer));
+        });
+      }, 'image/jpeg', 0.9);
+    };
+    
+    // Nếu rớt mạng hoặc máy chủ bận
+    img.onerror = function() {
+      console.error("Lỗi khi tải ảnh ảo từ: ", url);
+      resolve(null); // Trả về null, App sẽ lấy ảnh cũ đắp vào chứ không làm sập cả mẻ video
+    };
+    
+    // KÍCH HOẠT TẢI: Nhét link vào thẻ ảo
+    img.src = url;
+  });
 }
-
 // 3. NÚT CHẠY AUTO (Tổng huy động)
 async function startAuto() {
   try {
