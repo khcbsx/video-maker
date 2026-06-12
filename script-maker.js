@@ -2923,7 +2923,7 @@ async function exportTimestampTxtFiles(timestampLog, runningTime, taskId) {
         'BƯỚC 7 — Upload ảnh + MP3 vào app Video Maker → ghép MP4',
         '',
         'LƯU Ý QUAN TRỌNG:',
-           .  Dòng thoại [Giọng Nam]: / [Giọng Nữ]: GIỮ NGUYÊN 100%, không chỉnh sửa gì',
+        '  •  Dòng thoại [Giọng Nam]: / [Giọng Nữ]: GIỮ NGUYÊN 100%, không chỉnh sửa gì',
         '  • Tài khoản Plus = unlimited image generation (không lo hết lượt)',
         '  • Dùng GPT Image 2 cho chất lượng tốt nhất',
         '  • Nếu Agent hỏi model: chỉ định rõ GPT Image 2',
