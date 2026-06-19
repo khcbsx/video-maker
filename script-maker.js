@@ -1928,13 +1928,34 @@ btnStartAudio.addEventListener('click', async function() {
                                 var audioData = mp3Buffer.slice(0); 
                                 var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
                                 timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
-                                  timestampLog.push({
+                                
+                                // 🌟 BỘ TÍNH TOÁN NHỊP THỞ (SMART PACING)
+                                var pauseDuration = 0.3; // Mặc định nghỉ 0.3s (đọc nhanh vừa phải)
+                                
+                                // 1. Nghỉ sâu (0.8s) nếu cuối câu có dấu chấm lửng (tạo cảm giác suy nghĩ, hồi hộp)
+                                if (cleanText.endsWith('...') || cleanText.endsWith('…')) {
+                                    pauseDuration = 0.8;
+                                } 
+                                // 2. Nghỉ vừa (0.5s) nếu kết thúc một câu trọn vẹn
+                                else if (cleanText.endsWith('.') || cleanText.endsWith('!') || cleanText.endsWith('?')) {
+                                    pauseDuration = 0.5;
+                                }
+
+                                // 3. Nếu là Lời thoại của nhân vật (không phải Dẫn Truyện), cộng thêm 0.2s 
+                                // (Để thính giả có độ trễ nhận diện đây là người khác đang nói)
+                                if (seg.voice !== 'Dẫn Truyện') {
+                                    pauseDuration += 0.2;
+                                }
+
+                                timestampLog.push({
                                     voice: seg.voice,
                                     text: cleanText,
-                                    duration: decodedTts.duration + 0.2,
+                                    duration: decodedTts.duration + pauseDuration,
                                     startTime: globalRunningTime + currentTime
                                 });                              
-                                currentTime += decodedTts.duration + 0.2; 
+                                
+                                // Cập nhật thời gian bằng đúng Nhịp thở vừa tính được
+                                currentTime += decodedTts.duration + pauseDuration; 
                             } catch (e) {}
                         }
                     }
