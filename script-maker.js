@@ -1243,6 +1243,22 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         document.getElementById('status-script-' + batch.id).style.color = '#3b82f6';
         
         var combinedScript = '';
+
+        // 🌟 NÂNG CẤP: TỰ ĐỘNG BẮC KÍNH LÚP TÌM SỐ CHƯƠNG THẬT TRONG VĂN BẢN
+        var firstChapText = globalScriptChapters[batch.from] || "";
+        var lastChapText = globalScriptChapters[batch.to] || "";
+        
+        // Quét tìm chữ "Chương XXX" và bóc lấy số XXX
+        var matchFrom = firstChapText.match(/Chương\s+(\d+)/i);
+        var matchTo = lastChapText.match(/Chương\s+(\d+)/i);
+        
+        // Nếu tìm thấy thì lấy số đó (VD: 501), nếu file lỗi không có thì xài tạm vị trí
+        var realStartChap = matchFrom ? matchFrom[1] : (batch.from + 1);
+        var realEndChap = matchTo ? matchTo[1] : (batch.to + 1);
+        
+        // 🌟 1. CHÈN ĐOẠN MỞ ĐẦU (INTRO) CÓ SỐ CHƯƠNG CHUẨN XÁC
+        combinedScript += '[BGM: Nhạc Dạo]\n';
+        combinedScript += '[Dẫn Truyện]: Chào mừng các bạn đã đến với kênh truyện audio của chúng tôi. Hôm nay, chúng ta sẽ tiếp tục nghe từ Chương ' + realStartChap + '. Chúc các bạn có một buổi nghe truyện thật thư giãn và vui vẻ!\n\n';
         
         // Vòng lặp xử lý từng chương trong mẻ
         for (var c = batch.from; c <= batch.to; c++) {
@@ -1251,8 +1267,12 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
             combinedScript += processedText + '\n\n'; 
         }
 
-        // Tự động tải file dưới dạng .docx chuẩn
-        var fileName = 'KichBan_Tu_Chuong_' + (batch.from + 1) + '_Den_' + (batch.to + 1) + '.docx';
+        // 🌟 2. CHÈN ĐOẠN KẾT THÚC (OUTRO) VÀ BẬT LẠI NHẠC DẠO
+        combinedScript += '[BGM: Nhạc Dạo]\n';
+        combinedScript += '[Dẫn Truyện]: Đến đây là kết thúc Chương ' + realEndChap + ', cũng là chương cuối của phần này. Cảm ơn các bạn đã chú ý lắng nghe. Xin chào và hẹn gặp lại các bạn ở những phần tiếp theo!\n\n';
+
+        // Tự động tải file dưới dạng .docx chuẩn (Tên file cũng lấy số chuẩn luôn)
+        var fileName = 'KichBan_Tu_Chuong_' + realStartChap + '_Den_' + realEndChap + '.docx';
         await downloadDocxFile(fileName, combinedScript);
         
         batch.status = 'Đã xong ✅';
