@@ -1948,8 +1948,12 @@ btnStartAudio.addEventListener('click', async function() {
                 batch.progressText = `Trộn & Nén MP3 Khúc ${currentChunkIndex}... (Chống tràn RAM)`;
                 renderAudioQueue();
 
-                var totalDuration = currentTime + 1; // Cộng dư 1 giây tránh cắt đuôi
-                var sampleRate = 44100; 
+                // 🌟 NÂNG CẤP: NẾU LÀ KHÚC CUỐI CÙNG, ĐỂ NHẠC NGÂN THÊM 10 GIÂY RỒI MỚI TẮT
+                var isLastChunk = (currentChunkIndex === totalChunks);
+                var tailTime = isLastChunk ? 10 : 1; 
+                
+                var totalDuration = currentTime + tailTime; 
+                var sampleRate = 44100;
                 var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
 
                 // 🌟 THÊM MỚI: TÍNH TOÁN ĐIỂM DỪNG (STOP TIME) CHO NHẠC NỀN CHỐNG CHỒNG CHÉO
