@@ -1917,19 +1917,69 @@ btnStartAudio.addEventListener('click', async function() {
                 var sampleRate = 44100; 
                 var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
 
+                // 🌟 THÊM MỚI: TÍNH TOÁN ĐIỂM DỪNG (STOP TIME) CHO NHẠC NỀN CHỐNG CHỒNG CHÉO
+                var bgmItems = timeline.filter(function(t) { return t.isBgm; });
+                // Sắp xếp lại các thẻ nhạc theo đúng thứ tự thời gian xuất hiện
+                bgmItems.sort(function(a, b) { return a.startTime - b.startTime; });
+                
+                for (var b = 0; b < bgmItems.length; b++) {
+                    var currentBgm = bgmItems[b];
+                    var nextBgm = bgmItems[b + 1];
+                    
+                    // Nếu có bài nhạc tiếp theo xuất hiện, bài hiện tại PHẢI DỪNG khi bài mới bắt đầu
+                    if (nextBgm) {
+                        currentBgm.stopTime = nextBgm.startTime;
+                    } else {
+                        // Nếu là bài nhạc cuối cùng, cho phép phát đến hết độ dài của Khúc này
+                        currentBgm.stopTime = totalDuration; 
+                    }
+                }
+
+                // BẮT ĐẦU ĐỔ ÂM THANH VÀO BỘ TRỘN
                 timeline.forEach(item => {
                     var source = offlineCtx.createBufferSource();
                     source.buffer = item.buffer;
 
                     if (item.isBgm) {
                         var gainNode = offlineCtx.createGain();
-                        gainNode.gain.value = window.globalBgmVolume || 0.15; 
+                        var vol = window.globalBgmVolume || 0.15;
+                        var actualDuration = item.buffer.duration;
+                        
+                        // 🌟 XÁC ĐỊNH ĐIỂM KẾT THÚC THỰC TẾ CỦA BÀI NHẠC NÀY
+                        // Nó sẽ dừng lại ở 1 trong 3 trường hợp sớm nhất:
+                        // 1. Tự hết bài (startTime + actualDuration)
+                        // 2. Bị bài nhạc tiếp theo chèn lên (stopTime)
+                        // 3. Bị giới hạn bởi thời gian tối đa của khúc này (totalDuration)
+                        var effectiveEnd = Math.min(
+                            item.startTime + actualDuration, 
+                            item.stopTime || totalDuration,
+                            totalDuration
+                        );
+
+                        // Thiết lập âm lượng chuẩn lúc bắt đầu
+                        gainNode.gain.setValueAtTime(vol, item.startTime);
+                        
+                        // 🌟 KỸ THUẬT FADE-OUT ÁP DỤNG CHO MỌI TRƯỜNG HỢP
+                        // Bắt đầu nhỏ tiếng trước khi kết thúc 2.5 giây
+                        var fadeOutStart = Math.max(item.startTime, effectiveEnd - 2.5); 
+                        
+                        // Giữ nguyên âm lượng đến điểm bắt đầu Fade-out
+                        gainNode.gain.setValueAtTime(vol, fadeOutStart);
+                        // Vuốt mượt mà về 0 tại điểm kết thúc
+                        gainNode.gain.linearRampToValueAtTime(0, effectiveEnd); 
+
                         source.connect(gainNode);
                         gainNode.connect(offlineCtx.destination);
+                        
+                        source.start(item.startTime);
+                        // Ép dừng chính xác tại effectiveEnd để dọn sạch RAM và không bị rác âm thanh
+                        source.stop(effectiveEnd); 
+
                     } else {
+                        // Xử lý Voice (Giọng đọc) bình thường, không Fade-out
                         source.connect(offlineCtx.destination);
+                        source.start(item.startTime);
                     }
-                    source.start(item.startTime);
                 });
 
                 var renderedBuffer = await offlineCtx.startRendering();
@@ -1941,12 +1991,12 @@ btnStartAudio.addEventListener('click', async function() {
                 var mp3ChunkBlob = encodeAudioBufferToMp3(renderedBuffer);
                 finalMp3Blobs.push(mp3ChunkBlob);
                 globalRunningTime += (currentTime + 1);
+                
                 // THAO TÁC CỨU SINH: Dọn sạch rác RAM ngay lập tức!
                 timeline = null;
                 renderedBuffer = null;
                 offlineCtx = null;
             }
-        } // Hết vòng lặp cuốn chiếu (Tất cả các khúc đã được nén)
 
         // ========================================================
         if (isAudioStopped) {
