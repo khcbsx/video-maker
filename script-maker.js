@@ -877,7 +877,7 @@ function resolveVoiceForDialog(contextText, dialogText, voiceMale, voiceFemale) 
 }
 
 // Hàm cốt lõi vận hành luồng phân vai + AUTO RẢI NHẠC NỀN (CHUẨN THẺ VAI TRÒ)
-async function runScriptAutomation(rawText, taskId) {
+async function runScriptAutomation(rawText, taskId, skipBgm) { // 🌟 THÊM BIẾN skipBgm VÀO ĐÂY
     // THAY ĐỔI LỚN NHẤT Ở ĐÂY: Gán chết 3 Thẻ Vai Trò thay vì lấy từ Giao diện
     var voiceNarrator = 'Dẫn Truyện';
     var voiceMale     = 'Giọng Nam';
@@ -890,9 +890,11 @@ async function runScriptAutomation(rawText, taskId) {
     // Bộ đếm chữ để rải nhạc
     var wordCount = 0; 
 
-    // AUTO BGM: Chèn nhạc dạo êm dịu ngay đầu mỗi chương
-    taggedLines.push('[BGM: Nhạc Dạo]');
-    taggedLines.push('');
+    // 🌟 SỬA Ở ĐÂY: Chỉ chèn Nhạc Dạo nếu không bị yêu cầu bỏ qua (skipBgm = false)
+    if (!skipBgm) {
+        taggedLines.push('[BGM: Nhạc Dạo]');
+        taggedLines.push('');
+    }
 
     for (var i = 0; i < lines.length; i++) {
         if (isStopRequested) throw new Error('⛔ Tiến trình đã bị dừng theo lệnh người dùng.');
@@ -1263,7 +1265,12 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         // Vòng lặp xử lý từng chương trong mẻ
         for (var c = batch.from; c <= batch.to; c++) {
             var chapText = globalScriptChapters[c];
-            var processedText = await runScriptAutomation(chapText, null);
+            
+            // 🌟 KIỂM TRA: Nếu là chương ĐẦU TIÊN của mẻ thì báo true để KHÔNG chèn trùng Nhạc Dạo
+            var isFirstInBatch = (c === batch.from); 
+            
+            // Truyền cờ isFirstInBatch vào hàm
+            var processedText = await runScriptAutomation(chapText, null, isFirstInBatch);
             combinedScript += processedText + '\n\n'; 
         }
 
