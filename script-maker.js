@@ -2017,6 +2017,7 @@ btnStartAudio.addEventListener('click', async function() {
                 renderedBuffer = null;
                 offlineCtx = null;
             }
+          }
 
         // ========================================================
         if (isAudioStopped) {
