@@ -1761,6 +1761,177 @@ function parseScriptLine(line) {
     return { isBgm: false, voice: tag, text: text };
 }
 
+// ==============================================================================
+// NÚT NGHE THỬ BẢN NHÁP 3 PHÚT (PREVIEW AUDIO ĐỘC LẬP)
+// ==============================================================================
+var btnPreviewAudio = document.getElementById('btnPreviewAudio');
+if (btnPreviewAudio) {
+    btnPreviewAudio.addEventListener('click', async function() {
+        if (audioQueue.length === 0) {
+            showToast('error', 'Vui lòng thêm ít nhất 1 mẻ vào hàng đợi để nghe thử!');
+            return;
+        }
+
+        var originalText = this.innerHTML;
+        this.innerHTML = '<span class="material-icons" style="animation: spin 1s linear infinite;">sync</span> ĐANG DỰNG BẢN NHÁP...';
+        this.disabled = true;
+
+        document.getElementById('previewAudioContainer').style.display = 'none';
+        if (liveMonitor) liveMonitor.value = 'Đang tiến hành dựng bản nháp 3 phút (Khoảng 30 câu đầu tiên)...\n\n';
+
+        try {
+            // Lấy kịch bản của file ĐẦU TIÊN trong hàng đợi
+            var batch = audioQueue[0];
+            var scriptText = globalAudioScripts[batch.fileIndex].content;
+            var lines = scriptText.split('\n').filter(l => l.trim() !== '');
+            var segments = lines.map(parseScriptLine).filter(s => s !== null);
+
+            // CẮT LẤY ĐÚNG 30 CÂU ĐẦU TIÊN (Để máy tính xử lý siêu nhanh)
+            var previewSegments = segments.slice(0, 30);
+
+            var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            var timeline = [];
+            var currentTime = 0;
+
+            // Hàm SSML
+            function toSSMLPercent(val) {
+                if (!val) return "+0";
+                var percent = Math.round((parseFloat(val) - 1.0) * 100);
+                return percent >= 0 ? "+" + percent : "" + percent;
+            }
+
+            // Đọc UI
+            var uiNameNarrator = document.getElementById('voiceNarrator') ? document.getElementById('voiceNarrator').value.trim() : 'Người Dẫn Truyện (Edge)';
+            var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
+            var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
+
+            function getDynamicVoiceTarget(voiceTag) {
+                function findVoiceConfig(displayName) {
+                    var found = SCRIPT_TAB_VOICES.find(v => v.n === displayName);
+                    return found ? found : { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+                }
+                if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
+                if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
+                if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+                return { config: findVoiceConfig(voiceTag), pitch: "+0" };
+            }
+
+            // KÉO AUDIO CHO 30 CÂU NÀY
+            for (var k = 0; k < previewSegments.length; k++) {
+                var seg = previewSegments[k];
+
+                if (liveMonitor) {
+                    if (seg.isBgm) liveMonitor.value += `\n[BGM: ${seg.bgmType === 'theme' ? 'Nhạc Dạo' : 'Nhạc Trung Tính'}]`;
+                    else liveMonitor.value += `\n[${seg.voice}]: ${seg.text}`;
+                    liveMonitor.scrollTop = liveMonitor.scrollHeight;
+                }
+
+                if (seg.isBgm) {
+                    var file = seg.bgmType === 'theme' ? window.globalThemeFile : (window.globalAmbientFiles && window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[0] : null);
+                    if (file) {
+                        try {
+                            var ab = await readFileToArrayBuffer(file);
+                            var decodedBgm = await tempAudioCtx.decodeAudioData(ab);
+                            timeline.push({ buffer: decodedBgm, startTime: currentTime, isBgm: true });
+                        } catch (e) {}
+                    }
+                } else {
+                    var cleanText = seg.text.trim();
+                    var hasContent = /[a-zA-Z0-9\u00C0-\u1EF9]/.test(cleanText);
+
+                    if (hasContent && cleanText.length >= 2) {
+                        var targetProps = getDynamicVoiceTarget(seg.voice);
+
+                        // 🌟 TÍCH HỢP EPIC MODE ĐỂ TEST NHÁP LUÔN
+                        var isEpicMode = cleanText.match(/^Chương\s+\d+/i) && seg.voice === 'Dẫn Truyện';
+                        var finalPitch = isEpicMode ? "-15%" : targetProps.pitch;
+                        var finalRate = isEpicMode ? "-15%" : "+0%";
+
+                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, finalPitch, finalRate);
+
+                        if (mp3Buffer && mp3Buffer.byteLength > 100) {
+                            try {
+                                var audioData = mp3Buffer.slice(0);
+                                var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
+                                timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
+
+                                // NHỊP THỞ THÔNG MINH
+                                var pauseDuration = 0.3;
+                                if (isEpicMode) pauseDuration = 1.5;
+                                else if (cleanText.endsWith('...') || cleanText.endsWith('…')) pauseDuration = 0.8;
+                                else if (cleanText.endsWith('.') || cleanText.endsWith('!') || cleanText.endsWith('?')) pauseDuration = 0.5;
+
+                                if (seg.voice !== 'Dẫn Truyện') pauseDuration += 0.2;
+
+                                currentTime += decodedTts.duration + pauseDuration;
+                            } catch (e) {}
+                        }
+                    }
+                }
+            }
+
+            // TRỘN AUDIO BẢN NHÁP 
+            if (timeline.length > 0 && currentTime > 0) {
+                var totalDuration = currentTime + 2; // Thêm 2s ngân đuôi cho nháp
+                var sampleRate = 44100;
+                var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
+
+                var bgmItems = timeline.filter(t => t.isBgm);
+                bgmItems.sort((a, b) => a.startTime - b.startTime);
+                for (var b = 0; b < bgmItems.length; b++) {
+                    if (bgmItems[b + 1]) bgmItems[b].stopTime = bgmItems[b + 1].startTime;
+                    else bgmItems[b].stopTime = totalDuration;
+                }
+
+                timeline.forEach(item => {
+                    var source = offlineCtx.createBufferSource();
+                    source.buffer = item.buffer;
+
+                    if (item.isBgm) {
+                        var gainNode = offlineCtx.createGain();
+                        // Ưu tiên đọc âm lượng nhạc từ slider, nếu không có mặc định là 0.15
+                        var volumeSlider = document.getElementById('bgmVolumeSlider');
+                        var vol = volumeSlider ? (parseInt(volumeSlider.value) / 100) : 0.15;
+                        
+                        var effectiveEnd = Math.min(item.startTime + item.buffer.duration, item.stopTime || totalDuration, totalDuration);
+
+                        gainNode.gain.setValueAtTime(vol, item.startTime);
+                        var fadeOutStart = Math.max(item.startTime, effectiveEnd - 2.5);
+                        gainNode.gain.setValueAtTime(vol, fadeOutStart);
+                        gainNode.gain.linearRampToValueAtTime(0, effectiveEnd);
+
+                        source.connect(gainNode);
+                        gainNode.connect(offlineCtx.destination);
+                        source.start(item.startTime);
+                        source.stop(effectiveEnd);
+                    } else {
+                        source.connect(offlineCtx.destination);
+                        source.start(item.startTime);
+                    }
+                });
+
+                var renderedBuffer = await offlineCtx.startRendering();
+                var mp3Blob = encodeAudioBufferToMp3(renderedBuffer);
+                var url = URL.createObjectURL(mp3Blob);
+
+                // Kích hoạt Player
+                var player = document.getElementById('previewAudioPlayer');
+                player.src = url;
+                document.getElementById('previewAudioContainer').style.display = 'flex';
+                
+                showToast('success', 'Đã tải xong bản nháp! Bạn có thể nghe ngay.');
+            }
+
+        } catch (error) {
+            console.error(error);
+            showToast('error', 'Có lỗi xảy ra khi tạo bản nháp!');
+        } finally {
+            this.innerHTML = originalText;
+            this.disabled = false;
+        }
+    });
+}
+
 // ----------------------------------------------------
 // NÚT CHẠY AUDIO CHÍNH THỨC (CƠ CHẾ "CUỐN CHIẾU" CHỐNG TRÀN RAM)
 // ----------------------------------------------------
