@@ -154,16 +154,29 @@
                     <span class="material-icons">headphones</span> Hàng đợi Tạo Audio Tự động
                 </h3>
                 
-                <div id="audioControlGroup" style="display: none; gap: 10px;">
-                    <button id="btnStartAudio" class="btn btn-blue">
-                        <span class="material-icons">play_circle</span> CHẠY TẠO AUDIO
-                    </button>
-                    <button id="btnPauseAudio" class="btn" style="background-color: #f59e0b; color: white; display: none;">
-                        <span class="material-icons">pause_circle</span> TẠM DỪNG
-                    </button>
-                    <button id="btnStopAudio" class="btn" style="background-color: #ef4444; color: white; display: none;">
-                        <span class="material-icons">stop_circle</span> DỪNG LẠI
-                    </button>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                    <div id="audioControlGroup" style="display: none; gap: 10px;">
+                        <button id="btnPreviewAudio" class="btn btn-purple" style="background-color: #8b5cf6;">
+                            <span class="material-icons">headphones</span> NGHE THỬ NHÁP 3 PHÚT
+                        </button>
+                        <button id="btnStartAudio" class="btn btn-blue">
+                            <span class="material-icons">play_circle</span> CHẠY TOÀN BỘ MẺ
+                        </button>
+                        <button id="btnPauseAudio" class="btn" style="background-color: #f59e0b; color: white; display: none;">
+                            <span class="material-icons">pause_circle</span> TẠM DỪNG
+                        </button>
+                        <button id="btnStopAudio" class="btn" style="background-color: #ef4444; color: white; display: none;">
+                            <span class="material-icons">stop_circle</span> DỪNG LẠI
+                        </button>
+                    </div>
+
+                    <div id="previewAudioContainer" style="display: none; width: 100%; padding: 10px; background: rgba(139, 92, 246, 0.1); border: 1px dashed #8b5cf6; border-radius: 8px; align-items: center; gap: 15px;">
+                        <span style="color: #8b5cf6; font-weight: bold; font-size: 13px; white-space: nowrap;">
+                            <span class="material-icons" style="font-size: 16px; vertical-align: bottom;">check_circle</span> Bản nháp:
+                        </span>
+                        <audio id="previewAudioPlayer" controls style="height: 35px; width: 100%; outline: none;"></audio>
+                    </div>
+                </div>
                 </div>
             </div>
             
