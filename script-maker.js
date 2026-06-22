@@ -1268,7 +1268,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         
         // 🌟 1. CHÈN ĐOẠN MỞ ĐẦU (INTRO) CÓ SỐ CHƯƠNG CHUẨN XÁC
         combinedScript += '[BGM: Nhạc Dạo]\n';
-        combinedScript += '[Giọng Nữ]: Chào mừng các bạn đã đến với kênh truyện audio của chúng tôi. Hôm nay, chúng ta sẽ tiếp tục nghe từ Chương ' + realStartChap + '. Chúc các bạn có một buổi nghe truyện thật thư giãn và vui vẻ!\n\n';
+        combinedScript += '[Dẫn Truyện]: Chào mừng các bạn đã đến với kênh truyện audio của chúng tôi. Hôm nay, chúng ta sẽ tiếp tục nghe từ Chương ' + realStartChap + '. Chúc các bạn có một buổi nghe truyện thật thư giãn và vui vẻ!\n\n';
         
         // Vòng lặp xử lý từng chương trong mẻ
         for (var c = batch.from; c <= batch.to; c++) {
@@ -1284,7 +1284,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
 
         // 🌟 2. CHÈN ĐOẠN KẾT THÚC (OUTRO) VÀ BẬT LẠI NHẠC DẠO
         combinedScript += '[BGM: Nhạc Dạo]\n';
-        combinedScript += '[Giọng Nữ]: Đến đây là kết thúc Chương ' + realEndChap + ', cũng là chương cuối của phần này. Cảm ơn các bạn đã chú ý lắng nghe. Xin chào và hẹn gặp lại các bạn ở những phần tiếp theo!\n\n';
+        combinedScript += '[Dẫn Truyện]: Đến đây là kết thúc Chương ' + realEndChap + ', cũng là chương cuối của phần này. Cảm ơn các bạn đã chú ý lắng nghe. Xin chào và hẹn gặp lại các bạn ở những phần tiếp theo!\n\n';
 
         // Tự động tải file dưới dạng .docx chuẩn (Tên file cũng lấy số chuẩn luôn)
         var fileName = 'KichBan_Tu_Chuong_' + realStartChap + '_Den_' + realEndChap + '.docx';
@@ -1921,7 +1921,16 @@ btnStartAudio.addEventListener('click', async function() {
                         // Ánh xạ linh hoạt bằng hàm Bộ định tuyến vừa tạo
                         var targetProps = getDynamicVoiceTarget(seg.voice);
                         
-                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, targetProps.pitch, "+0");
+                        // 🌟 KÍCH HOẠT EPIC MODE (TIÊU ĐỀ CHƯƠNG)
+                        // Quét xem dòng này có bắt đầu bằng "Chương + Số" và do Dẫn Truyện đọc không
+                        var isEpicMode = cleanText.match(/^Chương\s+\d+/i) && seg.voice === 'Dẫn Truyện';
+                        
+                        // Chỉnh thông số: Nếu là Tiêu đề Chương thì trầm giọng (-8%) và đọc chậm lại (-15%)
+                        var finalPitch = isEpicMode ? "-15%" : targetProps.pitch;
+                        var finalRate = isEpicMode ? "-15%" : "+0%";
+
+                        // Truyền thông số đặc biệt này lên Cloudflare
+                        var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, finalPitch, finalRate);
                         
                         if (mp3Buffer && mp3Buffer.byteLength > 100) {
                             try {
@@ -1929,20 +1938,20 @@ btnStartAudio.addEventListener('click', async function() {
                                 var decodedTts = await tempAudioCtx.decodeAudioData(audioData);
                                 timeline.push({ buffer: decodedTts, startTime: currentTime, isBgm: false });
                                 
-                                // 🌟 BỘ TÍNH TOÁN NHỊP THỞ (SMART PACING)
-                                var pauseDuration = 0.3; // Mặc định nghỉ 0.3s (đọc nhanh vừa phải)
+                                // 🌟 BỘ TÍNH TOÁN NHỊP THỞ THÔNG MINH
+                                var pauseDuration = 0.3; // Mặc định nghỉ 0.3s
                                 
-                                // 1. Nghỉ sâu (0.8s) nếu cuối câu có dấu chấm lửng (tạo cảm giác suy nghĩ, hồi hộp)
-                                if (cleanText.endsWith('...') || cleanText.endsWith('…')) {
+                                if (isEpicMode) {
+                                    // BẮT BUỘC NGHỈ 1.5 GIÂY ĐỂ TẠO SỰ HOÀNH TRÁNG CHO NHẠC DẠO ĐÁNH LÊN
+                                    pauseDuration = 1.5; 
+                                }
+                                else if (cleanText.endsWith('...') || cleanText.endsWith('…')) {
                                     pauseDuration = 0.8;
                                 } 
-                                // 2. Nghỉ vừa (0.5s) nếu kết thúc một câu trọn vẹn
                                 else if (cleanText.endsWith('.') || cleanText.endsWith('!') || cleanText.endsWith('?')) {
                                     pauseDuration = 0.5;
                                 }
 
-                                // 3. Nếu là Lời thoại của nhân vật (không phải Dẫn Truyện), cộng thêm 0.2s 
-                                // (Để thính giả có độ trễ nhận diện đây là người khác đang nói)
                                 if (seg.voice !== 'Dẫn Truyện') {
                                     pauseDuration += 0.2;
                                 }
@@ -1954,7 +1963,6 @@ btnStartAudio.addEventListener('click', async function() {
                                     startTime: globalRunningTime + currentTime
                                 });                              
                                 
-                                // Cập nhật thời gian bằng đúng Nhịp thở vừa tính được
                                 currentTime += decodedTts.duration + pauseDuration; 
                             } catch (e) {}
                         }
