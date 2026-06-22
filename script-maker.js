@@ -1844,7 +1844,7 @@ if (btnPreviewAudio) {
 
                         // 🌟 TÍCH HỢP EPIC MODE ĐỂ TEST NHÁP LUÔN
                         var isEpicMode = cleanText.match(/^Chương\s+\d+/i) && seg.voice === 'Dẫn Truyện';
-                        var finalPitch = isEpicMode ? "-15%" : targetProps.pitch;
+                        var finalPitch = isEpicMode ? "-20%" : targetProps.pitch;
                         var finalRate = isEpicMode ? "-15%" : "+0%";
 
                         var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, finalPitch, finalRate);
