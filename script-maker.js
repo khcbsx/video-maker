@@ -1268,7 +1268,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
         
         // 🌟 1. CHÈN ĐOẠN MỞ ĐẦU (INTRO) CÓ SỐ CHƯƠNG CHUẨN XÁC
         combinedScript += '[BGM: Nhạc Dạo]\n';
-        combinedScript += '[Dẫn Truyện]: Chào mừng các bạn đã đến với kênh truyện audio của chúng tôi. Hôm nay, chúng ta sẽ tiếp tục nghe từ Chương ' + realStartChap + '. Chúc các bạn có một buổi nghe truyện thật thư giãn và vui vẻ!\n\n';
+        combinedScript += '[Giọng Nữ]: Chào mừng các bạn đã đến với kênh truyện audio của chúng tôi. Hôm nay, chúng ta sẽ tiếp tục nghe từ Chương ' + realStartChap + '. Chúc các bạn có một buổi nghe truyện thật thư giãn và vui vẻ!\n\n';
         
         // Vòng lặp xử lý từng chương trong mẻ
         for (var c = batch.from; c <= batch.to; c++) {
@@ -1284,7 +1284,7 @@ document.getElementById('btnStartScript').addEventListener('click', async functi
 
         // 🌟 2. CHÈN ĐOẠN KẾT THÚC (OUTRO) VÀ BẬT LẠI NHẠC DẠO
         combinedScript += '[BGM: Nhạc Dạo]\n';
-        combinedScript += '[Dẫn Truyện]: Đến đây là kết thúc Chương ' + realEndChap + ', cũng là chương cuối của phần này. Cảm ơn các bạn đã chú ý lắng nghe. Xin chào và hẹn gặp lại các bạn ở những phần tiếp theo!\n\n';
+        combinedScript += '[Giọng Nữ]: Đến đây là kết thúc Chương ' + realEndChap + ', cũng là chương cuối của phần này. Cảm ơn các bạn đã chú ý lắng nghe. Xin chào và hẹn gặp lại các bạn ở những phần tiếp theo!\n\n';
 
         // Tự động tải file dưới dạng .docx chuẩn (Tên file cũng lấy số chuẩn luôn)
         var fileName = 'KichBan_Tu_Chuong_' + realStartChap + '_Den_' + realEndChap + '.docx';
