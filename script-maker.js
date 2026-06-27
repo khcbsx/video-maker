@@ -1827,7 +1827,19 @@ if (btnPreviewAudio) {
                 }
 
                 if (seg.isBgm) {
-                    var file = seg.bgmType === 'theme' ? window.globalThemeFile : (window.globalAmbientFiles && window.globalAmbientFiles.length > 0 ? window.globalAmbientFiles[0] : null);
+                    var file = null;
+if (seg.bgmType === 'theme') {
+    file = window.globalThemeFile;
+} else if (window.globalAmbientFiles && window.globalAmbientFiles.length > 0) {
+    var previewNextIndex = Math.floor(Math.random() * window.globalAmbientFiles.length);
+    if (window.globalAmbientFiles.length > 1) {
+        while (previewNextIndex === window.lastAmbientIndex) {
+            previewNextIndex = Math.floor(Math.random() * window.globalAmbientFiles.length);
+        }
+    }
+    window.lastAmbientIndex = previewNextIndex;
+    file = window.globalAmbientFiles[previewNextIndex];
+}
                     if (file) {
                         try {
                             var ab = await readFileToArrayBuffer(file);
