@@ -3537,3 +3537,4 @@ setTimeout(function() {
     console.log('   → ImagePrompt_AI_'    + safeId + '.txt');
     console.log('   → Tổng scenes: ' + scenes.length + ' ảnh');
 }, 800);
+}
