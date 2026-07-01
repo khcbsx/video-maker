@@ -3370,176 +3370,170 @@ async function exportTimestampTxtFiles(timestampLog, runningTime, taskId) {
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
-    // HÀM HELPER
-    // ══════════════════════════════════════════════════════════════════════════
+// HÀM HELPER
+// ══════════════════════════════════════════════════════════════════════════
+function isSkipBlock(text) {
+    if (!text) return false;
+    var t = text.toLowerCase();
+    return t.indexOf('chào mừng các bạn đã đến với kênh') >= 0 ||
+           t.indexOf('đến đây là kết thúc chương') >= 0;
+}
 
-    // Kiểm tra block có phải skip không (mở đầu kênh / kết thúc chương)
-    function isSkipBlock(text) {
-        if (!text) return false;
-        var t = text.toLowerCase();
-        return t.indexOf('chào mừng các bạn đã đến với kênh') >= 0 ||
-               t.indexOf('đến đây là kết thúc chương') >= 0;
-    }
+function isNarratorVoice(v) {
+    return (v || '').toLowerCase().indexOf('dẫn truyện') >= 0;
+}
 
-    // Kiểm tra voice
-    function isNarratorVoice(v) {
-        return (v || '').toLowerCase().indexOf('dẫn truyện') >= 0;
-    }
-    function isDialogueVoice(v) {
+function isDialogueVoice(v) {
     var lv = (v || '').toLowerCase();
     return lv === 'giọng nam' || lv === 'giọng nữ';
 }
 
-    // Tạo tên file từ startTime
-    function makeFileName(startTime) {
-        var ts    = startTime.toFixed(3);
-        var parts = ts.split('.');
-        return 'scene_' + parts[0].padStart(5, '0') + '.' + (parts[1] || '000') + 's.jpg';
+function makeFileName(startTime) {
+    var ts    = startTime.toFixed(3);
+    var parts = ts.split('.');
+    return 'scene_' + parts[0].padStart(5, '0') + '.' + (parts[1] || '000') + 's.jpg';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SMART SCENE GROUPING — 30s mềm, 60s cứng, không cắt giữa câu
+// GIỮ NGUYÊN THỨ TỰ: dẫn truyện xen kẽ lời thoại như câu chuyện thật
+// ══════════════════════════════════════════════════════════════════════════
+var SOFT_LIMIT = 30;
+var HARD_LIMIT = 60;
+
+var scenes       = [];
+var currentScene = null;
+
+function flushScene() {
+    // Chỉ lưu scene nếu có ít nhất 1 dòng dẫn truyện thật sự
+    if (currentScene && currentScene.hasNarrator) {
+        scenes.push(currentScene);
+    }
+    currentScene = null;
+}
+
+function newScene(entry) {
+    return {
+        startTime    : entry.startTime,
+        endTime      : entry.startTime + entry.duration,
+        totalDuration: entry.duration,
+        hasNarrator  : true,
+        // ✅ 1 mảng duy nhất — giữ nguyên thứ tự xuất hiện
+        lines        : [ '[Dẫn Truyện]: ' + entry.text ]
+    };
+}
+
+for (let i = 0; i < timestampLog.length; i++) {
+    let entry = timestampLog[i];
+
+    // ── Giọng Nam / Giọng Nữ ──
+    if (isDialogueVoice(entry.voice)) {
+        if (currentScene) {
+            // ✅ Đẩy vào đúng vị trí trong lines — giữ thứ tự tự nhiên
+            currentScene.lines.push('[' + entry.voice + ']: ' + entry.text);
+            currentScene.endTime       = entry.startTime + entry.duration;
+            currentScene.totalDuration = currentScene.endTime - currentScene.startTime;
+        }
+        // Nếu không có scene hiện tại thì bỏ qua — thoại không có dẫn truyện đi kèm
+        continue;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SMART SCENE GROUPING — 30s mềm, 60s cứng, không cắt giữa câu
-    // ══════════════════════════════════════════════════════════════════════════
-    var SOFT_LIMIT = 30;  // giây — cố gắng đóng scene sau khi đạt
-    var HARD_LIMIT = 60;  // giây — buộc đóng scene dù câu chưa xong
+    // ── Không phải Dẫn Truyện → bỏ qua ──
+    if (!isNarratorVoice(entry.voice)) continue;
 
-    var scenes = [];       // mảng các scene đã gom
-    var currentScene = null;
-
-    function flushScene() {
-        if (currentScene && currentScene.narratorLines.length > 0) {
-            scenes.push(currentScene);
-        }
-        currentScene = null;
+    // ── Block SKIP ──
+    if (isSkipBlock(entry.text)) {
+        flushScene();
+        continue;
     }
 
-    function newScene(entry) {
-        return {
-            startTime     : entry.startTime,
-            endTime       : entry.startTime + entry.duration,
-            totalDuration : entry.duration,
-            narratorLines : [entry.text],
-            dialogueLines : []
-        };
-    }
-
-    for (let i = 0; i < timestampLog.length; i++) {
-        let entry = timestampLog[i];
-
-        // ── Giọng Nam / Giọng Nữ: gom vào scene hiện tại nếu đang có ──
-        if (isDialogueVoice(entry.voice)) {
-            if (currentScene) {
-                currentScene.dialogueLines.push('[' + entry.voice + ']: ' + entry.text);
-                currentScene.endTime       = entry.startTime + entry.duration;
-                currentScene.totalDuration = currentScene.endTime - currentScene.startTime;
-            }
-            continue;
-        }
-
-        // ── Không phải Dẫn Truyện → bỏ qua ──
-        if (!isNarratorVoice(entry.voice)) continue;
-
-        // ── Block SKIP (mở đầu/kết thúc kênh) ──
-        if (isSkipBlock(entry.text)) {
-            flushScene(); // đóng scene hiện tại nếu đang gom
-            continue;
-        }
-
-        // ── Dẫn Truyện bình thường ──
-        if (!currentScene) {
-            // Bắt đầu scene mới
+    // ── Dẫn Truyện bình thường ──
+    if (!currentScene) {
+        currentScene = newScene(entry);
+    } else {
+        if (currentScene.totalDuration >= HARD_LIMIT) {
+            // Vượt hard limit → đóng scene cũ, bắt đầu mới
+            flushScene();
+            currentScene = newScene(entry);
+        } else if (currentScene.totalDuration >= SOFT_LIMIT) {
+            // Đạt soft limit → đóng scene cũ, bắt đầu mới
+            flushScene();
             currentScene = newScene(entry);
         } else {
-            let projectedDuration = (entry.startTime + entry.duration) - currentScene.startTime;
-
-            if (currentScene.totalDuration >= HARD_LIMIT) {
-                // Vượt hard limit → đóng scene cũ, bắt đầu scene mới
-                flushScene();
-                currentScene = newScene(entry);
-            } else if (currentScene.totalDuration >= SOFT_LIMIT) {
-                // Đã đạt soft limit → đóng scene cũ SAU KHI câu hiện tại kết thúc
-                flushScene();
-                currentScene = newScene(entry);
-            } else {
-                // Chưa đủ 30s → tiếp tục gom
-                currentScene.narratorLines.push(entry.text);
-                currentScene.endTime       = entry.startTime + entry.duration;
-                currentScene.totalDuration = currentScene.endTime - currentScene.startTime;
-            }
+            // Chưa đủ 30s → gom tiếp vào lines theo đúng thứ tự
+            currentScene.lines.push('[Dẫn Truyện]: ' + entry.text);
+            currentScene.endTime       = entry.startTime + entry.duration;
+            currentScene.totalDuration = currentScene.endTime - currentScene.startTime;
         }
     }
-    flushScene(); // đẩy scene cuối cùng
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // BUILD NỘI DUNG 2 FILE TXT
-    // ══════════════════════════════════════════════════════════════════════════
-    var txtColab = headerColab.slice();
-    var txtAI    = headerAI.slice();
-
-    for (let s = 0; s < scenes.length; s++) {
-        let scene    = scenes[s];
-        let fileName = makeFileName(scene.startTime);
-
-        // ── Dòng metadata ──
-        let sceneHeader = [
-            '[SCENE GROUP]',
-            'startTime: '     + scene.startTime.toFixed(3) + 's',
-            '→ duration: '    + scene.totalDuration.toFixed(3) + 's →',
-            '[IMAGE PROMPT: CHƯA TẠO]',
-            '[FILE: ' + fileName + ']',
-            ''
-        ];
-
-        // ── Dẫn Truyện lines ──
-        let narratorBlock = scene.narratorLines.map(function(line) {
-            return '[Dẫn Truyện]: ' + line;
-        });
-
-        // ── Dialogue lines ──
-        let dialogueBlock = scene.dialogueLines.slice(); // đã có prefix [Giọng Nam]: ...
-
-        // ── Ghép vào cả 2 file ──
-        sceneHeader.forEach(function(l)    { txtColab.push(l); txtAI.push(l); });
-        narratorBlock.forEach(function(l)  { txtColab.push(l); txtAI.push(l); });
-        if (dialogueBlock.length > 0) {
-            dialogueBlock.forEach(function(l) { txtColab.push(l); txtAI.push(l); });
-        }
-        txtColab.push('');
-        txtAI.push('');
-    }
-
-    // ── Footer ──
-    let footer = '=== TỔNG THỜI LƯỢNG: ' + runningTime.toFixed(3) + 's ==='
-               + ' | TỔNG SCENE: ' + scenes.length + ' ảnh ===';
-    txtColab.push(footer);
-    txtAI.push(footer);
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // DOWNLOAD 2 FILE
-    // ══════════════════════════════════════════════════════════════════════════
-    let safeId = (taskId || 'chuong').toString().replace(/[^a-zA-Z0-9_\-]/g, '_');
-
-    function downloadTxt(lines, filename) {
-        let blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
-        let url  = URL.createObjectURL(blob);
-        let a    = document.createElement('a');
-        a.href     = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function() {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 3000);
-    }
-
-    // Download file 1 trước, file 2 sau 800ms để tránh conflict
-    downloadTxt(txtColab, 'ImagePrompt_COLAB_' + safeId + '.txt');
-    setTimeout(function() {
-        downloadTxt(txtAI, 'ImagePrompt_AI_' + safeId + '.txt');
-        console.log('✅ Đã xuất 2 file TXT:');
-        console.log('   → ImagePrompt_COLAB_' + safeId + '.txt  (Animagine XL 3.1 Danbooru tags)');
-        console.log('   → ImagePrompt_AI_'    + safeId + '.txt  (Gemini / Genspark / ChatGPT)');
-        console.log('   → Tổng scenes: ' + scenes.length + ' ảnh');
-    }, 800);
 }
+flushScene();
+
+// ══════════════════════════════════════════════════════════════════════════
+// BUILD NỘI DUNG 2 FILE TXT
+// ══════════════════════════════════════════════════════════════════════════
+var txtColab = headerColab.slice();
+var txtAI    = headerAI.slice();
+
+for (let s = 0; s < scenes.length; s++) {
+    let scene    = scenes[s];
+    let fileName = makeFileName(scene.startTime);
+
+    // ── Header của scene ──
+    txtColab.push('[SCENE GROUP]');
+    txtColab.push('startTime: '  + scene.startTime.toFixed(3) + 's');
+    txtColab.push('→ duration: ' + scene.totalDuration.toFixed(3) + 's →');
+    txtColab.push('[IMAGE PROMPT: CHƯA TẠO]');
+    txtColab.push('[FILE: ' + fileName + ']');
+    txtColab.push('');
+
+    txtAI.push('[SCENE GROUP]');
+    txtAI.push('startTime: '  + scene.startTime.toFixed(3) + 's');
+    txtAI.push('→ duration: ' + scene.totalDuration.toFixed(3) + 's →');
+    txtAI.push('[IMAGE PROMPT: CHƯA TẠO]');
+    txtAI.push('[FILE: ' + fileName + ']');
+    txtAI.push('');
+
+    // ✅ Đẩy lines theo đúng thứ tự tự nhiên — dẫn truyện xen kẽ lời thoại
+    for (let li = 0; li < scene.lines.length; li++) {
+        txtColab.push(scene.lines[li]);
+        txtAI.push(scene.lines[li]);
+    }
+
+    txtColab.push('');
+    txtAI.push('');
+}
+
+// ── Footer ──
+let footer = '=== TỔNG THỜI LƯỢNG: ' + runningTime.toFixed(3) + 's'
+           + ' | TỔNG SCENE: ' + scenes.length + ' ảnh ===';
+txtColab.push(footer);
+txtAI.push(footer);
+
+// ══════════════════════════════════════════════════════════════════════════
+// DOWNLOAD 2 FILE
+// ══════════════════════════════════════════════════════════════════════════
+let safeId = (taskId || 'chuong').toString().replace(/[^a-zA-Z0-9_\-]/g, '_');
+
+function downloadTxt(lines, filename) {
+    let blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+    let url  = URL.createObjectURL(blob);
+    let a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 3000);
+}
+
+downloadTxt(txtColab, 'ImagePrompt_COLAB_' + safeId + '.txt');
+setTimeout(function() {
+    downloadTxt(txtAI, 'ImagePrompt_AI_' + safeId + '.txt');
+    console.log('✅ Đã xuất 2 file TXT:');
+    console.log('   → ImagePrompt_COLAB_' + safeId + '.txt');
+    console.log('   → ImagePrompt_AI_'    + safeId + '.txt');
+    console.log('   → Tổng scenes: ' + scenes.length + ' ảnh');
+}, 800);
