@@ -3398,8 +3398,8 @@ function makeFileName(startTime) {
 // SMART SCENE GROUPING — 30s mềm, 60s cứng, không cắt giữa câu
 // GIỮ NGUYÊN THỨ TỰ: dẫn truyện xen kẽ lời thoại như câu chuyện thật
 // ══════════════════════════════════════════════════════════════════════════
-var SOFT_LIMIT = 30;
-var HARD_LIMIT = 60;
+var SOFT_LIMIT = 20;
+var HARD_LIMIT = 40;
 
 var scenes       = [];
 var currentScene = null;
