@@ -1241,7 +1241,6 @@ window.clearAllScriptQueue = function() {
         showToast('error', 'Hàng đợi kịch bản đang trống!');
         return;
     }
-    if (!confirm('Xóa toàn bộ ' + scriptQueue.length + ' mẻ kịch bản?')) return;
     scriptQueue = [];
     renderScriptQueue();
     showToast('success', 'Đã xóa toàn bộ hàng đợi kịch bản!');
@@ -1744,7 +1743,6 @@ window.clearAllAudioQueue = function() {
         showToast('error', 'Hàng đợi audio đang trống!');
         return;
     }
-    if (!confirm('Xóa toàn bộ ' + audioQueue.length + ' mẻ audio?')) return;
     audioQueue = [];
     renderAudioQueue();
     showToast('success', 'Đã xóa toàn bộ hàng đợi audio!');
