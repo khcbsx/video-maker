@@ -628,6 +628,10 @@ var btnOpen = document.getElementById('btnOpenNameFilter');
 var btnClose = document.getElementById('btnCloseModal');
 var btnSave = document.getElementById('btnSaveTempNames');
 
+// Lưu tên đã phân loại giữa các mẻ (không bị reset khi quét lại)
+window.globalAssignedMaleNames   = new Set();
+window.globalAssignedFemaleNames = new Set();
+
 // Mở Popup
 if (btnOpen) {
     btnOpen.addEventListener('click', function() {
@@ -686,26 +690,41 @@ function extractNamesFromText(rawText) {
         
         // SỰ KIỆN: Kiểm tra xem user đang chọn chế độ nào để xử lý
         tag.addEventListener('click', function() {
-            var mode = document.querySelector('input[name="clickMode"]:checked').value;
-            
-            if (mode === 'copy') {
-                navigator.clipboard.writeText(name).then(() => { showToast('info', 'Đã copy: ' + name); });
-            } 
-            else if (mode === 'male') {
-                var txtMale = document.getElementById('tempMaleNames');
-                if (txtMale.value.trim() === '') txtMale.value = name;
-                else txtMale.value += ', ' + name;
-                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
-            } 
-            else if (mode === 'female') {
-                var txtFemale = document.getElementById('tempFemaleNames');
-                if (txtFemale.value.trim() === '') txtFemale.value = name;
-                else txtFemale.value += ', ' + name;
-                tag.style.display = 'none'; // Ẩn thẻ tên đi cho gọn
-            }
-        });
+    var mode = document.querySelector('input[name="clickMode"]:checked').value;
+    
+    if (mode === 'copy') {
+        navigator.clipboard.writeText(name).then(() => { showToast('info', 'Đã copy: ' + name); });
+    } 
+    else if (mode === 'male') {
+        var txtMale = document.getElementById('tempMaleNames');
+        if (txtMale.value.trim() === '') txtMale.value = name;
+        else txtMale.value += ', ' + name;
+        // Lưu vào Set toàn cục để mẻ sau tự động ẩn
+        window.globalAssignedMaleNames.add(name);
+        window.globalAssignedFemaleNames.delete(name); // Phòng trường hợp đổi ý
+        tag.style.display = 'none';
+    } 
+    else if (mode === 'female') {
+        var txtFemale = document.getElementById('tempFemaleNames');
+        if (txtFemale.value.trim() === '') txtFemale.value = name;
+        else txtFemale.value += ', ' + name;
+        // Lưu vào Set toàn cục để mẻ sau tự động ẩn
+        window.globalAssignedFemaleNames.add(name);
+        window.globalAssignedMaleNames.delete(name); // Phòng trường hợp đổi ý
+        tag.style.display = 'none';
+    }
+});
         
         tagContainer.appendChild(tag);
+    });
+    // ── TỰ ĐỘNG ẨN TÊN ĐÃ PHÂN LOẠI TỪ MẺ TRƯỚC ──
+    tagContainer.querySelectorAll('.name-tag').forEach(function(tagEl) {
+        // Bóc tên thật ra, bỏ phần đếm " (5)" ở cuối
+        var tagName = tagEl.innerText.replace(/\s*\(\d+\)\s*$/, '').trim();
+        if (window.globalAssignedMaleNames.has(tagName) || 
+            window.globalAssignedFemaleNames.has(tagName)) {
+            tagEl.style.display = 'none';
+        }
     });
 }
 
