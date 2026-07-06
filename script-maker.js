@@ -1234,6 +1234,20 @@ window.removeScriptBatch = function(id) {
     renderScriptQueue();
 }
 
+// ── THÊM VÀO ĐÂY ──────────────────────────────────────────────
+// Xóa TOÀN BỘ mẻ hàng đợi Kịch Bản
+window.clearAllScriptQueue = function() {
+    if (scriptQueue.length === 0) {
+        showToast('error', 'Hàng đợi kịch bản đang trống!');
+        return;
+    }
+    if (!confirm('Xóa toàn bộ ' + scriptQueue.length + ' mẻ kịch bản?')) return;
+    scriptQueue = [];
+    renderScriptQueue();
+    showToast('success', 'Đã xóa toàn bộ hàng đợi kịch bản!');
+};
+// ───────────────────────────────────────────────────────────────
+
 // Nút "CHẠY DỰNG KỊCH BẢN" (Tích hợp nạp tên nhân vật & xuất file .docx)
 document.getElementById('btnStartScript').addEventListener('click', async function() {
     this.disabled = true;
@@ -1722,6 +1736,20 @@ window.removeAudioBatch = function(id) {
     audioQueue = audioQueue.filter(function(b) { return b.id !== id; });
     renderAudioQueue();
 }
+
+// ── THÊM VÀO ĐÂY ──────────────────────────────────────────────
+// Xóa TOÀN BỘ mẻ hàng đợi Audio
+window.clearAllAudioQueue = function() {
+    if (audioQueue.length === 0) {
+        showToast('error', 'Hàng đợi audio đang trống!');
+        return;
+    }
+    if (!confirm('Xóa toàn bộ ' + audioQueue.length + ' mẻ audio?')) return;
+    audioQueue = [];
+    renderAudioQueue();
+    showToast('success', 'Đã xóa toàn bộ hàng đợi audio!');
+};
+// ───────────────────────────────────────────────────────────────
 
 // ==============================================================================
 // BỘ MÁY XỬ LÝ ÂM THANH (WEB AUDIO API & LAME.JS)
