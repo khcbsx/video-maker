@@ -2442,7 +2442,7 @@ async function exportTimestampTxtFiles(timestampLog, runningTime, taskId) {
         '  [3] SERIES/SOURCE   : tên bộ truyện — ví dụ: xianxia novel',
         '  [4] CONTENT TAGS    : tất cả mô tả chi tiết (tóc, mắt, trang phục, hành động, bối cảnh, ánh sáng)',
         '  [5] RATING TAG      : safe (BẮT BUỘC — giữ ảnh sạch)',
-        '  [6] QUALITY TAGS    : year 2025, masterpiece, high score, great score, absurdres  ← LUÔN Ở CUỐI',
+        '  [6] QUALITY TAGS    : year 2025, masterpiece, high score, great score, absurdres, detailed face, beautiful detailed eyes, sharp facial features, detailed nose, detailed lips, realistic face  ← LUÔN Ở CUỐI',
         '',
         '⚠️  QUALITY TAGS Ở CUỐI — KHÔNG ĐẶT Ở ĐẦU',
         '    Nếu đặt quality tags ở đầu → artist tags và concept tags không trigger đúng',
