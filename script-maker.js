@@ -1182,11 +1182,24 @@ function renderScriptQueue() {
     if (scriptQueue.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Chưa có mẻ nào. Tải Word và thêm vào hàng đợi.</td></tr>';
         document.getElementById('btnStartScript').style.display = 'none';
+      // Tắt nút Lọc Tên Tất Cả Mẻ
+var btnFilterAll = document.getElementById('btnFilterAllBatches');
+if (btnFilterAll) {
+    btnFilterAll.disabled = true;
+    btnFilterAll.style.opacity = '0.5';
+}
         return;
     }
     
     // Đảm bảo nút Chạy Kịch Bản hiện lên khi có mẻ
     document.getElementById('btnStartScript').style.display = 'flex';
+
+  // Bật nút Lọc Tên Tất Cả Mẻ
+var btnFilterAll = document.getElementById('btnFilterAllBatches');
+if (btnFilterAll) {
+    btnFilterAll.disabled = false;
+    btnFilterAll.style.opacity = '1';
+}
     
     scriptQueue.forEach(function(b, index) {
         var tr = document.createElement('tr');
@@ -1233,6 +1246,40 @@ window.removeScriptBatch = function(id) {
     scriptQueue = scriptQueue.filter(function(b) { return b.id !== id; });
     renderScriptQueue();
 }
+
+// ── THÊM MỚI: Lọc tên TOÀN BỘ mẻ đang có trong hàng đợi ──────────────────
+window.filterAllBatchNames = function() {
+    if (scriptQueue.length === 0) {
+        showToast('error', 'Chưa có mẻ nào trong hàng đợi!');
+        return;
+    }
+
+    // Gom văn bản của TẤT CẢ chương trong tất cả mẻ
+    var allChaptersText = '';
+    var totalChaps = 0;
+    scriptQueue.forEach(function(batch) {
+        var batchText = globalScriptChapters.slice(batch.from, batch.to + 1).join('\n\n');
+        allChaptersText += batchText + '\n\n';
+        totalChaps += (batch.to - batch.from + 1);
+    });
+
+    // Gọi hàm quét tên với toàn bộ văn bản gộp lại
+    if (typeof extractNamesFromText === 'function') {
+        extractNamesFromText(allChaptersText);
+    }
+
+    // Cập nhật tiêu đề popup
+    var modalHeader = document.querySelector('#nameFilterModal h3');
+    if (modalHeader) {
+        modalHeader.innerHTML = '<span class="material-icons">group</span> Tên Toàn Bộ '
+            + scriptQueue.length + ' Mẻ (' + totalChaps + ' chương)';
+    }
+
+    // Mở popup lọc tên
+    document.getElementById('nameFilterModal').classList.add('active');
+    showToast('success', 'Đang quét tên ' + scriptQueue.length + ' mẻ / ' + totalChaps + ' chương...');
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 // ── THÊM VÀO ĐÂY ──────────────────────────────────────────────
 // Xóa TOÀN BỘ mẻ hàng đợi Kịch Bản
