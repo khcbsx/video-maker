@@ -1024,29 +1024,46 @@ if (manualAudioBtn) {
 
         // Hàm nội bộ: Đọc cấu hình giọng từ 3 Dropdown trên giao diện
         function getVoiceConfig(roleTag) {
-            var selectId = 'voiceNarrator';
-            var pitchVal = window.pitchRateNarrator || 0.82;
+    var selectId = 'voiceNarrator';
+    var pitchVal = window.pitchRateNarrator || 0.82;
 
-            if (roleTag === 'Giọng Nam') { selectId = 'voiceMale'; pitchVal = window.pitchRateMale || 1.0; }
-            if (roleTag === 'Giọng Nữ') { selectId = 'voiceFemale'; pitchVal = window.pitchRateFemale || 1.0; }
-
-            var dropdown = document.getElementById(selectId);
-            var selectedValue = dropdown ? dropdown.value.trim() : '';
-
-            // SỬA Ở ĐÂY: Tìm chính xác theo Name (n) hoặc API Code
-            var found = SCRIPT_TAB_VOICES.find(v => v.n === selectedValue || v.apiCode === selectedValue);
-            
-            // Nếu không tìm thấy, mặc định là Nam Minh
-            if (!found) {
-                found = { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
-            }
-
-            // Ép kiểu pitch sang số SSML (VD: +0, -18)
-            var percent = Math.round((parseFloat(pitchVal) - 1.0) * 100);
-            var pitchStr = percent >= 0 ? "+" + percent : "" + percent;
-
-            return { config: found, pitch: pitchStr };
+    if (roleTag === 'Giọng Nam') {
+        var dropdownMale = document.getElementById('voiceMale');
+        var maleVal = dropdownMale ? dropdownMale.value.trim() : '';
+        // Nếu Giọng Nam để trống → fallback về Dẫn Truyện
+        if (maleVal && maleVal !== '' && maleVal !== '-- Không chọn (Trống) --') {
+            selectId = 'voiceMale';
+            pitchVal = window.pitchRateMale || 1.0;
         }
+        // Nếu trống thì giữ nguyên selectId = 'voiceNarrator'
+    }
+
+    if (roleTag === 'Giọng Nữ') {
+        var dropdownFemale = document.getElementById('voiceFemale');
+        var femaleVal = dropdownFemale ? dropdownFemale.value.trim() : '';
+        // Nếu Giọng Nữ để trống → fallback về Dẫn Truyện
+        if (femaleVal && femaleVal !== '' && femaleVal !== '-- Không chọn (Trống) --') {
+            selectId = 'voiceFemale';
+            pitchVal = window.pitchRateFemale || 1.0;
+        }
+        // Nếu trống thì giữ nguyên selectId = 'voiceNarrator'
+    }
+
+    var dropdown = document.getElementById(selectId);
+    var selectedValue = dropdown ? dropdown.value.trim() : '';
+
+    var found = SCRIPT_TAB_VOICES.find(v => v.n === selectedValue || v.apiCode === selectedValue);
+
+    // Nếu vẫn không tìm thấy (Dẫn Truyện cũng trống) → mặc định Nam Minh
+    if (!found) {
+        found = { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
+    }
+
+    var percent = Math.round((parseFloat(pitchVal) - 1.0) * 100);
+    var pitchStr = percent >= 0 ? "+" + percent : "" + percent;
+
+    return { config: found, pitch: pitchStr };
+}
 
         try {
             const lines = scriptText.split('\n');
