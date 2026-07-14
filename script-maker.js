@@ -1103,19 +1103,26 @@ if (manualAudioBtn) {
                     if (arrayBuffer) {
                         audioBlobs.push(new Blob([arrayBuffer]));
                         
-                        // --- MỚI THÊM VÀO: Đo thời lượng và ghi Log ---
-                        let audioData = arrayBuffer.slice(0);
-                        let decodedData = await tempCtx.decodeAudioData(audioData);
-                        let segmentDuration = decodedData.duration;
+                        // --- Đo thời lượng và ghi Log (có fallback nếu decode lỗi) ---
+                    let segmentDuration = 0;
+                    try {
+                    let audioData = arrayBuffer.slice(0);
+                    let decodedData = await tempCtx.decodeAudioData(audioData);
+                    segmentDuration = decodedData.duration;
+                    } catch (decodeErr) {
+                     // Fallback: ước tính ~4 ký tự/giây nếu không decode được
+                    segmentDuration = Math.max(1, parsed.text.length / 4);
+                    console.warn('Fallback duration cho:', parsed.voice, '-', parsed.text.substring(0, 30));
+                    }
 
-                        timestampLog.push({
-                            voice: parsed.voice,
-                            text: parsed.text,
-                            duration: segmentDuration,
-                            startTime: runningTime
-                        });
-                        runningTime += segmentDuration; // Cộng dồn thời gian cho câu tiếp theo
-                        // --------------------------------------------------
+                    timestampLog.push({
+                        voice: parsed.voice,
+                        text: parsed.text,
+                        duration: segmentDuration,
+                        startTime: runningTime
+                    });
+                    runningTime += segmentDuration;
+                    // --------------------------------------------------
                     }
                 }
             }
