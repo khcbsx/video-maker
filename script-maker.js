@@ -14,18 +14,15 @@ const SCRIPT_TAB_VOICES = [
   // --- NHÓM GIỌNG GOOGLE (TIẾNG VIỆT MIỄN PHÍ 100%) ---
   { n: 'Chị Google (Free)',       g: 'female', isEdge: false, apiCode: 'google_vi',           defaultRate: 1.00 },
 
-  // --- NHÓM GIỌNG TIKTOK (TIẾNG ANH CHUẨN) ---
-  { n: 'Nữ Mỹ Chuẩn 1 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_001',           defaultRate: 1.00 },
-  { n: 'Nữ Mỹ Chuẩn 2 (TikTok)',  g: 'female', isEdge: false, apiCode: 'en_us_002',           defaultRate: 1.00 },
-  { n: 'Nam Mỹ Chuẩn (TikTok)',   g: 'male',   isEdge: false, apiCode: 'en_us_006',           defaultRate: 1.00 },
-  { n: 'Nam Narration (TikTok)',  g: 'male',   isEdge: false, apiCode: 'en_male_narration',   defaultRate: 1.00 },
-  { n: 'Nữ Bestie (TikTok)',      g: 'female', isEdge: false, apiCode: 'en_female_richgirl',  defaultRate: 1.00 },
+  // --- NHÓM GIỌNG EDGE TTS TIẾNG ANH MỸ ---
+  { n: 'Jenny - Nữ Mỹ (Edge)',   g: 'female', isEdge: false, apiCode: 'en-US-JennyNeural',    defaultRate: 1.00 },
+  { n: 'Guy - Nam Mỹ (Edge)',    g: 'male',   isEdge: false, apiCode: 'en-US-GuyNeural',      defaultRate: 1.00 },
+  { n: 'Aria - Nữ Mỹ (Edge)',    g: 'female', isEdge: false, apiCode: 'en-US-AriaNeural',     defaultRate: 1.00 },
+  { n: 'Davis - Nam Mỹ (Edge)',  g: 'male',   isEdge: false, apiCode: 'en-US-DavisNeural',    defaultRate: 1.00 },
 
-  // --- NHÓM GIỌNG TIKTOK (HÀI HƯỚC & NHÂN VẬT) ---
-  { n: 'Giọng Siêu Hài (TikTok)', g: 'male',   isEdge: false, apiCode: 'en_male_funny',       defaultRate: 1.00 },
-  { n: 'Sát thủ Ghostface',       g: 'male',   isEdge: false, apiCode: 'en_us_ghostface',     defaultRate: 1.00 },
-  { n: 'Chewbacca (Star Wars)',   g: 'male',   isEdge: false, apiCode: 'en_us_chewbacca',     defaultRate: 1.00 },
-  { n: 'Robot C3PO (Star Wars)',  g: 'male',   isEdge: false, apiCode: 'en_us_c3po',          defaultRate: 1.00 }
+  // --- NHÓM GIỌNG EDGE TTS TIẾNG ANH ANH ---
+  { n: 'Sonia - Nữ Anh (Edge)',  g: 'female', isEdge: false, apiCode: 'en-GB-SoniaNeural',    defaultRate: 1.00 },
+  { n: 'Ryan - Nam Anh (Edge)',  g: 'male',   isEdge: false, apiCode: 'en-GB-RyanNeural',     defaultRate: 1.00 },
 ];
 
 // Biến quản lý trạng thái hệ thống kịch bản
@@ -1515,14 +1512,16 @@ function showToast(type, message) {
 
 // BẠN HÃY DÁN ĐƯỜNG LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY
 const CLOUDFLARE_TTS_URL = 'https://edgeproxy.khcbsx.workers.dev/tts';
-const CLOUDFLARE_TIKTOK_URL = 'https://tiktok-tts-proxy.khcbsx.workers.dev/';
+const CLOUDFLARE_EN_URL  = 'https://tiktok-tts-proxy.khcbsx.workers.dev/';
 
 // Hàm lấy âm thanh (Hỗ trợ định tuyến thông minh: Edge hoặc TikTok)
 async function fetchAudioFromCloudflare(text, voiceConfig, pitchValue, rateValue) {
     if (!text || text.trim() === '') return null;
     
     // Tự động chọn đúng đường link dựa vào cấu hình giọng
-    var targetUrl = voiceConfig.isEdge ? CLOUDFLARE_TTS_URL : CLOUDFLARE_TIKTOK_URL;
+    var targetUrl = voiceConfig.isEdge 
+    ? CLOUDFLARE_TTS_URL   // Worker Nam Minh/Hoài My (tiếng Việt)
+    : CLOUDFLARE_EN_URL;   // Worker mới (Google VI + Edge TTS tiếng Anh)
     
     // Đóng gói dữ liệu gửi đi (TikTok thường không nhận SSML pitch/rate như Edge)
     var payload = {
