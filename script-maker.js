@@ -585,14 +585,37 @@ function updatePitchLabel(id) {
   if (id === 'voiceFemale')   pitchRateFemale = rate;
 }
 
+// THÊM MỚI: Hàm xử lý chữ hiển thị cho thanh Tốc Độ
+function updateSpeedLabel(id) {
+    var slider = document.getElementById('speed-range-' + id);
+    var label = document.getElementById('speed-label-' + id);
+    if (!slider || !label) return;
+    
+    var rate = parseInt(slider.value);
+    var text = '▶ Tốc độ đọc (' + rate + '%)';
+    if (rate <= -20) text = '🐢 Rất chậm (' + rate + '%)';
+    else if (rate < 0) text = '🔉 Chậm (' + rate + '%)';
+    else if (rate > 0 && rate <= 20) text = '🔊 Nhanh (' + rate + '%)';
+    else if (rate > 20) text = '🐇 Rất nhanh (' + rate + '%)';
+    
+    label.textContent = text;
+    
+    // Đồng bộ giá trị vào biến toàn cục
+    if (id === 'voiceNarrator') window.speedRateNarrator = rate;
+    if (id === 'voiceMale')     window.speedRateMale = rate;
+    if (id === 'voiceFemale')   window.speedRateFemale = rate;
+}
+
 // Lắng nghe và thiết lập các sự kiện giao diện
 function bindUIEvents() {
   ['voiceNarrator', 'voiceMale', 'voiceFemale'].forEach(function(id) {
+    // 1. Lắng nghe thanh Trầm Bổng
     var slider = document.getElementById('pitch-range-' + id);
     if (slider) {
       slider.addEventListener('input', function() { updatePitchLabel(id); });
     }
-    var resetBtn = document.querySelector('#pitch-wrap-' + id + ' .pitch-reset-btn');
+    // Sửa class nút reset để không bị trùng
+    var resetBtn = document.querySelector('#pitch-wrap-' + id + ' .pitch-reset-btn:not(.speed-reset-btn)');
     if (resetBtn) {
       resetBtn.addEventListener('click', function() {
         if (slider) {
@@ -600,6 +623,22 @@ function bindUIEvents() {
           updatePitchLabel(id);
         }
       });
+    }
+
+    // 2. Lắng nghe thanh Tốc Độ (MỚI)
+    var speedSlider = document.getElementById('speed-range-' + id);
+    if (speedSlider) {
+        updateSpeedLabel(id); // Cập nhật chữ lúc mới vào web
+        speedSlider.addEventListener('input', function() { updateSpeedLabel(id); });
+    }
+    var speedResetBtn = document.querySelector('#pitch-wrap-' + id + ' .speed-reset-btn');
+    if (speedResetBtn) {
+        speedResetBtn.addEventListener('click', function() {
+            if (speedSlider) {
+                speedSlider.value = 0;
+                updateSpeedLabel(id);
+            }
+        });
     }
   });
 
@@ -1920,15 +1959,22 @@ if (btnPreviewAudio) {
             var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
             var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
 
+            // THÊM MỚI: Hàm đổi số (-15, 20) thành chuỗi SSML (-15%, +20%)
+            function toSpeedSSML(val) {
+                if (!val) return "+0";
+                var speedInt = parseInt(val);
+                return speedInt >= 0 ? "+" + speedInt : "" + speedInt;
+            }
+
             function getDynamicVoiceTarget(voiceTag) {
                 function findVoiceConfig(displayName) {
                     var found = SCRIPT_TAB_VOICES.find(v => v.n === displayName);
                     return found ? found : { isEdge: true, apiCode: 'vi-VN-NamMinhNeural' };
                 }
-                if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
-                if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
-                if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
-                return { config: findVoiceConfig(voiceTag), pitch: "+0" };
+                if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator), rate: toSpeedSSML(window.speedRateNarrator) };
+                if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale), rate: toSpeedSSML(window.speedRateMale) };
+                if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale), rate: toSpeedSSML(window.speedRateFemale) };
+                return { config: findVoiceConfig(voiceTag), pitch: "+0", rate: "+0" };
             }
 
             // KÉO AUDIO CHO 30 CÂU NÀY
@@ -1972,7 +2018,7 @@ if (seg.bgmType === 'theme') {
                         // 🌟 TÍCH HỢP EPIC MODE ĐỂ TEST NHÁP LUÔN
                         var isEpicMode = cleanText.match(/^Chương\s+\d+/i) && seg.voice === 'Dẫn Truyện';
                         var finalPitch = isEpicMode ? "-10" : targetProps.pitch;
-                        var finalRate = isEpicMode ? "-15" : "+0";
+                        var finalRate = isEpicMode ? "-15" : targetProps.rate;
 
                         var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, finalPitch, finalRate);
 
@@ -2088,6 +2134,13 @@ btnStartAudio.addEventListener('click', async function() {
     var uiNameMale     = document.getElementById('voiceMale') ? document.getElementById('voiceMale').value.trim() : 'Nam Minh (Edge)';
     var uiNameFemale   = document.getElementById('voiceFemale') ? document.getElementById('voiceFemale').value.trim() : '';
 
+    // THÊM MỚI: Hàm đổi số (-15, 20) thành chuỗi SSML (-15%, +20%)
+    function toSpeedSSML(val) {
+        if (!val) return "+0";
+        var speedInt = parseInt(val);
+        return speedInt >= 0 ? "+" + speedInt : "" + speedInt;
+    }
+
     // BỘ ĐỊNH TUYẾN THÔNG MINH (Hỗ trợ đa nguồn Edge/TikTok)
     function getDynamicVoiceTarget(voiceTag) {
         function findVoiceConfig(displayName) {
@@ -2096,12 +2149,12 @@ btnStartAudio.addEventListener('click', async function() {
         }
 
         // 1. Ánh xạ Thẻ Vai Trò (Chuẩn mới)
-        if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator) };
-        if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale) };
-        if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale) };
+        if (voiceTag === 'Dẫn Truyện') return { config: findVoiceConfig(uiNameNarrator), pitch: toSSMLPercent(window.pitchRateNarrator), rate: toSpeedSSML(window.speedRateNarrator) };
+        if (voiceTag === 'Giọng Nam') return { config: findVoiceConfig(uiNameMale), pitch: toSSMLPercent(window.pitchRateMale), rate: toSpeedSSML(window.speedRateMale) };
+        if (voiceTag === 'Giọng Nữ') return { config: findVoiceConfig(uiNameFemale), pitch: toSSMLPercent(window.pitchRateFemale), rate: toSpeedSSML(window.speedRateFemale) };
 
         // 2. Kế hoạch dự phòng (Chuẩn cũ)
-        return { config: findVoiceConfig(voiceTag), pitch: "+0" };
+        return { config: findVoiceConfig(voiceTag), pitch: "+0", rate: "+0" };
     }
 
     var tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2225,7 +2278,7 @@ btnStartAudio.addEventListener('click', async function() {
                         
                         // Chỉnh thông số: Nếu là Tiêu đề Chương thì trầm giọng (-8%) và đọc chậm lại (-15%)
                         var finalPitch = isEpicMode ? "-15" : targetProps.pitch;
-                        var finalRate = isEpicMode ? "-15" : "+0";
+                        var finalRate = isEpicMode ? "-15" : targetProps.rate;
 
                         // Truyền thông số đặc biệt này lên Cloudflare
                         var mp3Buffer = await fetchAudioFromCloudflare(cleanText, targetProps.config, finalPitch, finalRate);
