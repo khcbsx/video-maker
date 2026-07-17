@@ -35,82 +35,132 @@
     <h1>AI Dựng Kịch Bản Phân Vai</h1>
     <p>Tự động biến tiểu thuyết thành kịch bản hội thoại đa nhân vật</p>
     <button onclick="window.open('index.html', '_blank')"
-    style="position: absolute; top: 0; right: 45px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;">
-    <span class="material-icons" style="font-size: 18px;">movie_creation</span> Video Maker
-</button>
+        style="position: absolute; top: 0; right: 45px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;">
+        <span class="material-icons" style="font-size: 18px;">movie_creation</span> Video Maker
+    </button>
 </header>
 
-        <div class="glass-card">
-            <h3 class="card-title" style="color: var(--primary);">
-                <span class="material-icons">stars</span> Thiết lập nhân vật & Giọng đọc
-            </h3>
-            <div class="grid-3">
-                <div class="voice-group">
-                    <label>Giọng Dẫn truyện:</label>
-                    <div style="display: flex; gap: 8px;">
-    <select id="voiceNarrator" class="voice-dropdown" style="flex: 1;"></select>
-    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="playPreviewVoice('voiceNarrator', this)" title="Nghe thử">
-        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
-    </button>
-</div>
-                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceNarrator">
-                        <div class="pitch-slider-label" id="pitch-label-voiceNarrator">▶ Giọng gốc (1.00)</div>
-                        <div class="pitch-slider-row">
-                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
-                            <input type="range" class="pitch-range" id="pitch-range-voiceNarrator" min="0.65" max="1.40" step="0.01" value="1.00">
-                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
-                            <button class="pitch-reset-btn">↺ Reset</button>
-                        </div>
-                    </div>
+<div class="glass-card">
+    <h3 class="card-title" style="color: var(--primary);">
+        <span class="material-icons">stars</span> Thiết lập nhân vật & Giọng đọc
+    </h3>
+    <div class="grid-3">
+        
+        <!-- ================= GIỌNG DẪN TRUYỆN ================= -->
+        <div class="voice-group">
+            <label>Giọng Dẫn truyện:</label>
+            <div style="display: flex; gap: 8px;">
+                <select id="voiceNarrator" class="voice-dropdown" style="flex: 1;"></select>
+                <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="playPreviewVoice('voiceNarrator', this)" title="Nghe thử">
+                    <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
+                </button>
+            </div>
+            
+            <!-- Box chứa 2 thanh trượt -->
+            <div class="pitch-slider-wrap" id="pitch-wrap-voiceNarrator" style="padding-bottom: 8px;">
+                
+                <!-- Thanh trượt 1: Độ Trầm Bổng -->
+                <div class="pitch-slider-label" id="pitch-label-voiceNarrator">▶ Giọng gốc (1.00)</div>
+                <div class="pitch-slider-row" style="margin-bottom: 12px;">
+                    <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                    <input type="range" class="pitch-range" id="pitch-range-voiceNarrator" min="0.65" max="1.40" step="0.01" value="1.00">
+                    <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                    <button class="pitch-reset-btn">↺ Reset</button>
                 </div>
-                <div class="voice-group">
-                    <label>Giọng Nam:</label>
-                    <div style="display: flex; gap: 8px;">
-    <select id="voiceMale" class="voice-dropdown" style="flex: 1;"></select>
-    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #3b82f6; color: #3b82f6;" onclick="playPreviewVoice('voiceMale', this)" title="Nghe thử">
-        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
-    </button>
-</div>
-                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceMale">
-                        <div class="pitch-slider-label" id="pitch-label-voiceMale">▶ Giọng gốc (1.00)</div>
-                        <div class="pitch-slider-row">
-                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
-                            <input type="range" class="pitch-range" id="pitch-range-voiceMale" min="0.65" max="1.40" step="0.01" value="1.00">
-                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
-                            <button class="pitch-reset-btn">↺ Reset</button>
-                        </div>
-                    </div>
+                
+                <!-- Thanh trượt 2: Tốc Độ Đọc (Mới Thêm) -->
+                <div class="speed-slider-label" id="speed-label-voiceNarrator" style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">▶ Tốc độ đọc (0%)</div>
+                <div class="pitch-slider-row">
+                    <span style="font-size:11px;color:var(--text-muted)">Chậm</span>
+                    <!-- Edge TTS dùng tốc độ theo %, biên độ an toàn là -50 đến 50 -->
+                    <input type="range" class="speed-range" id="speed-range-voiceNarrator" min="-50" max="50" step="1" value="0">
+                    <span style="font-size:11px;color:var(--text-muted)">Nhanh</span>
+                    <button class="pitch-reset-btn speed-reset-btn">↺ Reset</button>
                 </div>
-                <div class="voice-group">
-                    <label>Giọng Nữ:</label>
-                    <div style="display: flex; gap: 8px;">
-    <select id="voiceFemale" class="voice-dropdown" style="flex: 1;"></select>
-    <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #ec4899; color: #ec4899;" onclick="playPreviewVoice('voiceFemale', this)" title="Nghe thử">
-        <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
-    </button>
-</div>
-                    <div class="pitch-slider-wrap" id="pitch-wrap-voiceFemale">
-                        <div class="pitch-slider-label" id="pitch-label-voiceFemale">▶ Giọng gốc (1.00)</div>
-                        <div class="pitch-slider-row">
-                            <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
-                            <input type="range" class="pitch-range" id="pitch-range-voiceFemale" min="0.65" max="1.40" step="0.01" value="1.00">
-                            <span style="font-size:11px;color:var(--text-muted)">Cao</span>
-                            <button class="pitch-reset-btn">↺ Reset</button>
-                        </div>
-                    </div>
-                </div>
+                
             </div>
         </div>
 
-        <div class="glass-card" style="border-color: var(--primary);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                <h3 class="card-title" style="color: var(--primary); margin:0;">
-                    <span class="material-icons">auto_awesome</span> Hàng đợi Dựng Kịch Bản Tự động
-                </h3>
-                <button id="btnStartScript" class="btn btn-green" style="display: none;">
-                    <span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN
+        <!-- ================= GIỌNG NAM ================= -->
+        <div class="voice-group">
+            <label>Giọng Nam:</label>
+            <div style="display: flex; gap: 8px;">
+                <select id="voiceMale" class="voice-dropdown" style="flex: 1;"></select>
+                <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #3b82f6; color: #3b82f6;" onclick="playPreviewVoice('voiceMale', this)" title="Nghe thử">
+                    <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
                 </button>
             </div>
+            
+            <!-- Box chứa 2 thanh trượt -->
+            <div class="pitch-slider-wrap" id="pitch-wrap-voiceMale" style="padding-bottom: 8px;">
+                
+                <!-- Thanh trượt 1: Độ Trầm Bổng -->
+                <div class="pitch-slider-label" id="pitch-label-voiceMale">▶ Giọng gốc (1.00)</div>
+                <div class="pitch-slider-row" style="margin-bottom: 12px;">
+                    <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                    <input type="range" class="pitch-range" id="pitch-range-voiceMale" min="0.65" max="1.40" step="0.01" value="1.00">
+                    <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                    <button class="pitch-reset-btn">↺ Reset</button>
+                </div>
+
+                <!-- Thanh trượt 2: Tốc Độ Đọc (Mới Thêm) -->
+                <div class="speed-slider-label" id="speed-label-voiceMale" style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">▶ Tốc độ đọc (0%)</div>
+                <div class="pitch-slider-row">
+                    <span style="font-size:11px;color:var(--text-muted)">Chậm</span>
+                    <input type="range" class="speed-range" id="speed-range-voiceMale" min="-50" max="50" step="1" value="0">
+                    <span style="font-size:11px;color:var(--text-muted)">Nhanh</span>
+                    <button class="pitch-reset-btn speed-reset-btn">↺ Reset</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= GIỌNG NỮ ================= -->
+        <div class="voice-group">
+            <label>Giọng Nữ:</label>
+            <div style="display: flex; gap: 8px;">
+                <select id="voiceFemale" class="voice-dropdown" style="flex: 1;"></select>
+                <button type="button" class="btn" style="padding: 0 10px; background: transparent; border: 1px solid #ec4899; color: #ec4899;" onclick="playPreviewVoice('voiceFemale', this)" title="Nghe thử">
+                    <span class="material-icons" style="font-size: 18px; margin: 0;">volume_up</span>
+                </button>
+            </div>
+            
+            <!-- Box chứa 2 thanh trượt -->
+            <div class="pitch-slider-wrap" id="pitch-wrap-voiceFemale" style="padding-bottom: 8px;">
+                
+                <!-- Thanh trượt 1: Độ Trầm Bổng -->
+                <div class="pitch-slider-label" id="pitch-label-voiceFemale">▶ Giọng gốc (1.00)</div>
+                <div class="pitch-slider-row" style="margin-bottom: 12px;">
+                    <span style="font-size:11px;color:var(--text-muted)">Trầm</span>
+                    <input type="range" class="pitch-range" id="pitch-range-voiceFemale" min="0.65" max="1.40" step="0.01" value="1.00">
+                    <span style="font-size:11px;color:var(--text-muted)">Cao</span>
+                    <button class="pitch-reset-btn">↺ Reset</button>
+                </div>
+
+                <!-- Thanh trượt 2: Tốc Độ Đọc (Mới Thêm) -->
+                <div class="speed-slider-label" id="speed-label-voiceFemale" style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">▶ Tốc độ đọc (0%)</div>
+                <div class="pitch-slider-row">
+                    <span style="font-size:11px;color:var(--text-muted)">Chậm</span>
+                    <input type="range" class="speed-range" id="speed-range-voiceFemale" min="-50" max="50" step="1" value="0">
+                    <span style="font-size:11px;color:var(--text-muted)">Nhanh</span>
+                    <button class="pitch-reset-btn speed-reset-btn">↺ Reset</button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="glass-card" style="border-color: var(--primary);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+        <h3 class="card-title" style="color: var(--primary); margin:0;">
+            <span class="material-icons">auto_awesome</span> Hàng đợi Dựng Kịch Bản Tự động
+        </h3>
+        <button id="btnStartScript" class="btn btn-green" style="display: none;">
+            <span class="material-icons">play_circle</span> CHẠY DỰNG KỊCH BẢN
+        </button>
+    </div>
             
             <div class="controls-row">
                 <label class="upload-btn">
