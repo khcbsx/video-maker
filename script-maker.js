@@ -906,6 +906,24 @@ function splitLineToParts(line) {
   var results = [];
   var lastIndex = 0;
 
+  // ══════════════════════════════════════════════════════════════
+  // THÊM MỚI: Nhận diện dòng thoại bắt đầu bằng dấu gạch ngang
+  // Bắt cả 3 loại trông giống nhau trong văn bản Việt:
+  //   - (U+002D) gạch ngắn ASCII  
+  //   – (U+2013) En dash — Word/Google Docs hay tự chuyển thành loại này
+  //   — (U+2014) Em dash
+  // Logic: Nếu dòng bắt đầu = dấu gạch → TOÀN BỘ dòng là 1 câu thoại
+  // Sau khi bóc dấu gạch + khoảng trắng đầu → nội dung còn lại = text thoại
+  // ══════════════════════════════════════════════════════════════
+  if (/^[\-\u2013\u2014]/.test(trimmed)) {
+    var dialogContent = trimmed.replace(/^[\-\u2013\u2014]\s*/, '').trim();
+    if (dialogContent.length > 0) {
+      results.push({ type: 'dialog', text: dialogContent });
+    }
+    return results;
+  }
+  // ══════════════════════════════════════════════════════════════
+
   // Hỗ trợ quét chính xác cả 6 định dạng dấu ngoặc kép thẳng và cong của Word
   var dialogRegex = /("[\s\S]+?"|'[\s\S]+?'|\u201C[\s\S]+?\u201D|\u2018[\s\S]+?\u2019)/g;
   var match;
