@@ -949,6 +949,34 @@ function resolveVoiceForDialog(contextText, dialogText, voiceMale, voiceFemale) 
   return voiceMale;
 }
 
+// Chuẩn hóa văn bản trước khi phân vai: khôi phục các dòng thoại có gạch đầu dòng
+// bị dính liền vào lời dẫn do mất dấu xuống dòng.
+function normalizeScriptText(text) {
+  // 1. Đưa mọi kiểu xuống dòng lạ về \n
+  var t = (text || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u2028\u2029\u000B\u000C\u0085]/g, '\n');
+
+  // Dấu gạch thoại nằm giữa dòng: đứng sau dấu câu, theo sau là chữ HOA
+  var reDashMid     = /([.…!?”"])[ \t]*([\-\u2013\u2014])[ \t]*(?=\p{Lu})/gu;
+  var reDashMidTest = /[.…!?”"][ \t]*[\-\u2013\u2014][ \t]*\p{Lu}/u;
+  // Dòng bắt đầu bằng dấu gạch
+  var reDashStart   = /^[ \t]*[\-\u2013\u2014]/;
+  // Hết câu mà dính liền chữ hoa kế tiếp, không có dấu cách (VD: "Tông!!!Tiếng", "một!Thiếu")
+  var reGlue        = /([.…!?])(?=\p{Lu}\p{Ll})/gu;
+  var reGlueTest    = /[.…!?]\p{Lu}\p{Ll}/u;
+
+  return t.split('\n').map(function (line) {
+    // Chỉ sửa những dòng có dấu hiệu dính thoại, để không đụng vào văn bản bình thường
+    if (reDashMidTest.test(line) || (reDashStart.test(line) && reGlueTest.test(line))) {
+      line = line
+        .replace(reDashMid, '$1\n$2 ')  // tách dấu gạch thoại xuống dòng mới
+        .replace(reGlue, '$1\n');       // tách chỗ hết thoại dính liền lời dẫn
+    }
+    return line;
+  }).join('\n');
+}
+
 // Hàm cốt lõi vận hành luồng phân vai + AUTO RẢI NHẠC NỀN (CHUẨN THẺ VAI TRÒ)
 async function runScriptAutomation(rawText, taskId, skipBgm) { // 🌟 THÊM BIẾN skipBgm VÀO ĐÂY
     // THAY ĐỔI LỚN NHẤT Ở ĐÂY: Gán chết 3 Thẻ Vai Trò thay vì lấy từ Giao diện
@@ -956,7 +984,7 @@ async function runScriptAutomation(rawText, taskId, skipBgm) { // 🌟 THÊM BI�
     var voiceMale     = 'Giọng Nam';
     var voiceFemale   = 'Giọng Nữ';
     
-    var lines = rawText.split('\n');
+    var lines = normalizeScriptText(rawText).split('\n');
     var taggedLines = [];
     var contextWindow = ''; 
     
